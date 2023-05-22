@@ -1,13 +1,16 @@
 # RUN DOCKER
+docker stop rvl_ur5_detectron2
+
 docker rm rvl_ur5_detectron2
+
 docker run --ipc=host --gpus all --runtime=runc --interactive -it \
 --shm-size=10gb \
 --env="DISPLAY" \
---volume="/home/valentin/docker_dir/RVL_UR5_detectron2_DOCKER:/home/RVLuser" \
+--volume="${PWD}:/home/RVLuser" \
 --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 --volume="/dev:/dev" \
 --workdir="/home/RVLuser" \
--p 6018:6018 \
+# -p 6018:6018 \
 --privileged \
 --name=rvl_ur5_detectron2 rvl:ur5_detectron2
 
