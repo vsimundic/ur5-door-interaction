@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>RVLCore.lib;RVLPCSegment.lib;RVLNN.lib;hdf5_D.lib;hdf5_cpp_D.lib;hdf5_hl_D.lib;hdf5_hl_cpp_D.lib;hdf5_tools_D.lib;szip_D.lib;zlib_D.lib;opencv_world344d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>
