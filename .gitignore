@@ -1,1 +1,4 @@
 rvl-linux/data/*
+human_segmentation_ws/build
+human_segmentation_ws/devel
+human_segmentation_ws/test/*

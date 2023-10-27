@@ -1,0 +1,16 @@
+{
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "python.formatting.provider": "none",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/RVLuser/rvl-linux/python/build/lib",
+        "/home/RVLuser/detectron2/detectron2"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/noetic/lib/python3/dist-packages",
+        "/home/RVLuser/rvl-linux/python/build/lib",
+        "/home/RVLuser/detectron2/detectron2"
+    ]
+}

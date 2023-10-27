@@ -118,10 +118,16 @@ ENV TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}"
 
 RUN apt-get install python3-setuptools
 RUN pip3 install cython
+
+RUN apt-get update
+RUN pip3 install matplotlib==3.7.2
+RUN pip3 install omegaconf==2.3.0
+
 WORKDIR /home/RVLuser/detectron2
 # RUN pip3 install -e detectron2
 RUN python3 setup.py build develop
 ENV FVCORE_CACHE="/tmp"
+
 
 # RUN pip3 install -e /home/RVLuser/detectron2/projects/TensorMask
 WORKDIR /home/RVLuser/detectron2/projects/TensorMask
@@ -130,7 +136,6 @@ RUN python3 setup.py build develop
 
 RUN apt-get update
 # RUN apt-get -y install python3-pip
-RUN pip3 install numpy
 
 RUN apt-get update
 RUN apt-get install -y lsb-release
@@ -146,7 +151,6 @@ RUN apt install python3-rosdep
 RUN apt-get install -y ros-noetic-realsense2-camera
 RUN apt-get install -y ros-noetic-openni-launch
 RUN apt-get install -y ros-noetic-openni2-launch
-RUN apt-get install -y ros-noetic-ros-numpy
 RUN apt-get install -y ros-noetic-rosbash
 RUN apt-get install -y ros-noetic-ros-control
 RUN apt-get install -y ros-noetic-soem
@@ -170,3 +174,7 @@ RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 # ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/detectron2/detectron2"
 
 RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+RUN pip3 install open3d
+
+ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/modules/RVLPY"
