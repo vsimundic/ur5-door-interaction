@@ -206,7 +206,8 @@ class push():
         
         return valid, z
 
-    def valid_contact_poses(self, tool_finger_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
+    # def valid_contact_poses(self, tool_finger_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
+    def valid_contact_poses(self, tool_finger_distances, sphere_to_TCS_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
         # Constants.
 
         num_contact_points = contact_points.shape[0]
@@ -234,7 +235,8 @@ class push():
                 R = rot_mx[contact_point_idx * num_orientations + orientation_idx,:,:]
                 valid, z = self.z_shift(R, contact_point, visualization=False)
                 if valid:
-                    T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distance)
+                    # T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distance)
+                    T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance)
                     valid_contact_poses_.append(T_G_DD)
                     # valid_poses += 1
                     # print(1)
@@ -256,14 +258,16 @@ class push():
         e = (y - self.tool.tool_sample_spheres[:,3]).min(axis=1)
         return (e <= 0.0)
     
-    def tool_pose(self, R, contact_point, z, tool_finger_distance):
+    def tool_pose(self, R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance):
         T_G_TCS = np.eye(4)
-        T_G_TCS[0,3] = 0.5 * tool_finger_distance # define all coords for 3finger
+        T_G_TCS[0:3,3] = tool_finger_distances.copy() # define all coords for 3finger
         T_TCS_DD = np.eye(4)
         T_TCS_DD[:3,:3] = R
         T_TCS_DD[:3,3] = contact_point
         # T_TCS_DD[2,3] -= z # dodati -= (z + pomak kugle)
-        T_TCS_DD[2,3] -= (z + 0.018091) # [TODO make a variable] 
+        T_TCS_DD[2,3] -= z
+        T_TCS_DD[2,3] += sphere_to_TCS_distance
+
         T_G_DD = T_TCS_DD @ T_G_TCS      
         return T_G_DD
 
@@ -399,63 +403,93 @@ class door_model():
         return dd_mesh
 
 class tool_model():
-    def __init__(self):
-        #self.tool_contact_surface_params = np.array([[0.0, 0.02, 0.0], [0.0, 0.03, -0.04]])
-        # self.tool_contact_surface_params = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02]])
-        self.tool_contact_surface_params = np.array([[0.0, -0.016, 0.0], [0.0, -0.016, -0.025]]) # 3finger 
+    def __init__(self, gripper_params):
+
+        self.default_used = gripper_params['is_default_gripper']
+        self.custom_gripper_spheres_path = gripper_params['custom_gripper_spheres_path']
+        self.custom_gripper_model_path = gripper_params['custom_gripper_model_path']
+
+        # Default gripper parameters
         self.tool_finger_size = np.array([0.02, 0.02, 0.06])
-        self.tool_finger_distance = 0.06
         self.tool_palm_size = np.array([0.1, 0.02, 0.02])
+
+        # Trapezoid points on the fingertips of the gripper w.r.t. the midpoint of the upper base of the trapezoid
+        # self.tool_contact_surface_params = np.array([[0.0, 0.02, 0.0], [0.0, 0.03, -0.04]])
+        # self.tool_contact_surface_params_default = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02]])
+        # self.tool_contact_surface_params_3finger = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025]]) 
+        # self.tool_contact_surface_params = self.tool_contact_surface_params_default if self.default_used else self.tool_contact_surface_params_3finger
+        self.tool_contact_surface_params = gripper_params['tool_contact_surface_params']
+
+
+        # Distances from TCS to G in TCS frame
+        # self.tool_finger_distances_default = [0.06/2., 0., 0.] # x, y, z
+        # self.tool_finger_distances_3finger = [-0.155/2., 0., -0.102] # x, y, z
+        # self.tool_finger_distances = self.tool_finger_distances_default.copy() if self.default_used else self.tool_finger_distances_3finger.copy()
+        self.tool_finger_distances = gripper_params['tool_finger_distances']
+        
+        # Largest distance between inspheres/exspheres 
+        # self.sphere_to_TCS_distance_default = 0.
+        # self.sphere_to_TCS_distance_3finger = 0.004609
+        # self.sphere_to_TCS_distance = self.sphere_to_TCS_distance_default if self.default_used else self.sphere_to_TCS_distance_3finger
+        self.sphere_to_TCS_distance = gripper_params['sphere_to_TCS_distance']
+        
+        # Distance between tool contact surfaces of the opposite fingers
+        self.tool_finger_distance_default = 0.06
+        self.tool_finger_distance_3finger = 0.155
+        # self.tool_finger_distance = self.tool_finger_distance_default if self.default_used else self.tool_contact_surface_params_3finger
+        self.tool_finger_distance = self.tool_finger_distance_default
+
 
     def create(self):
         # Tool sample spheres.
 
-        tool_sample_sphere_r = 0.5 * self.tool_finger_size[0]
-        self.tool_sample_spheres = np.array([[-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -3.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -5.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -3.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -5.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [-2.0 * tool_sample_sphere_r, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [0.0, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
-                                        [2.0 * tool_sample_sphere_r, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r]])        
+        if self.default_used:
+            tool_sample_sphere_r = 0.5 * self.tool_finger_size[0]
+            self.tool_sample_spheres = np.array([[-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -3.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -5.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [-0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -3.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -5.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [ 0.5 * (self.tool_finger_distance + self.tool_finger_size[0]), 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [-2.0 * tool_sample_sphere_r, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [0.0, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r],
+                                            [2.0 * tool_sample_sphere_r, 0.0, -7.0 * tool_sample_sphere_r, tool_sample_sphere_r]])        
+        else:
+            with open(self.custom_gripper_spheres_path, 'rb') as f:
+                self.tool_sample_spheres = np.array(np.load(f))
+            
+            self.tool_sample_spheres /= 1000.
 
-
-    def create_3finger(self):
-        with open('/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper_spheres/gripper_spheres.npy', 'rb') as f:
-            self.tool_sample_spheres = np.array(np.load(f))
-        
-        self.tool_sample_spheres /= 1000.
-
-    def create_mesh_3finger(self, tool_color):
-        tool_mesh = o3d.io.read_triangle_mesh('/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper_spheres/robotiq_3f_gripper_simplified.stl')
-        tool_mesh.paint_uniform_color(tool_color)
-        return tool_mesh
 
     def create_mesh(self, tool_color):
-        finger = o3d.geometry.TriangleMesh.create_box(width=self.tool_finger_size[0], height=self.tool_finger_size[1], depth=self.tool_finger_size[2])
-        finger1 = copy.deepcopy(finger).translate((0.5 * self.tool_finger_distance, -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
-        finger2 = copy.deepcopy(finger).translate((-0.5 * self.tool_finger_distance - self.tool_finger_size[0], -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
-        palm = o3d.geometry.TriangleMesh.create_box(width=self.tool_palm_size[0], height=self.tool_palm_size[1], depth=self.tool_palm_size[2])
-        palm = palm.translate((-0.5 * self.tool_palm_size[0], -0.5 * self.tool_palm_size[1], -self.tool_finger_size[2] - self.tool_palm_size[2]))
-        tool_mesh = finger1 + finger2 + palm
-        tool_mesh.compute_vertex_normals()
-        tool_mesh.paint_uniform_color(tool_color)
-        tool_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size = 0.05)
-        tool_mesh += tool_rf
+
+        if self.default_used:
+            finger = o3d.geometry.TriangleMesh.create_box(width=self.tool_finger_size[0], height=self.tool_finger_size[1], depth=self.tool_finger_size[2])
+            finger1 = copy.deepcopy(finger).translate((0.5 * self.tool_finger_distance, -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
+            finger2 = copy.deepcopy(finger).translate((-0.5 * self.tool_finger_distance - self.tool_finger_size[0], -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
+            palm = o3d.geometry.TriangleMesh.create_box(width=self.tool_palm_size[0], height=self.tool_palm_size[1], depth=self.tool_palm_size[2])
+            palm = palm.translate((-0.5 * self.tool_palm_size[0], -0.5 * self.tool_palm_size[1], -self.tool_finger_size[2] - self.tool_palm_size[2]))
+            tool_mesh = finger1 + finger2 + palm
+            tool_mesh.compute_vertex_normals()
+            tool_mesh.paint_uniform_color(tool_color)
+            tool_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size = 0.05)
+            tool_mesh += tool_rf
+        else:
+            tool_mesh = o3d.io.read_triangle_mesh(self.custom_gripper_model_path)
+            tool_mesh.paint_uniform_color(tool_color)
 
         return tool_mesh
 
-def visualize_push(collision, door, tool, T_G_DD, is_3finger_used=False):
+
+def visualize_push(collision, door, tool, T_G_DD):
     if collision:
         tool_color = [1.0, 0.0, 0.0]
     else:
         tool_color = [0.0, 0.5, 0.5]
     # tool_mesh = tool.create_mesh(tool_color)
-    tool_mesh = tool.create_mesh_3finger(tool_color) if is_3finger_used else tool.create_mesh(tool_color)
+    tool_mesh = tool.create_mesh(tool_color)
     T_G_W = door.T_DD_W @ T_G_DD
     tool_mesh.transform(T_G_W)
     tool_mesh_wireframe = o3d.geometry.LineSet.create_from_triangle_mesh(tool_mesh)
@@ -515,7 +549,8 @@ def demo_single_random():
 
         # Tool pose.
 
-        T_G_DD = push_.tool_pose(R, contact_point, z, tool.tool_finger_distance)
+        # T_G_DD = push_.tool_pose(R, contact_point, z, tool.tool_finger_distance)
+        T_G_DD = push_.tool_pose(R, contact_point, z, tool.tool_finger_distances, tool.sphere_to_TCS_distance)
 
     # Collision detection.
 
@@ -658,26 +693,44 @@ def demo_vn():
 def demo_push_poses():
     # Parameters.
   
-    dd_state_deg = -60.0
+    dd_state_deg = -12.0
     num_viewpoints = 100
     num_rot_angles = 12
-    load_valid_contact_poses_from_file = True
-    load_feasible_poses_from_file = True
-    is_3finger_used = True
+    load_valid_contact_poses_from_file = False
+    load_feasible_poses_from_file = False
+    
+    use_default_gripper = False
 
+    if use_default_gripper:
+        custom_gripper_spheres_path = ''
+        custom_gripper_model_path = ''
+        tool_contact_surface_params = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02]]),
+        tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
+        tool_finger_distances = [0.06/2., 0., 0.] # x, y, z
+        sphere_to_TCS_distance = 0.
+    else:
+        custom_gripper_spheres_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/gripper_spheres.npy'
+        custom_gripper_model_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/robotiq_3f_gripper_simplified.stl'
+        
+        tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025]])
+        tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
+        sphere_to_TCS_distance = 0.004609
+
+    gripper_params = {'is_default_gripper': use_default_gripper,
+                        'custom_gripper_spheres_path': custom_gripper_spheres_path, 
+                        'custom_gripper_model_path': custom_gripper_model_path,
+                        'tool_contact_surface_params': tool_contact_surface_params,
+                        'tool_finger_distances': tool_finger_distances,
+                        'sphere_to_TCS_distance': sphere_to_TCS_distance}
     # Door model.
-
     door = door_model()
     door.create(dd_state_deg)
 
     # Tool model.
-
-    tool = tool_model()
-
-    tool.create_3finger() if is_3finger_used else tool.create()
+    tool = tool_model(gripper_params)
+    tool.create()
 
     # Contact points.
-
     x = np.linspace(0.0, door.dd_contact_surface_params[0], 21)
     y = np.linspace(0.0, door.dd_contact_surface_params[1], 21)
     dd_grid_x, dd_grid_y = np.meshgrid(x, y)
@@ -695,7 +748,8 @@ def demo_push_poses():
     if load_valid_contact_poses_from_file:
         valid_contact_poses_ = np.load("valid_contact_poses.npy")
     else:        
-        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
+        # valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
+        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
         np.save("valid_contact_poses", valid_contact_poses_)
 
     # Feasible poses (no collision with the door/drawer plate).
@@ -715,15 +769,15 @@ def demo_push_poses():
 
     # Visualization.
 
-    # samples = contact_free_poses
-    samples = valid_contact_poses_
+    samples = contact_free_poses
+    # samples = valid_contact_poses_
     collision_ = np.zeros(samples.shape[0]).astype('bool')
     for visualization_idx in range(10):
         print('sample', visualization_idx)
         sample_idx = np.random.randint(samples.shape[0])
         # sample_idx = 0
         T_G_DD = samples[sample_idx,:,:]
-        dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD, is_3finger_used)
+        dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
         o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
 
 
