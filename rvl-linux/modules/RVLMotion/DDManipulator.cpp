@@ -32,6 +32,7 @@ DDManipulator::DDManipulator()
 
     // Cfg params
     gripperModelFileName = NULL;
+    // gripperPoseSaveFileName = NULL;
     // gripperModelFileName = "/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/robotiq_3f_gripper_simplified.ply";
     // gripperModelFileName = "/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/ros_point_cloud.ply";
     // Door model parameters.
@@ -295,6 +296,7 @@ void DDManipulator::CreateParamList()
     pParamData = paramList.AddParam("DDM.maxnSE3Points", RVLPARAM_TYPE_INT, &maxnSE3Points);
     pParamData = paramList.AddParam("DDM.UseDefaultGripper", RVLPARAM_TYPE_BOOL, &useDefaultGripper);
     pParamData = paramList.AddParam("DDM.GripperModelFileName", RVLPARAM_TYPE_STRING, &gripperModelFileName);
+    // pParamData = paramList.AddParam("DDM.GripperPoseSaveFileName", RVLPARAM_TYPE_STRING, &gripperPoseSaveFileName);
 }
 
 void DDManipulator::Clear()
@@ -540,7 +542,8 @@ bool DDManipulator::FreePose(
     return bFree;
 }
 
-void DDManipulator::Path(Pose3D* pPose_G_S_init)
+// void DDManipulator::Path(Pose3D* pPose_G_S_init)
+Pose3D DDManipulator::Path(Pose3D* pPose_G_S_init)
 {
     // Parameters.
 
@@ -1062,6 +1065,10 @@ void DDManipulator::Path(Pose3D* pPose_G_S_init)
     delete[] SDF;
     delete[] rndIdx.Element;
     //delete[] visNodes.Element;
+
+    pNode = nodes.data() + nodes.size(); // Take the last pose (by the door)
+    Pose3D pose_G_S = pNode->pose.pose;
+    return pose_G_S;
 }
 
 void DDManipulator::LoadFeasibleToolContactPoses(std::string contactPointsFileName)

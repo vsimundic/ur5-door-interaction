@@ -40,6 +40,7 @@ void CreateParamList(
     DWORD &flags,
     char** pFeasibleToolContactPosesFileName,
     char** pGripperModelFileName, 
+    char** pGripperPoseSaveFileName,
     float &dd_state_angle_deg)
 {
     pParamList->m_pMem = pMem;
@@ -50,6 +51,7 @@ void CreateParamList(
     pParamList->AddID(pParamData, "yes", RVLRECOGNITION_DEMO_USE_DEFAULT_GRIPPER);
     pParamData = pParamList->AddParam("FeasibleToolContactPosesFileName", RVLPARAM_TYPE_STRING, pFeasibleToolContactPosesFileName);
     pParamData = pParamList->AddParam("GripperModelFileName", RVLPARAM_TYPE_STRING, pGripperModelFileName);
+    pParamData = pParamList->AddParam("GripperPoseSaveFileName", RVLPARAM_TYPE_STRING, pGripperPoseSaveFileName);
     pParamData = pParamList->AddParam("DoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_state_angle_deg);
 }
 
@@ -408,6 +410,7 @@ int main(int argc, char** argv)
     
     char *feasibleToolContactPosesFileName = NULL;
     char *gripperModelFileName = NULL;
+    char *gripperPoseSaveFileName = NULL;
     float dd_state_angle_deg = 10.0f;
     DWORD flags = 0x00000000; // VIDOVIC
 
@@ -417,6 +420,7 @@ int main(int argc, char** argv)
                     flags,
                     &feasibleToolContactPosesFileName,
                     &gripperModelFileName,
+                    &gripperPoseSaveFileName,
                     dd_state_angle_deg);
     ParamList.LoadParams(cfgFileName);
 
@@ -454,13 +458,28 @@ int main(int argc, char** argv)
     // Path planning.
 
     Pose3D pose_G_S_init;
+    Pose3D pose_G_S;
     RVLUNITMX3(pose_G_S_init.R);
     RVLSET3VECTOR(pose_G_S_init.t, 0.30f, 0.10f, -0.50f);
-    manipulator.Path(&pose_G_S_init);
+    // manipulator.Path(&pose_G_S_init);
+    pose_G_S = manipulator.Path(&pose_G_S_init);
+    
+
+
+    // Save gripper pose to file
+    double T[16];
+    RVLHTRANSFMX(pose_G_S.R, pose_G_S.t, T);
+    
+    std::vector<double> Tv(std::begin(T), std::end(T));    
+
+    if (gripperPoseSaveFileName != NULL)
+    {
+        cnpy::npy_save(gripperPoseSaveFileName, Tv, "w");
+    }
 
     // Visualization.
 
-
+    
     //Pose3D pose_G_DD = manipulator.feasibleTCPs.Element[100];
     //Pose3D pose_G_Arot;
     //RVLCOMPTRANSF3D(manipulator.pose_DD_A.R, manipulator.pose_DD_A.t, pose_G_DD.R, pose_G_DD.t, pose_G_Arot.R, pose_G_Arot.t);

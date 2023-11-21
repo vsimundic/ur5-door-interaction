@@ -84,7 +84,8 @@ namespace RVL
 			Vector3<float>* c_S_rot,
 			Vector3<float>* c_S,
 			Pose3D* pPose_G_S);
-		void Path(Pose3D * pPose_G_S_init);
+		// void Path(Pose3D *pPose_G_S_init);
+		Pose3D Path(Pose3D *pPose_G_S_init);
 		void LoadFeasibleToolContactPoses(std::string contactPointsFileName);
 		void InitVisualizer(Visualizer* pVisualizerIn);
 		void Visualize(
@@ -142,6 +143,7 @@ namespace RVL
 		Array<MOTION::Sphere> tool_sample_spheres;
 		bool useDefaultGripper;
 		char *gripperModelFileName;
+		// char *gripperPoseSaveFileName;
 		// Path planning.
 
 		int maxnSE3Points;
