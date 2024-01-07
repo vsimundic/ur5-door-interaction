@@ -44,19 +44,24 @@ if __name__ == '__main__':
 
     theta_deg = config['feasible_poses']['dd_state_deg']
 
-    cabinet_model.move_model_joint_gazebo(theta_deg)
+    cabinet_model.open_door_gazebo(theta_deg)
 
     feasible_poses_args = config['feasible_poses']
     feasible_poses = push.demo_push_poses_ros(**feasible_poses_args)
     
-    TGX = cabinet_model.get_gripper_pose_from_feasible_pose(feasible_poses[0])
-    TB0 = np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TB0.npy'))
-    TGT = np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TGT.npy'))
+    TGX = cabinet_model.get_feasible_pose_wrt_X(feasible_poses[0])
+    
+    # cabinet_model.visualize(TGX)
+    # cabinet_model.visualize(TGX)
+    
+    # TB0 = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TB0.npy')))
+    # TGT = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TGT.npy')))
 
-    TTB = TB0.T @ TX0 @ TGX @ TGT.T
+    # TTB = TB0.T @ TX0 @ TGX @ TGT.T
+    # TTB = TB0.T @ TX0 @ TGX 
 
-    robot = UR5Commander()
-    robot.send_pose_to_robot(TTB)
+    # robot = UR5Commander()
+    # robot.send_pose_to_robot(TTB)
 
 
 

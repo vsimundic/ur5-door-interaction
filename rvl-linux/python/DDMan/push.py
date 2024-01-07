@@ -454,8 +454,11 @@ class door_model():
         #    -dd_moving_to_static_part_distance - dd_static_side_width, -dd_plate_params[2]))
         dd_static_mesh.compute_vertex_normals()
         dd_static_mesh.paint_uniform_color([0.8, 0.8, 0.8])
+        
+        
+        dd_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size = 0.05)
 
-        dd_mesh = dd_plate_mesh + dd_static_mesh + dd_plate_rf
+        dd_mesh = dd_plate_mesh + dd_static_mesh + dd_plate_rf + dd_origin
 
         return dd_mesh
 
