@@ -125,9 +125,10 @@ python3 train_net.py --config-file configs/tensormask_R_50_FPN_1x.yaml --eval-on
 
 ### Path planning & Gazebo
 
-Enter the ferit_ur5_ws directory and source:
+Enter the ferit_ur5_ws directory (make if needed) and source:
 ```bash
 cd /home/RVLuser/ferit_ur5_ws
+catkin_make
 source devel/setup.bash
 ```
 Run the Gazebo simulation with:
