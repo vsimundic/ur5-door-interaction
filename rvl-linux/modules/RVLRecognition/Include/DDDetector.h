@@ -203,7 +203,7 @@ namespace RVL
 				RVLEDT_PIX_ARRAY EDTImage[2];
 				cv::Mat EDTDisplayImage[2];
 				cv::Mat ICPDisplayImage[2];
-				cv::Mat *displayImg;
+				cv::Mat displayImg;
 			};
 
 			struct EdgeSample
@@ -288,39 +288,62 @@ namespace RVL
 				RECOG::DDD::RectStruct MRS;
 			};
 
-            struct EdgeLineSegmentPixel
-            {
-                int iPix;
-                float e;
-                RECOG::DDD::EdgeLineSegmentPixel *pNext;
-            };
+			struct EdgeLineSegmentPixel
+			{
+				int iPix;
+				float e;
+				RECOG::DDD::EdgeLineSegmentPixel *pNext;
+			};
 
-            struct EdgeLineSegment
-            {
-                int iCluster;
-                float P[2][2];
-                QList<RECOG::DDD::EdgeLineSegmentPixel> pix;
-                Array<int> pix_;
-                float w;
-                float N[2];
-                float P0[2];
-            };
+			struct EdgeLineSegment
+			{
+				int iCluster;
+				float P[2][2];
+				QList<RECOG::DDD::EdgeLineSegmentPixel> pix;
+				Array<int> pix_;
+				float w;
+				float N[2];
+				float P0[2];
+			};
 
-            struct Line2D
-            {
-                float P[2][2];
-                float N[2];
-                float d;
-            };
+			struct Line2D
+			{
+				float P[2][2];
+				float N[2];
+				float d;
+			};
 
-            struct Detect3CallBackFuncData
-            {
-                void *vpDetector;
-                int nOrthogonalViews;
-                Array<RECOG::DDD::Line2D> *orthogonalViewLines;
-                Pose3D *poseFC;
-                Array<Rect<int>> *DDRects;
-            };
+			class FrontSurface
+			{
+			public:
+				FrontSurface();
+				virtual ~FrontSurface();
+
+			public:
+				int w;
+				int h;
+				float pixSize;
+				cv::Mat pixMap;
+				Array2D<uchar> mask;
+				Array<RECOG::DDD::Line2D> lines;
+				Pose3D poseFC;
+				int *leftDist;
+				int *rightDist;
+				int *upDist;
+				int *downDist;
+				Array<Rect<int>> DDRects;
+			};
+
+			struct Detect3CallBackFuncData
+			{
+				void *vpDetector;
+				Array<RECOG::DDD::FrontSurface> *pFrontSurfaces;
+				cv::Mat *pBGR;
+				int iSelectedView;
+				int iSlectedRect;
+				int iSelectedEdge;
+				bool bEdited;
+			};
 
 			bool ProjectToBase(
 				float *a,
@@ -335,11 +358,11 @@ namespace RVL
 				Mesh *pMesh,
 				cv::Mat mapping,
 				cv::Mat &tgtImg);
-            void MapImageC1(
-                cv::Mat srcImg,
-                cv::Mat mapping,
-                cv::Mat &tgtImg);
-            void Detect3CallBackFunc(int event, int x, int y, int flags, void *userdata);
+			void MapImageC1(
+				cv::Mat srcImg,
+				cv::Mat mapping,
+				cv::Mat &tgtImg);
+			void Detect3CallBackFunc(int event, int x, int y, int flags, void *userdata);
 		}
 	}
 
@@ -351,39 +374,39 @@ namespace RVL
 		void Create(char *cfgFileName);
 		void Clear();
 		void CreateParamList();
-        void DetectRGBEdgeLineSegments(
-            cv::Mat RGB,
-            int cannyThrL,
-            int cannyThrH,
-            int minHoughLineSize,
-            cv::Mat &edges,
-            cv::Mat &sobelx,
-            cv::Mat &sobely,
-            Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
-            int *&lineSegmentPixIdxMem,
-            int *&lineSegmentMap);
-        void SegmentEdgeLines(
-            cv::Mat &edges,
-            double *IuMap,
-            double *IvMap,
-            Array<RECOG::DDD::Line2D> lines,
-            int linePtTolIn,
-            float mincsN,
-            int maxLineGap,
-            Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
-            RECOG::DDD::EdgeLineSegmentPixel *&edgeLineSegmentMem,
-            int &nClusterElements);
-        void SegmentEdgeLines2(
-            cv::Mat &edges,
-            double *IuMap,
-            double *IvMap,
-            Array<RECOG::DDD::Line2D> lines,
-            int linePtTolIn,
-            float mincsN,
-            int maxLineGap,
-            Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
-            RECOG::DDD::EdgeLineSegmentPixel *&edgeLineSegmentMem,
-            int &nClusterElements);
+		void DetectRGBEdgeLineSegments(
+			cv::Mat RGB,
+			int cannyThrL,
+			int cannyThrH,
+			int minHoughLineSize,
+			cv::Mat &edges,
+			cv::Mat &sobelx,
+			cv::Mat &sobely,
+			Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
+			int *&lineSegmentPixIdxMem,
+			int *&lineSegmentMap);
+		void SegmentEdgeLines(
+			cv::Mat &edges,
+			double *IuMap,
+			double *IvMap,
+			Array<RECOG::DDD::Line2D> lines,
+			int linePtTolIn,
+			float mincsN,
+			int maxLineGap,
+			Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
+			RECOG::DDD::EdgeLineSegmentPixel *&edgeLineSegmentMem,
+			int &nClusterElements);
+		void SegmentEdgeLines2(
+			cv::Mat &edges,
+			double *IuMap,
+			double *IvMap,
+			Array<RECOG::DDD::Line2D> lines,
+			int linePtTolIn,
+			float mincsN,
+			int maxLineGap,
+			Array<RECOG::DDD::EdgeLineSegment> &lineSegments,
+			RECOG::DDD::EdgeLineSegmentPixel *&edgeLineSegmentMem,
+			int &nClusterElements);
 		void CreateModels(
 			Array<Mesh> models,
 			std::vector<std::string> modelFileNames);
@@ -401,7 +424,7 @@ namespace RVL
 			float *q,
 			RECOG::DDD::Model *pModel,
 			bool bVisualize = false);
-        void BoxNormals(float *A);
+		void BoxNormals(float *A);
 		void CreateCuboidModel2(
 			float *size,
 			float minSamplingDensity,
@@ -410,19 +433,36 @@ namespace RVL
 		void CreateStorageVolumeModel(
 			RECOG::DDD::Model *pModel,
 			bool bVisualize = false);
-		// void BoxNormals(float *A);
+		void CreateBox(
+			Mesh *pMesh,
+			float size[3]);
+		void CreateCylinder(
+			Mesh *pMesh,
+			float r,
+			float h,
+			int resolution);
+		void CreateLHTCPModel(
+			Mesh *pMesh,
+			float r1,
+			float h1,
+			float r2,
+			float h2,
+			int resolution);
+		void RotateRectStruct(
+			RECOG::DDD::RectStruct *pMRectStruct,
+			int *iMAxisMap,
+			float *dirMAxisMap,
+			int *iQAxisMap,
+			Array<RECOG::DDD::Rect3D> &MRects);
 		void LoadModels(std::vector<std::string> modelFileNames);
 		void Detect(
 			Array<Mesh> meshSeq,
 			RECOG::DDD::HypothesisDoorDrawer *pFinalHyp,
 			char *hypFileName = NULL,
 			std::vector<cv::Mat> *pRGBSeq = NULL);
-		//I. Vidovic
-		void Detect2(Array<Mesh> meshSeq);
-        void Detect3(
-            Array2D<uchar> mask,
-            Array<RECOG::DDD::Line2D> *pOrthogonalViewLines,
-            Array<Rect<int>> *pDDRects);
+		void Detect3(
+			RECOG::DDD::FrontSurface *pFrontSurface,
+			bool bVisualization = false);
 		bool GenerateHypotheses(
 			Mesh *pMesh,
 			std::vector<AffinePose3D> ROIs,
@@ -453,13 +493,10 @@ namespace RVL
 		void DetectStorageVolumes(Mesh *pMesh);
 		void DDOrthogonalView(
 			RECOG::DDD::RectStruct *pRectStruct,
-            Array<RECOG::DDD::EdgeLineSegment> edgeLineSegments,
+			Array<RECOG::DDD::EdgeLineSegment> edgeLineSegments,
 			float *verticalAxis,
 			int nOrthogonalViews,
-            Pose3D *&poseFCOut,
-			std::vector<cv::Mat> &orthogonalViews,
-            Array<Array2D<uchar>> &masks,
-            Array<RECOG::DDD::Line2D> *&orthogonalViewLines,
+			Array<RECOG::DDD::FrontSurface> &orthogonalViews,
 			bool bVisualize = false,
 			Mesh *pMesh = NULL);
 		void SampleImage(Mesh *pMesh);
@@ -602,6 +639,12 @@ namespace RVL
 		void LoadDDStates(
 			FILE *fp,
 			std::vector<RECOG::DDD::HypothesisDoorDrawer> &DDs);
+		void SaveDDRectangles(
+			std::string DDRectFileName,
+			Array<RECOG::DDD::FrontSurface> *pFrontSurfaces);
+		bool LoadDDRectangles(
+			std::string DDRectFileName,
+			Array<RECOG::DDD::FrontSurface> *pFrontSurfaces);
 		void LoadArticulatedObject(
 			char *modelFilePath,
 			char *AOFileName,
@@ -612,7 +655,7 @@ namespace RVL
 			int minSurfelSize,
 			int minEdgeSize);
 		void PlanarSurfaceEdges(Mesh *pMesh);
-        void AccuratePlaneFitting(Mesh *pMesh);
+		void AccuratePlaneFitting(Mesh *pMesh);
 		void InitVisualizer(Visualizer *pVisualizer = NULL);
 		void RunVisualizer();
 		void ClearVisualization();
@@ -625,111 +668,16 @@ namespace RVL
 			PointAssociationData *pPointAssociationData,
 			Array<Point> pointsMS,
 			Array<OrientedPoint> *pPointsQ = NULL);
-        void Display(
-            cv::Mat BGR,
-            Pose3D *poseFC,
-            int nOrthogonalViews,
-            Array<Rect<int>> *DDRects);
+		void Display(
+			cv::Mat BGR,
+			Array<RECOG::DDD::FrontSurface> *pFrontSurfaces);
+		bool DisplayAndEdit(
+			cv::Mat BGR,
+			Array<RECOG::DDD::FrontSurface> *pFrontSurfaces);
 		void SetSceneForHypothesisVisualization(Mesh *pMesh);
 		void SetBBoxForHypothesisVisualization(RECOG::DDD::Hypothesis *pHyp);
 		void RemoveHypothesisFromVisualization();
 		void RemoveHypothesisBoundingBoxFromVisualization();
-		void DetectDominantShiftPoints(Array<Mesh> meshSeq, Array<int> *selectedPointsIdx, bool bVisualize = false);
-		void DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int> *selectedPointsIdx, Vector3<float> &dominantShift, bool bVisualize = false);
-		void MeshSubsample(Mesh *pMesh, Array<int> *pSubsampledPointsIdx);
-		void CalculatePointsShiftVector(
-			Array<Point> pointsM,
-			Array<int> subsampledPointsMIdx,
-			Array<OrientedPoint> pointsQ,
-			PointAssociationData *pPointAssociationData,
-			Array<Vector3<float>> *pointsShift,
-			float shiftThresh,
-			Array<int> *validShiftedPointsMIdx);
-		void FindPointsWithShift(
-			Array<Point> pointsM,
-			Array<int> validPointsMIdx,
-			Array<OrientedPoint> pointsQ,
-			PointAssociationData *pPointAssociationData,
-			Vector3<float> *pointsShift,
-			float *shiftThresh,
-			Array<int> *pointsIdx);
-		void CalculateROI(Mesh *pMesh, Array<int> pointsIdx, Box<float> *ROI);
-		void FindMeanPoint(Array<OrientedPoint> *points, float *meanPoint);
-		void CalculateMeanHypothesis(Array<std::vector<RECOG::DDD::Hypothesis>> seqHypotheses);
-		void EvaluateHypothesis(Mesh *pMesh, AffinePose3D pose);
-		float EvaluateHypothesis(Mesh *pMesh, RECOG::DDD::Model *pModel, AffinePose3D pose, bool bPrintDebug = false);
-		void FitBBoxToPlanarSurface(RECOG::DDD::Hypothesis *hyp, Surfel *pPlanarSurface);
-		void RecognizeArticulatedObjectState(
-			Mesh *pMesh,
-			RECOG::DDD::ArticulatedObject AObj,
-			Pose3D &poseOC,
-			cv::Mat *pRGBImg,
-			bool bPrintDebug = false);
-		void CreateAOROI(
-			Mesh *pMesh,
-			RECOG::DDD::HypothesisDoorDrawer *pAObj,
-			Pose3D &poseOC,
-			Box<float> *ROI,
-			AffinePose3D &ROI_,
-			Pose3D &ROIPose);
-		void VisualizeAOROI(
-			Mesh *pMesh,
-			AffinePose3D &ROI_,
-			Pose3D &ROIPose);
-		float CreateAndEvaluateAOHypothesis(
-			Mesh *pMesh,
-			RECOG::DDD::HypothesisDoorDrawer *pAObj,
-			Pose3D &poseOC,
-			float q,
-			bool bPrintDebug = false);
-		float CreateAndEvaluateDefaultAOHypothesis(
-			Mesh *pMesh,
-			RECOG::DDD::HypothesisDoorDrawer *pAObj,
-			Pose3D &poseOC,
-			bool bPrintDebug = false);
-		void CalculateSurfelPointsInsideROI(
-			Mesh *pMesh,
-			Box<float> *ROI,
-			Pose3D &ROIPose,
-			int *pSurfelPointsInROI);
-		void LoadIRITransformationsFromYAML(
-			std::string path,
-			double *R,
-			double *t);
-		void LoadGTTransformations(
-			char *modelFilePath,
-			RECOG::DDD::Transformation &transformation);
-		void SelectAOModel(
-			RECOG::DDD::Transformation *pSceneTransformation,
-			Array<RECOG::DDD::Transformation> modelTransformations,
-			Array<RECOG::DDD::ArticulatedObject> modelAOs,
-			RECOG::DDD::ArticulatedObject &AObj,
-			Array<int> &models);
-		void SetPointsForPointToPointAssociationVisualization(
-			Mesh *pMeshM,
-			Mesh *pMeshQ,
-			PointAssociationData *pPointAssociationData);
-		void SetPointsForPointToPointAssociationVisualization(
-			Array<OrientedPoint> pointsM,
-			Mesh *pMeshQ,
-			PointAssociationData *pPointAssociationData);
-		void SetShiftVectorForVisualization(float *firstPoint, Vector3<float> shift, uchar *color);
-		void SetShiftVectorsForVisualization(float *firstPoint, Array<Vector3<float>> shiftArray, uchar *color);
-		void SetPointsForVisualization(Array<OrientedPoint> points, uchar *color, float size = 0.2);
-		void VisualizeFittingScoreCalculation(Mesh *pMesh, int nTransparentPts, int *SMCorrespondence, bool bVisualizeMesh = true);
-		bool GetVisualizeDoorHypotheses();
-		bool GetRGBImageVisualization();
-		void VisualizeDDHypothesis(
-			RECOG::DDD::HypothesisDoorDrawer hyp,
-			int imgID = -1);
-		void VisualizeDoorHypothesis(
-			RECOG::DDD::HypothesisDoorDrawer doorHyp,
-			int imgID = -1);
-		void VisualizeDrawerHypothesis(
-			RECOG::DDD::HypothesisDoorDrawer drawerHyp,
-			int imgID = -1);
-		void Voter1DTest();
-		void Voter3DTest();
 		void Fit3DTo2D(
 			Mesh *pMesh,
 			Array<RECOG::DDD::EdgeSample> edgeSamplePts,
@@ -807,6 +755,11 @@ namespace RVL
 			float csZThr);
 		void AOZeroState(RECOG::DDD::ArticulatedObject AObj,
 						 RECOG::DDD::AOHypothesisState *&stateMem);
+		void ProjectImgPtToPlanarSurface(
+			float PSrc[2],
+			Pose3D *pPoseCF,
+			float pixSize,
+			float PTgt[2]);
 		void Visualize3DModelImageProjection(
 			cv::Mat displayImg,
 			Mesh *pModelMesh,
@@ -876,27 +829,104 @@ namespace RVL
 			std::vector<std::vector<PSD::Point2D>> &allGTPoints);
 
 		bool CreateMeshFromPolyData(Mesh *pMesh);
-		void CreateBox(
+		bool GetVisualizeDoorHypotheses();
+		bool GetRGBImageVisualization();
+		void VisualizeDDHypothesis(
+			RECOG::DDD::HypothesisDoorDrawer hyp,
+			int imgID = -1);
+		void VisualizeDoorHypothesis(
+			RECOG::DDD::HypothesisDoorDrawer doorHyp,
+			int imgID = -1);
+		void VisualizeDrawerHypothesis(
+			RECOG::DDD::HypothesisDoorDrawer drawerHyp,
+			int imgID = -1);
+		// I. Vidovic
+		void Detect2(Array<Mesh> meshSeq);
+		void CalculateMeanHypothesis(Array<std::vector<RECOG::DDD::Hypothesis>> seqHypotheses);
+		void EvaluateHypothesis(Mesh *pMesh, AffinePose3D pose);
+		float EvaluateHypothesis(Mesh *pMesh, RECOG::DDD::Model *pModel, AffinePose3D pose, bool bPrintDebug = false);
+		void FitBBoxToPlanarSurface(RECOG::DDD::Hypothesis *hyp, Surfel *pPlanarSurface);
+		void DetectDominantShiftPoints(Array<Mesh> meshSeq, Array<int> *selectedPointsIdx, bool bVisualize = false);
+		void DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int> *selectedPointsIdx, Vector3<float> &dominantShift, bool bVisualize = false);
+		void MeshSubsample(Mesh *pMesh, Array<int> *pSubsampledPointsIdx);
+		void CalculatePointsShiftVector(
+			Array<Point> pointsM,
+			Array<int> subsampledPointsMIdx,
+			Array<OrientedPoint> pointsQ,
+			PointAssociationData *pPointAssociationData,
+			Array<Vector3<float>> *pointsShift,
+			float shiftThresh,
+			Array<int> *validShiftedPointsMIdx);
+		void FindPointsWithShift(
+			Array<Point> pointsM,
+			Array<int> validPointsMIdx,
+			Array<OrientedPoint> pointsQ,
+			PointAssociationData *pPointAssociationData,
+			Vector3<float> *pointsShift,
+			float *shiftThresh,
+			Array<int> *pointsIdx);
+		void CalculateROI(Mesh *pMesh, Array<int> pointsIdx, Box<float> *ROI);
+		void FindMeanPoint(Array<OrientedPoint> *points, float *meanPoint);
+		void RecognizeArticulatedObjectState(
 			Mesh *pMesh,
-			float size[3]);
-		void CreateCylinder(
+			RECOG::DDD::ArticulatedObject AObj,
+			Pose3D &poseOC,
+			cv::Mat *pRGBImg,
+			bool bPrintDebug = false);
+		void CreateAOROI(
 			Mesh *pMesh,
-			float r,
-			float h,
-			int resolution);
-		void CreateLHTCPModel(
+			RECOG::DDD::HypothesisDoorDrawer *pAObj,
+			Pose3D &poseOC,
+			Box<float> *ROI,
+			AffinePose3D &ROI_,
+			Pose3D &ROIPose);
+		void VisualizeAOROI(
 			Mesh *pMesh,
-			float r1,
-			float h1,
-			float r2,
-			float h2,
-			int resolution);
-		void RotateRectStruct(
-			RECOG::DDD::RectStruct *pMRectStruct,
-			int *iMAxisMap,
-			float *dirMAxisMap,
-			int *iQAxisMap,
-			Array<RECOG::DDD::Rect3D> &MRects);
+			AffinePose3D &ROI_,
+			Pose3D &ROIPose);
+		float CreateAndEvaluateAOHypothesis(
+			Mesh *pMesh,
+			RECOG::DDD::HypothesisDoorDrawer *pAObj,
+			Pose3D &poseOC,
+			float q,
+			bool bPrintDebug = false);
+		float CreateAndEvaluateDefaultAOHypothesis(
+			Mesh *pMesh,
+			RECOG::DDD::HypothesisDoorDrawer *pAObj,
+			Pose3D &poseOC,
+			bool bPrintDebug = false);
+		void CalculateSurfelPointsInsideROI(
+			Mesh *pMesh,
+			Box<float> *ROI,
+			Pose3D &ROIPose,
+			int *pSurfelPointsInROI);
+		void LoadIRITransformationsFromYAML(
+			std::string path,
+			double *R,
+			double *t);
+		void LoadGTTransformations(
+			char *modelFilePath,
+			RECOG::DDD::Transformation &transformation);
+		void SelectAOModel(
+			RECOG::DDD::Transformation *pSceneTransformation,
+			Array<RECOG::DDD::Transformation> modelTransformations,
+			Array<RECOG::DDD::ArticulatedObject> modelAOs,
+			RECOG::DDD::ArticulatedObject &AObj,
+			Array<int> &models);
+		void SetPointsForPointToPointAssociationVisualization(
+			Mesh *pMeshM,
+			Mesh *pMeshQ,
+			PointAssociationData *pPointAssociationData);
+		void SetPointsForPointToPointAssociationVisualization(
+			Array<OrientedPoint> pointsM,
+			Mesh *pMeshQ,
+			PointAssociationData *pPointAssociationData);
+		void SetShiftVectorForVisualization(float *firstPoint, Vector3<float> shift, uchar *color);
+		void SetShiftVectorsForVisualization(float *firstPoint, Array<Vector3<float>> shiftArray, uchar *color);
+		void SetPointsForVisualization(Array<OrientedPoint> points, uchar *color, float size = 0.2);
+		void VisualizeFittingScoreCalculation(Mesh *pMesh, int nTransparentPts, int *SMCorrespondence, bool bVisualizeMesh = true);
+		void Voter1DTest();
+		void Voter3DTest();
 		// Simundic funcs
 		void getPolarLineFromCartPoints(float *, cv::Point, cv::Point);
 		void getLineParamFromPoints(float *, cv::Point, cv::Point);
@@ -1106,10 +1136,10 @@ namespace RVL
 		float frontFaceThickness;
 		int maxROIStep;
 		float rectStructAlignmentCorrectionBounds[3];
-        float orthogonalViewEdgeLineAngleTol;
-        float orthogonalViewPixSize;
-        int orthogonalViewMaskedThr;
-        float orthogonalViewwTexture;
+		float orthogonalViewEdgeLineAngleTol;
+		float orthogonalViewPixSize;
+		int orthogonalViewMaskedThr;
+		float orthogonalViewwTexture;
 
 	private:
 		RECOG::DDD::DisplayCallbackData *pVisualizationData;

@@ -74,13 +74,13 @@
 	</link>
 	<link name="door_link">
 		<visual>
-			<origin xyz="0.0 0.13999999999999999 0.0"/>
+			<origin xyz="0.0 -0.13999999999999999 0.0"/>
 			<geometry>
 				<box size="0.018 0.3 0.5"/>
 			</geometry>
 		</visual>
 		<collision>
-			<origin xyz="0.0 0.13999999999999999 0.0"/>
+			<origin xyz="0.0 -0.13999999999999999 0.0"/>
 			<geometry>
 				<box size="0.018 0.3 0.5"/>
 			</geometry>
@@ -91,7 +91,7 @@
 		</inertial>
 	</link>
 	<joint name="door_joint" type="revolute">
-		<origin xyz="0.191 0.13999999999999999 0" rpy="0 0 3.141592653589793"/>
+		<origin xyz="0.191 0.13999999999999999 0" rpy="0 0 0"/>
 		<axis xyz="0 0 1"/>
 		<parent link="base_cabinet_link"/>
 		<child link="door_link"/>

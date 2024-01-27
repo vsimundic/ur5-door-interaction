@@ -15,12 +15,12 @@
 #include "PlanarSurfelDetector.h"
 #include "ObjectGraph.h"
 #include "RVLRecognition.h"
-#include "RVLRecognitionCommon.h"
 #include "PSGMCommon.h"
 #include "CTISet.h"
 #include "VertexGraph.h"
 #include "TG.h"
 #include "TGSet.h"
+#include "RVLRecognitionCommon.h"
 #include "PSGM.h"
 #include "ObjectDetector.h"
 #ifdef RVLLINUX

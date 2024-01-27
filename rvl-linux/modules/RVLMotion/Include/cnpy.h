@@ -134,6 +134,7 @@ namespace cnpy {
         fclose(fp);
     }
 
+#ifndef RVLLINUX
     template<typename T> void npz_save(std::string zipname, std::string fname, const T* data, const std::vector<size_t>& shape, std::string mode = "w")
     {
         //first, append a .npy to the fname
@@ -172,8 +173,8 @@ namespace cnpy {
         size_t nbytes = nels * sizeof(T) + npy_header.size();
 
         //get the CRC of the data to be added
-        uint32_t crc = crc32(0L, (uint8_t*)&npy_header[0], npy_header.size());
-        crc = crc32(crc, (uint8_t*)data, nels * sizeof(T));
+        uint32_t crc = this->crc32(0L, (uint8_t*)&npy_header[0], npy_header.size());
+        crc = this->crc32(crc, (uint8_t*)data, nels * sizeof(T));
 
         //build the local header
         std::vector<char> local_header;
@@ -223,6 +224,7 @@ namespace cnpy {
         fwrite(&footer[0], sizeof(char), footer.size(), fp);
         fclose(fp);
     }
+#endif
 
     template<typename T> void npy_save(std::string fname, const std::vector<T> data, std::string mode = "w") {
         std::vector<size_t> shape;
@@ -230,11 +232,13 @@ namespace cnpy {
         npy_save(fname, &data[0], shape, mode);
     }
 
+#ifndef RVLLINUX
     template<typename T> void npz_save(std::string zipname, std::string fname, const std::vector<T> data, std::string mode = "w") {
         std::vector<size_t> shape;
         shape.push_back(data.size());
         npz_save(zipname, fname, &data[0], shape, mode);
     }
+#endif
 
     template<typename T> std::vector<char> create_npy_header(const std::vector<size_t>& shape) {
 

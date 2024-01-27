@@ -1,0 +1,8 @@
+<launch>
+
+        <param name="config_file" type="string" value="gazebo_push_open.yaml"/>
+        
+        <node name="node_path_planning" pkg="gazebo_push_open" type="node_path_planning.py" output="screen"/>
+    <!-- <group ns="gpo">
+    </group> -->
+</launch>

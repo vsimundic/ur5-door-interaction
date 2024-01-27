@@ -15,6 +15,18 @@
                 "gzserver"
             ],
             "type": "ros"
+        },
+        {
+            "name": "ROS: path planning",
+            "request": "launch",
+            "target": "${workspaceFolder}/src/a_demo/launch/gazebo_path_planning_demo.launch",
+            "launch": [
+                "rviz",
+                "gz",
+                "gzclient",
+                "gzserver"
+            ],
+            "type": "ros"
         }
     ]
 }

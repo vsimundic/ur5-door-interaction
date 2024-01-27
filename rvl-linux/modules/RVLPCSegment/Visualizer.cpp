@@ -723,7 +723,7 @@ vtkSmartPointer<vtkActor> Visualizer::DisplayBox(
 	return actor;
 }
 
-void Visualizer::DisplayCylinder(
+vtkSmartPointer<vtkActor> Visualizer::DisplayCylinder(
 	double r,
 	double h,
 	Pose3D *pPose,
@@ -761,6 +761,8 @@ void Visualizer::DisplayCylinder(
 
 	// Add actor to renderer.
 	renderer->AddActor(actor);
+
+	return actor;
 }
 
 void Visualizer::DisplayEllipsoid(

@@ -13,8 +13,11 @@ class UR5Commander():
         self.__group = moveit_commander.MoveGroupCommander(self.__group_name)
         self.__scene = moveit_commander.PlanningSceneInterface()
 
-        self.T_B_0 = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TB0.npy')))
-        self.T_G0_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TG0T.npy')))
+        self.T_B_S = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_B_S.npy')))
+        self.T_G_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_G_T.npy')))
+        # self.T_G_T[2, 3] -= 0.005
+        self.T_G_T[2, 3] = 0.102
+        self.T_T_B_home = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_T_B_home.npy')))
 
         self.__create_init_scene()
 
@@ -31,7 +34,7 @@ class UR5Commander():
             box_pose = PoseStamped()
             box_pose.header.frame_id = "base_link"
             box_pose.pose.orientation.w = 1.0
-            box_pose.pose.position.z = -(0.01 + self.T_B_0[2, 3])
+            box_pose.pose.position.z = -(0.01 + self.T_B_S[2, 3])
             box_name = 'ground_box'
             self.__scene.add_box(box_name, box_pose, size=(1.2, 1.2, 0.01))
 
@@ -108,8 +111,33 @@ class UR5Commander():
         self.__group.clear_pose_targets()
 
 
-    def get_tool_pose(self, T_G0_0:np.ndarray):
-        return np.linalg.inv(self.T_B_0) @ T_G0_0 @ np.linalg.inv(self.T_G0_T)
+    def send_joint_values_to_robot(self, joint_values,  wait: bool=True):
+        self.__group.go(joint_values, wait=wait)
+        self.__group.stop()
+
+
+    def get_tool_pose_from_gripper_pose(self, T_G_S: np.ndarray):
+        return np.linalg.inv(self.T_B_S) @ T_G_S @ np.linalg.inv(self.T_G_T)
+
+
+    def get_current_tool_pose(self):
+        pose_ = self.__group.get_current_pose()
+
+        return self.__pose_stamped_to_matrix(pose_)
+
+
+    def save_current_tool_pose(self, file_path):
+        T = self.get_current_tool_pose()
+        np.save(file_path, T)
+
+
+    def get_current_joint_values(self):
+        return self.__group.get_current_joint_values()
+
+
+    def save_current_joint_values(self, file_path):
+        joint_values = self.get_current_joint_values()
+        np.save(file_path, np.array(joint_values))
 
 
     @staticmethod
@@ -144,3 +172,12 @@ class UR5Commander():
         pose_.position.z = T[2, 3]
         pose_s.pose = pose_
         return pose_s
+    
+    @staticmethod
+    def __pose_stamped_to_matrix(pose: PoseStamped):
+        pose_ = pose.pose
+        q_ = [pose_.orientation.x, pose_.orientation.y, pose_.orientation.z, pose_.orientation.w]
+        t_ = np.array([pose_.position.x, pose_.position.y, pose_.position.z])
+        T = quaternion_matrix(q_)
+        T[:3, 3] = np.array(t_)
+        return T

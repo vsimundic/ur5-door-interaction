@@ -28,6 +28,7 @@ def random_orientations(num_viewpoints = 300, num_rot_angles = 12):
     rng = np.random.default_rng(12345)
     cube_samples = rng.random((num_viewpoints, 3))
     cube_samples[:,0] = 2.0 * cube_samples[:,0] - 1.0
+    cube_samples[:,2] = 2.0 * cube_samples[:,2] - 1.0
     sphere_samples = cube_samples / np.linalg.norm(cube_samples, axis=1)[:,np.newaxis]
 
     # Sphere sampling visualization.
@@ -81,16 +82,15 @@ class push():
         self.dd = dd
         self.tool = tool
 
-    def z_shift(self, R, contact_point, visualization = False):
+    def z_shift(self, tcs_params, R, contact_point, visualization = False):
         # Tool contact surface (TCS).
 
-        tcs_vertices_G = np.stack((self.tool.tool_contact_surface_params[0][:], self.tool.tool_contact_surface_params[0][:],
-            self.tool.tool_contact_surface_params[1][:], self.tool.tool_contact_surface_params[1][:]))
-        tcs_vertices_G[1,1] = -tcs_vertices_G[1,1]
-        tcs_vertices_G[3,1] = -tcs_vertices_G[3,1]
+        tcs_vertices_TCS = np.stack((tcs_params[0,:], tcs_params[0,:], tcs_params[1,:], tcs_params[1,:]))
+        tcs_vertices_TCS[1,1] = -tcs_vertices_TCS[1,1]
+        tcs_vertices_TCS[3,1] = -tcs_vertices_TCS[3,1]
         tcs_triangles = np.array([[0, 1, 2], [1, 3, 2]]).astype(np.int32)
-        tcs_normal_G = np.cross(tcs_vertices_G[1,:] - tcs_vertices_G[0,:], tcs_vertices_G[2,:] - tcs_vertices_G[0,:])
-        tcs_normal_G /= np.linalg.norm(tcs_normal_G)
+        tcs_normal_TCS = np.cross(tcs_vertices_TCS[1,:] - tcs_vertices_TCS[0,:], tcs_vertices_TCS[2,:] - tcs_vertices_TCS[0,:])
+        tcs_normal_TCS /= np.linalg.norm(tcs_normal_TCS)
 
         # Door/drawer contact surface (DCS).
 
@@ -101,8 +101,8 @@ class push():
 
         # Transform TCS to the DCS reference frame (RF).
 
-        tcs_vertices = tcs_vertices_G @ R.T + contact_point
-        tcs_normal = R @ tcs_normal_G[:,np.newaxis]
+        tcs_vertices = tcs_vertices_TCS @ R.T + contact_point
+        tcs_normal = R @ tcs_normal_TCS[:,np.newaxis]
         d_tcs = tcs_vertices[np.newaxis,0,:] @ tcs_normal
 
         # The TCS normal must be oriented in opposite direction of the z-axis of the DCS RF.
@@ -207,7 +207,6 @@ class push():
         
         return valid, z
 
-    # def valid_contact_poses(self, tool_finger_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
     def valid_contact_poses(self, tool_finger_distances, sphere_to_TCS_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
         # Constants.
 
@@ -216,8 +215,7 @@ class push():
         num_samples = num_orientations * num_contact_points
 
         # Generate random orientataions.
-        # Generate random orientataions.
-
+ 
         rot_mx = random_orientations(num_viewpoints * num_contact_points, num_rot_angles)
 
         # Compute tool poses suitable for pushing the contact surface.
@@ -234,10 +232,12 @@ class push():
             prev_contact_point = contact_point
             for orientation_idx in range(num_orientations):
                 R = rot_mx[contact_point_idx * num_orientations + orientation_idx,:,:]
-                valid, z = self.z_shift(R, contact_point, visualization=False)
+                valid, z = self.z_shift(self.tool.tool_contact_surface_params[:2,:], R, contact_point, visualization=False)
+                if not valid:
+                    valid, z = self.z_shift(self.tool.tool_contact_surface_params[1:,:], R, contact_point, visualization=False)
                 if valid:
-                    # T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distance)
-                    T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance)
+
+                    T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance)																					   
                     valid_contact_poses_.append(T_G_DD)
                     # valid_poses += 1
                     # print(1)
@@ -261,14 +261,12 @@ class push():
     
     def tool_pose(self, R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance):
         T_G_TCS = np.eye(4)
-        T_G_TCS[0:3,3] = tool_finger_distances.copy() # define all coords for 3finger
+        T_G_TCS[:3,3] = tool_finger_distances.copy() # define all coords for 3finger
         T_TCS_DD = np.eye(4)
         T_TCS_DD[:3,:3] = R
         T_TCS_DD[:3,3] = contact_point
-        # T_TCS_DD[2,3] -= z # dodati -= (z + pomak kugle)
         T_TCS_DD[2,3] -= z
         T_TCS_DD[2,3] += sphere_to_TCS_distance
-
         T_G_DD = T_TCS_DD @ T_G_TCS      
         return T_G_DD
 
@@ -372,8 +370,6 @@ class door_model():
         self.vn_env.transform_bl_nodes(range(18), self.T_DD_W)                
 
         return T_A_W, T_Arot_DD
-
-
 
     def create2(self, dd_state_deg):
         # Moving part pose with respect to the static part.
@@ -496,28 +492,28 @@ class door_model():
 
 class tool_model():
     def __init__(self, gripper_params):
-
+	
         self.default_used = gripper_params['is_default_gripper']
         self.custom_gripper_spheres_path = gripper_params['custom_gripper_spheres_path']
         self.custom_gripper_model_path = gripper_params['custom_gripper_model_path']
 
-        # Default gripper parameters
+        # Default gripper parameters	
         self.tool_finger_size = np.array([0.02, 0.02, 0.06])
         self.tool_palm_size = np.array([0.1, 0.02, 0.02])
-
+		
         # Trapezoid points on the fingertips of the gripper w.r.t. the midpoint of the upper base of the trapezoid
         # self.tool_contact_surface_params = np.array([[0.0, 0.02, 0.0], [0.0, 0.03, -0.04]])
         # self.tool_contact_surface_params_default = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02]])
         # self.tool_contact_surface_params_3finger = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025]]) 
         # self.tool_contact_surface_params = self.tool_contact_surface_params_default if self.default_used else self.tool_contact_surface_params_3finger
-        self.tool_contact_surface_params = gripper_params['tool_contact_surface_params']
+        self.tool_contact_surface_params = np.array(gripper_params['tool_contact_surface_params'])
 
 
         # Distances from TCS to G in TCS frame
         # self.tool_finger_distances_default = [0.06/2., 0., 0.] # x, y, z
         # self.tool_finger_distances_3finger = [-0.155/2., 0., -0.102] # x, y, z
         # self.tool_finger_distances = self.tool_finger_distances_default.copy() if self.default_used else self.tool_finger_distances_3finger.copy()
-        self.tool_finger_distances = gripper_params['tool_finger_distances']
+        self.tool_finger_distances = np.array(gripper_params['tool_finger_distances'])
         
         # Largest distance between inspheres/exspheres 
         # self.sphere_to_TCS_distance_default = 0.
@@ -530,7 +526,6 @@ class tool_model():
         self.tool_finger_distance_3finger = 0.155
         # self.tool_finger_distance = self.tool_finger_distance_default if self.default_used else self.tool_contact_surface_params_3finger
         self.tool_finger_distance = self.tool_finger_distance_default
-
 
     def create(self):
         # Tool sample spheres.
@@ -556,8 +551,7 @@ class tool_model():
 
 
     def create_mesh(self, tool_color):
-
-        if self.default_used:
+        if self.default_used: 
             finger = o3d.geometry.TriangleMesh.create_box(width=self.tool_finger_size[0], height=self.tool_finger_size[1], depth=self.tool_finger_size[2])
             finger1 = copy.deepcopy(finger).translate((0.5 * self.tool_finger_distance, -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
             finger2 = copy.deepcopy(finger).translate((-0.5 * self.tool_finger_distance - self.tool_finger_size[0], -0.5 * self.tool_finger_size[1], -self.tool_finger_size[2]))
@@ -596,6 +590,7 @@ def visualize_push(collision, door, tool, T_G_DD):
     dd_mesh = door.create_mesh()
 
     return dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd
+
 
 def visualize_push2(collision, door, tool, T_G_DD):
     if collision:
@@ -660,11 +655,10 @@ def demo_single_random():
 
             # Z-shift.
 
-            valid, z = push_.z_shift(R, contact_point, visualization=False)
+            valid, z = push_.z_shift(tool.tool_contact_surface_params[:2,:], R, contact_point, visualization=False)
 
         # Tool pose.
 
-        # T_G_DD = push_.tool_pose(R, contact_point, z, tool.tool_finger_distance)
         T_G_DD = push_.tool_pose(R, contact_point, z, tool.tool_finger_distances, tool.sphere_to_TCS_distance)
 
     # Collision detection.
@@ -719,6 +713,7 @@ def demo_single_random():
     # o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_plate_mesh, dd_plate_rf, dd_static_mesh, vn_pcd])
     o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
 
+
 def demo():
     # Parameters.
 
@@ -769,7 +764,7 @@ def demo():
                 for dd_contact_point_x_idx in range(num_dd_contact_point_samples_x):
                     contact_point_x = dd_contact_point_x_idx * dd_contact_surface_sampling_resolution
                     contact_point = np.array([contact_point_x, contact_point_y, 0.0])
-                    valid, z = push_.z_shift(R, contact_point, visualization=True)
+                    valid, z = push_.z_shift(tool_contact_surface_params, R, contact_point, visualization=True)
                     if valid:
                         print('valid')
  
@@ -811,23 +806,27 @@ def demo_push_poses():
     dd_state_deg = -12.0
     num_viewpoints = 100
     num_rot_angles = 12
-    load_valid_contact_poses_from_file = True
-    load_feasible_poses_from_file = True
+    load_valid_contact_poses_from_file = False
+    load_feasible_poses_from_file = False
     
     use_default_gripper = False
 
     if use_default_gripper:
         custom_gripper_spheres_path = ''
         custom_gripper_model_path = ''
-        tool_contact_surface_params = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02]])
+        tool_contact_surface_params = np.array([[0.0, 0.01, 0.0], [0.0, 0.01, -0.02], [-0.02, 0.01, 0.0]])
         # tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
         tool_finger_distances = [0.06/2., 0., 0.] # x, y, z
         sphere_to_TCS_distance = 0.
     else:
+        # Simundic
         custom_gripper_spheres_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/gripper_spheres.npy'
         custom_gripper_model_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/robotiq_3f_gripper_simplified.stl'
+        # END: Simundic
+        # custom_gripper_spheres_path = '3finger_gripper/gripper_spheres.npy'
+        # custom_gripper_model_path = '3finger_gripper/robotiq_3f_gripper_simplified.stl'
         
-        tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025]])
+        tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025], [0.006, -0.026, 0.0]])
         tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
         sphere_to_TCS_distance = 0.004609
 
@@ -838,14 +837,18 @@ def demo_push_poses():
                         'tool_finger_distances': tool_finger_distances,
                         'sphere_to_TCS_distance': sphere_to_TCS_distance}
     # Door model.
+
     door = door_model()
     door.create(dd_state_deg)
+    
 
     # Tool model.
+
     tool = tool_model(gripper_params)
     tool.create()
 
     # Contact points.
+
     x = np.linspace(0.0, door.dd_contact_surface_params[0], 21)
     y = np.linspace(0.0, door.dd_contact_surface_params[1], 21)
     dd_grid_x, dd_grid_y = np.meshgrid(x, y)
@@ -863,7 +866,6 @@ def demo_push_poses():
     if load_valid_contact_poses_from_file:
         valid_contact_poses_ = np.load("valid_contact_poses.npy")
     else:        
-        # valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
         valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
         np.save("valid_contact_poses", valid_contact_poses_)
 
@@ -881,11 +883,12 @@ def demo_push_poses():
     T_G_W = door.T_DD_W @ feasible_poses
     collision = push_.collision_detection(T_G_W, door.vn_env)
     contact_free_poses = feasible_poses[np.logical_not(collision),:]
+    np.save('contact_free_poses', contact_free_poses)
 
     # Visualization.
 
     samples = contact_free_poses
-    # samples = valid_contact_poses_
+    # samples = feasible_poses
     collision_ = np.zeros(samples.shape[0]).astype('bool')
     for visualization_idx in range(10):
         print('sample', visualization_idx)
@@ -893,15 +896,22 @@ def demo_push_poses():
         # sample_idx = 0
         T_G_DD = samples[sample_idx,:,:]
         dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
-        o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
+        # Visualize gripper origin
+        tool_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
+        tool_origin.transform(door.T_DD_W @ T_G_DD)
 
-def demo_push_poses_ros(dd_state_deg: float, 
+        o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh, tool_origin])
+
+def demo_push_poses_ros(door_dims: np.array,
+                        static_depth: float,
+                        dd_state_deg: float, 
                         num_viewpoints: int, 
                         num_rot_angles: int,
                         load_valid_contact_poses_from_file: bool=False, 
                         load_feasible_poses_from_file: bool=False, 
                         gripper_params: dict={},
                         feasible_poses_path: str='',
+                        contact_free_poses_path: str='',
                         valid_contact_poses_path: str='',
                         visualization: bool=False):
     # Parameters.
@@ -936,6 +946,8 @@ def demo_push_poses_ros(dd_state_deg: float,
    
     # Door model.
     door = door_model()
+    door.dd_plate_params = door_dims
+    door.dd_static_depth = static_depth
     _, _ = door.create(dd_state_deg)
 
     # Tool model.
@@ -978,6 +990,8 @@ def demo_push_poses_ros(dd_state_deg: float,
     T_G_W = door.T_DD_W @ feasible_poses
     collision = push_.collision_detection(T_G_W, door.vn_env)
     contact_free_poses = feasible_poses[np.logical_not(collision),:]
+    if not load_feasible_poses_from_file:
+        np.save(contact_free_poses_path, contact_free_poses)
 
     # Visualization.
     if visualization:
@@ -986,13 +1000,21 @@ def demo_push_poses_ros(dd_state_deg: float,
         collision_ = np.zeros(samples.shape[0]).astype('bool')
         for visualization_idx in range(2):
             print('sample', visualization_idx)
-            sample_idx = np.random.randint(samples.shape[0])
+            # sample_idx = np.random.randint(samples.shape[0])
+            sample_idx = visualization_idx
             # sample_idx = 0
             T_G_DD = samples[sample_idx,:,:]
             dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
-            o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
+
+
+            # Visualize gripper origin
+            tool_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
+            tool_origin.transform(door.T_DD_W @ T_G_DD)
     
-    return feasible_poses
+            o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh, tool_origin])
+    
+    # return feasible_poses
+    return contact_free_poses
 
 
 def visualize_dd():

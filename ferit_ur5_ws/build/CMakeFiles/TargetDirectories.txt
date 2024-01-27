@@ -124,6 +124,13 @@
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq3f_moveit_config/CMakeFiles/rebuild_cache.dir
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq3f_moveit_config/CMakeFiles/edit_cache.dir
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq3f_moveit_config/CMakeFiles/test.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/install/strip.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/install/local.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/install.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/list_install_components.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/rebuild_cache.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/edit_cache.dir
+/home/RVLuser/ferit_ur5_ws/build/ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/CMakeFiles/test.dir
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/CMakeFiles/install/strip.dir
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/CMakeFiles/list_install_components.dir
 /home/RVLuser/ferit_ur5_ws/build/ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/CMakeFiles/edit_cache.dir

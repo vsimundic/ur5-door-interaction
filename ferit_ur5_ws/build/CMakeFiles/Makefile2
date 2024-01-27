@@ -64,6 +64,7 @@ all: ur5_configs/fmauch_universal_robot/universal_robots/all
 all: ur5_configs/ur5/ur5_description/all
 all: ur5_configs/ur5/ur5_gazebo/all
 all: ur5_configs/ur5_robotiq3f_moveit_config/all
+all: ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/all
 all: ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/all
 all: ur5_configs/ur_rtde_ex/all
 all: a_demo/all
@@ -114,6 +115,7 @@ preinstall: ur5_configs/fmauch_universal_robot/universal_robots/preinstall
 preinstall: ur5_configs/ur5/ur5_description/preinstall
 preinstall: ur5_configs/ur5/ur5_gazebo/preinstall
 preinstall: ur5_configs/ur5_robotiq3f_moveit_config/preinstall
+preinstall: ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/preinstall
 preinstall: ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/preinstall
 preinstall: ur5_configs/ur_rtde_ex/preinstall
 preinstall: a_demo/preinstall
@@ -169,6 +171,7 @@ clean: ur5_configs/fmauch_universal_robot/universal_robots/clean
 clean: ur5_configs/ur5/ur5_description/clean
 clean: ur5_configs/ur5/ur5_gazebo/clean
 clean: ur5_configs/ur5_robotiq3f_moveit_config/clean
+clean: ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/clean
 clean: ur5_configs/Universal_Robots_ROS_Driver/ur_dashboard_msgs/clean
 clean: ur5_configs/ur_rtde_ex/clean
 clean: a_demo/clean
@@ -1398,6 +1401,24 @@ ur5_configs/ur5_robotiq3f_moveit_config/preinstall:
 ur5_configs/ur5_robotiq3f_moveit_config/clean:
 
 .PHONY : ur5_configs/ur5_robotiq3f_moveit_config/clean
+
+#=============================================================================
+# Directory level rules for directory ur5_configs/ur5_robotiq_3f_simplifed_moveit_config
+
+# Recursive "all" directory target.
+ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/all:
+
+.PHONY : ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/all
+
+# Recursive "preinstall" directory target.
+ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/preinstall:
+
+.PHONY : ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/preinstall
+
+# Recursive "clean" directory target.
+ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/clean:
+
+.PHONY : ur5_configs/ur5_robotiq_3f_simplifed_moveit_config/clean
 
 #=============================================================================
 # Directory level rules for directory ur5_configs/ur_rtde_ex

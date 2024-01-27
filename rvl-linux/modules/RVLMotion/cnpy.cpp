@@ -2,6 +2,7 @@
 //Released under MIT License
 //license available in LICENSE file, or at http://www.opensource.org/licenses/mit-license.php
 
+#include "RVLCore2.h"
 #include"cnpy.h"
 #include<complex>
 #include<cstdlib>

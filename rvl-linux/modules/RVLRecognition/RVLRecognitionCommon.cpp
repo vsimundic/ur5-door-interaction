@@ -560,17 +560,17 @@ Grid::~Grid()
 }
 
 void Grid::Create(
-	Array<Point> points,
-	Camera *pCameraIn,
-	int cellSizeIn)
+	int wIn,
+	int hIn,
+	int cellSizeIn,
+	int maxnPts)
 {
 	cellSize = cellSizeIn;
 	fCellSize = (float)cellSize;
-	pCamera = pCameraIn;
-	mem = new QLIST::Index[points.n];
-	QLIST::Index *pPtIdx = mem;
-	cells.w = pCamera->w / cellSize;
-	cells.h = pCamera->h / cellSize;
+	w = wIn;
+	h = hIn;
+	cells.w = w / cellSize;
+	cells.h = h / cellSize;
 	int nCells = cells.w * cells.h;
 	cells.Element = new QList<QLIST::Index>[nCells];
 	idxRect.minx = 0;
@@ -584,6 +584,18 @@ void Grid::Create(
 		pCellPtList = cells.Element + iCell;
 		RVLQLIST_INIT(pCellPtList);
 	}
+	RVL_DELETE_ARRAY(mem);
+	mem = new QLIST::Index[maxnPts];
+	pPtIdx = mem;
+}
+
+void Grid::Create(
+	Array<Point> points,
+	Camera *pCameraIn,
+	int cellSizeIn)
+{
+	pCamera = pCameraIn;
+	Create(pCamera->w, pCamera->h, cellSizeIn, points.n);
 	int iPt;
 	Point *pPt;
 	for (iPt = 0; iPt < points.n; iPt++)
@@ -596,6 +608,8 @@ void Grid::Create(
 	InitBoundingBox<float>(&bbox, pPt->P);
 	iPt = 0;
 	int u, v, iu, iv;
+	int iCell;
+	QList<QLIST::Index> *pCellPtList;
 	for (v = 0; v < pCamera->h; v++)
 		for (u = 0; u < pCamera->w; u++, iPt++)
 		{
@@ -622,21 +636,34 @@ void Grid::Clear()
 	RVL_DELETE_ARRAY(cells.Element);
 }
 
+void Grid::Add(
+	int u,
+	int v,
+	int iPt)
+{
+	int iu = u / cellSize;
+	int iv = v / cellSize;
+	int iCell = iu + iv * cells.w;
+	QList<QLIST::Index> *pCellPtList = cells.Element + iCell;
+	RVLQLIST_ADD_ENTRY(pCellPtList, pPtIdx);
+	pPtIdx->Idx = iPt;
+	pPtIdx++;
+}
+
 bool Grid::GetNeighbors(
-	float *P,
+	float u_,
+	float v_,
 	Array<int> &points)
 {
-	float u_ = pCamera->fu * P[0] / P[2] + pCamera->uc;
 	int u = (int)(u_ + 0.5f);
 	if (u < 0)
 		return false;
-	if (u >= pCamera->w)
+	if (u >= w)
 		return false;
-	float v_ = pCamera->fv * P[1] / P[2] + pCamera->vc;
 	int v = (int)(v_ + 0.5f);
 	if (v < 0)
 		return false;
-	else if (v >= pCamera->h)
+	else if (v >= h)
 		return false;
 	Rect<int> ROI;
 	ROI.maxx = (int)round(u_ / fCellSize + 0.5f);
@@ -661,6 +688,15 @@ bool Grid::GetNeighbors(
 			}
 		}
 	return true;
+}
+
+bool Grid::GetNeighbors(
+	float *P,
+	Array<int> &points)
+{
+	float u_ = pCamera->fu * P[0] / P[2] + pCamera->uc;
+	float v_ = pCamera->fv * P[1] / P[2] + pCamera->vc;
+	return GetNeighbors(u_, v_, points);
 }
 
 void Grid::SubSample(

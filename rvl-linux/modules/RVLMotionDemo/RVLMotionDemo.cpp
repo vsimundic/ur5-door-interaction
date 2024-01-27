@@ -30,29 +30,24 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "DDManipulator.h"
 #include "cnpy.h"
 
-#define RVLRECOGNITION_DEMO_USE_DEFAULT_GRIPPER 0x00000001
-
 using namespace RVL;
 
 void CreateParamList(
     CRVLParameterList* pParamList,
     CRVLMem* pMem,
-    DWORD &flags,
     char** pFeasibleToolContactPosesFileName,
-    char** pGripperModelFileName, 
-    char** pGripperPoseSaveFileName,
-    float &dd_state_angle_deg)
+    char ** pToolModelDir,
+    float &dd_state_angle_deg,
+    char ** pResultsFolder)
 {
     pParamList->m_pMem = pMem;
     RVLPARAM_DATA* pParamData;
     pParamList->Init();
 
-    pParamData = pParamList->AddParam("UseDefaultGripper", RVLPARAM_TYPE_FLAG, &flags);
-    pParamList->AddID(pParamData, "yes", RVLRECOGNITION_DEMO_USE_DEFAULT_GRIPPER);
     pParamData = pParamList->AddParam("FeasibleToolContactPosesFileName", RVLPARAM_TYPE_STRING, pFeasibleToolContactPosesFileName);
-    pParamData = pParamList->AddParam("GripperModelFileName", RVLPARAM_TYPE_STRING, pGripperModelFileName);
-    pParamData = pParamList->AddParam("GripperPoseSaveFileName", RVLPARAM_TYPE_STRING, pGripperPoseSaveFileName);
+    pParamData = pParamList->AddParam("ToolModelDirectory", RVLPARAM_TYPE_STRING, pToolModelDir);
     pParamData = pParamList->AddParam("DoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_state_angle_deg);
+    pParamData = pParamList->AddParam("ResultsFolder", RVLPARAM_TYPE_STRING, pResultsFolder);
 }
 
 void TestSolver()
@@ -407,21 +402,17 @@ int main(int argc, char** argv)
     if (cfgFileName == NULL)
         return 1;
     printf("Configuration file: %s\n", cfgFileName);
-    
-    char *feasibleToolContactPosesFileName = NULL;
-    char *gripperModelFileName = NULL;
-    char *gripperPoseSaveFileName = NULL;
+    char* feasibleToolContactPosesFileName = NULL;
+    char* toolModelDir = NULL;
     float dd_state_angle_deg = 10.0f;
-    DWORD flags = 0x00000000; // VIDOVIC
-
     CRVLParameterList ParamList;
+    char* resultsFolder = NULL;
     CreateParamList(&ParamList,
-                    &mem0,
-                    flags,
-                    &feasibleToolContactPosesFileName,
-                    &gripperModelFileName,
-                    &gripperPoseSaveFileName,
-                    dd_state_angle_deg);
+        &mem0,
+        &feasibleToolContactPosesFileName,
+        &toolModelDir,
+        dd_state_angle_deg,
+        &resultsFolder);
     ParamList.LoadParams(cfgFileName);
 
     // Test DDManipulator::LocalFreePose()
@@ -442,6 +433,13 @@ int main(int argc, char** argv)
     manipulator.pMem = &mem;
     manipulator.Create(cfgFileName);
     manipulator.InitVisualizer(&visualizer);
+    manipulator.resultsFolder = resultsFolder;
+    manipulator.pTimer = new CRVLTimer;
+
+    // Tool model.
+
+    if (toolModelDir)
+        manipulator.LoadToolModel(toolModelDir);
   
     // Door state.
     
@@ -457,29 +455,55 @@ int main(int argc, char** argv)
 
     // Path planning.
 
+    RVLUNITMX3(manipulator.robot.pose_0_W.R);
+    RVLNULL3VECTOR(manipulator.robot.pose_0_W.t);
     Pose3D pose_G_S_init;
-    Pose3D pose_G_S;
-    RVLUNITMX3(pose_G_S_init.R);
-    RVLSET3VECTOR(pose_G_S_init.t, 0.30f, 0.10f, -0.50f);
-    // manipulator.Path(&pose_G_S_init);
-    pose_G_S = manipulator.Path(&pose_G_S_init);
-    
-
-
-    // Save gripper pose to file
-    double T[16];
-    RVLHTRANSFMX(pose_G_S.R, pose_G_S.t, T);
-    
-    std::vector<double> Tv(std::begin(T), std::end(T));    
-
-    if (gripperPoseSaveFileName != NULL)
+    float robot_home_0[3];
+    if (manipulator.bDefaultToolModel)
     {
-        cnpy::npy_save(gripperPoseSaveFileName, Tv, "w");
+        RVLROTY(-COS45, COS45, pose_G_S_init.R);
+        RVLSET3VECTOR(robot_home_0, manipulator.robot.minr + manipulator.tool_len + manipulator.robot.d[5], 0.0f, 0.5f);
     }
+    else
+    {
+        float R_G_S_Y[9];
+        RVLROTY(-COS45, COS45, R_G_S_Y);
+        float R_G_S_Z[9];
+        RVLROTZ(-1.0f, 0.0f, R_G_S_Z);
+        RVLMXMUL3X3(R_G_S_Y, R_G_S_Z, pose_G_S_init.R);
+        RVLSET3VECTOR(robot_home_0, 0.3f + manipulator.robot.d[5], 0.0f, 0.5f);
+    }
+    RVLSUM3VECTORS(manipulator.robot.pose_0_W.t, robot_home_0, pose_G_S_init.t);
+    RVLNULLMX3X3(manipulator.pose_F_S.R);
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 2) = 1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 0) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.0f, 0.546f);
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.2f, -0.3f, 0.546f);
+    RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = 1.0f;
+    RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = 1.0f;
+    RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+    RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.2f, 0.546f);
+    manipulator.UpdateStaticPose();
+    //manipulator.Path(&pose_G_S_init);
+    Array<Pose3D> poses_G_0;
+    poses_G_0.Element = NULL;
+    //FILE *fpDebug = fopen("pose_G_S_init.txt", "w");
+    //float T_G_S_init[16];
+    //RVLHTRANSFMX(pose_G_S_init.R, pose_G_S_init.t, T_G_S_init);
+    //PrintMatrix(fpDebug, T_G_S_init, 4, 4);
+    //fclose(fpDebug);
+    //manipulator.SetVisualizeVNEnvironmentModel();
+    if (manipulator.Path2(&pose_G_S_init, poses_G_0))
+        printf("Path is successfully generated.\n");
+    else
+        printf("Path is not found.\n");
 
     // Visualization.
 
-    
     //Pose3D pose_G_DD = manipulator.feasibleTCPs.Element[100];
     //Pose3D pose_G_Arot;
     //RVLCOMPTRANSF3D(manipulator.pose_DD_A.R, manipulator.pose_DD_A.t, pose_G_DD.R, pose_G_DD.t, pose_G_Arot.R, pose_G_Arot.t);
@@ -494,6 +518,11 @@ int main(int argc, char** argv)
     //visualizer.Run();
 
     //
+
+    delete[] feasibleToolContactPosesFileName;
+    delete[] toolModelDir;
+    delete[] resultsFolder;
+    RVL_DELETE_ARRAY(poses_G_0.Element);
 
     return 0;
 } 

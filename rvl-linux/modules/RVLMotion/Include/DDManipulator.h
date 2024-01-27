@@ -1,12 +1,5 @@
 #pragma once
 
-#define RVLMOTION_TCP(pPose_G, half_tool_finger_distance, TCP)\
-{\
-	TCP[0] = pPose_G->t[0] - half_tool_finger_distance * pPose_G->R[0];\
-	TCP[1] = pPose_G->t[1] - half_tool_finger_distance * pPose_G->R[3];\
-	TCP[2] = pPose_G->t[2] - half_tool_finger_distance * pPose_G->R[6];\
- }
-
 // The following code should be moved to RVL3DTools.h.
 
 #define RVLRNDUNIT3VECTOR(X, fTmp) \
@@ -43,14 +36,76 @@ namespace RVL
 		{
 			Visualizer* pVisualizer;
 			bool bOwnVisualizer;
+			CRVLParameterList paramList;
 			bool bVNEnv;
 			std::vector<vtkSmartPointer<vtkActor>> toolActors;
+			bool bVisualize;
 		};
 
 		struct Sphere
 		{
 			Vector3<float> c;
 			float r;
+		};
+
+		struct Plane
+		{
+			float N[3];
+			float d;
+		};
+
+		class Robot
+		{
+		public:
+			Robot();
+			virtual ~Robot();
+			void Create(char* cfgFileNameIn);
+			void CreateParamList();
+			void Clear();
+			void FwdKinematics();
+			void FwdKinematics(
+				int i,
+				Pose3D *pdPose);
+			void FwdKinematicsRot(
+				int i,
+				float* R,
+				float &cq,
+				float &sq);
+			bool InvKinematics(
+				Pose3D toolPose,
+				float* qOut = NULL);
+			bool InvKinematics1E56(
+				Pose3D toolPose,
+				float *qOut = NULL);
+			void InvKinematicsApprox23(float* qOut = NULL);
+
+		public:
+			CRVLMem* pMem0;
+			CRVLParameterList paramList;
+			int n;
+			float* q;
+			float* d;
+			float* a;
+			float* al;
+			uchar *jointType;	// 0 - revolute; 1 - prismatic
+			float maxr;
+			float minr;
+			float minz;
+			Pose3D pose_TCP_6;
+			Pose3D link_pose[6];
+			Pose3D pose_0_W;
+			float minq[6], maxq[6];
+		private:
+			float* csal;
+			float* snal;
+			Pose3D pose_6_G;
+			float d4_2;
+			float k1;
+			float k2;
+			float maxa23_2;
+			float R_E_1[9];
+			float R_4_E[9];
+			float a23_2;
 		};
 	}
 
@@ -84,29 +139,53 @@ namespace RVL
 			Vector3<float>* c_S_rot,
 			Vector3<float>* c_S,
 			Pose3D* pPose_G_S);
-		// void Path(Pose3D *pPose_G_S_init);
-		Pose3D Path(Pose3D *pPose_G_S_init);
-		void LoadFeasibleToolContactPoses(std::string contactPointsFileName);
+		void Path(Pose3D * pPose_G_S_init);
+		bool Path2(
+			Pose3D* pPose_G_S_init,
+			Array<Pose3D> &poses_G_0);
+		void TileFeasibleToolContactPoses(
+			std::vector<Pose3D>* pAllFeasibleTCPs,
+			Box<float> &TCPSpace);
+		bool ApproachPath(
+			Pose3D *pPose_G_S_contact,
+			Array<Pose3D> &poses_G_0_via);
+		void SetDoorModelParams(
+			Pose3D pose_A_S,
+			float sx,
+			float sy,
+			float sz,
+			float rx,
+			float ry,
+			float opening_direction,
+			float static_side_width,
+			float moving_to_static_part_distance);
+		void UpdateStaticPose();
+		void LoadFeasibleToolContactPoses(std::string contactPosesFileName);
+		void LoadToolModel(std::string toolModelDir);
 		void InitVisualizer(Visualizer* pVisualizerIn);
 		void Visualize(
-			std::vector<MOTION::Node> *pNodes,
-			std::vector<int> *pPath,
-			int iGoal = -1);
+			std::vector<MOTION::Node>* pNodes,
+			std::vector<int>* pPath,
+			Array<float> doorStates,
+			bool bVisualizeStates = false,
+			bool bVisualizeMotionPlanningTree = false,
+			int iGoal = -1,
+			Array2D<float> *pRobotJoints = NULL);
 		void VisualizeTool(
-			Pose3D pose_G_S,
+			Pose3D pose_G_R,
 			std::vector<vtkSmartPointer<vtkActor>> *pActors);
-		// void DDManipulator::VisualizeTool(
-		// 	Pose3D pose_G_S,
-		// 	bool useDefaultGripper,
-		// 	std::string gripperModelFileName,
-		// 	std::vector<vtkSmartPointer<vtkActor>> *pActors);
-
+		vtkSmartPointer<vtkActor> VisualizeRobot(float* q);
+		vtkSmartPointer<vtkActor> VisualizeDoorPenel();
 		void SetVisualizeVNEnvironmentModel();
 
 	public:
 		CRVLMem* pMem;
 		CRVLMem* pMem0;
 		CRVLParameterList paramList;
+		std::string cfgFileName;
+		char* resultsFolder;
+		bool bLog;
+		CRVLTimer* pTimer;
 
 		// Door model parameters.
 
@@ -115,38 +194,58 @@ namespace RVL
 		float dd_moving_to_static_part_distance;
 		float dd_static_side_width;
 		float dd_static_depth;
-		float dd_axis_distance;
+		float dd_sx;
+		float dd_sy;
+		float dd_sz;
+		float dd_rx;
+		float dd_ry;
 		float dd_contact_surface_sampling_resolution;
 		float dd_state_angle;
+		float dd_opening_direction;
 
 		// Door model constants.
 
 		Pose3D pose_DD_A;
-		Pose3D pose_A_W;
+		Pose3D pose_A_F;
 
 		// Door pose.
 
-		Pose3D pose_W_S;
+		Pose3D pose_F_S;
 		Pose3D pose_Arot_A;
+		Pose3D pose_DD_S;
 
 		// Environment VN model.
 
 		VN* pVNEnv;
 		float* dVNEnv;
 
+		// Robot.
+
+		MOTION::Robot robot;
+
 		// Tool model.
 
-		Vector3<float> tool_contact_surface_params[2];
+		bool bDefaultToolModel;
+		Vector3<float> tool_contact_surface_params[3];
 		Vector3<float> tool_finger_size;
 		float tool_finger_distance;
 		Vector3<float> tool_palm_size;
+		float tool_wrist_len;
+		float tool_wrist_r;
+		float tool_len;
+		MOTION::Sphere tool_bounding_sphere;
 		Array<MOTION::Sphere> tool_sample_spheres;
-		bool useDefaultGripper;
-		char *gripperModelFileName;
-		// char *gripperPoseSaveFileName;
+		Mesh* pToolMesh;
+		float PRTCP_G[3];
+
 		// Path planning.
 
 		int maxnSE3Points;
+		float kTemplateEndTol;
+		float maxSurfaceContactAngle;   // deg
+		float visionTol;    // m
+		float minDistanceToAxis;	// m
+		bool bLock_T_G_DD;
 
 		// Feasible tool contact poses.
 
@@ -166,6 +265,9 @@ namespace RVL
 		int* nodeBuffMem;
 		int nodeBuffMemCapacity;
 		Solver solver;
+		float csMaxSurfaceContactAngle;
+		MOTION::Plane freeSpacePlanes_S[4];
+		Pose3D pose_DD_0;
 	};
 }
 

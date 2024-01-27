@@ -10,7 +10,7 @@ from DDMan import push
 from gazebo_push_open.cabinet_model import Cabinet
 # from cabinet_model import generate_cabinet_urdf_from_door_panel, get_cabinet_world_pose
 import numpy as np
-from core.transforms import rot_z
+
 
 if __name__ == '__main__':
     rospy.init_node('node_generate_cabinet')
@@ -22,20 +22,28 @@ if __name__ == '__main__':
     
     config = read_config(cfg_file)
     
-    cabinet_dims = config['cabinet_dims'] # w_door, h_door, static_d, d_door 
+    
+    #### CABINET ####
+    cabinet_door_dims = config['cabinet_door_dims'] # w_door, h_door, static_d, d_door 
+    door_params = [np.random.uniform(cabinet_door_dims['min_width'], cabinet_door_dims['max_width']), 
+                  np.random.uniform(cabinet_door_dims['min_height'], cabinet_door_dims['max_height']),
+                  cabinet_door_dims['depth'],
+                  cabinet_door_dims['static_depth']]
+    
     cabinet_pose = config['cabinet_pose']
     feasible_poses_args = config['feasible_poses']
 
     # Cabinet pose in world
-    x = np.random.uniform(cabinet_pose['min_x'], cabinet_pose['max_x'])
-    y = np.random.uniform(cabinet_pose['min_y'], cabinet_pose['max_y'])
-    z = cabinet_dims[1]/2 + 0.018 + 0.01 # half of door height + depth of bottom panel + double static moving part distance
-    spawn_angle_deg = np.random.uniform(cabinet_pose['rot_angle_min_deg'], cabinet_pose['rot_angle_max_deg'])
+    cabinet_position = [np.random.uniform(cabinet_pose['min_x'], cabinet_pose['max_x']),
+                        np.random.uniform(cabinet_pose['min_y'], cabinet_pose['max_y']),
+                        door_params[1]/2 + 0.018 + 0.01] # half of door height + depth of bottom panel + double static moving part distance
+    rotz_deg = np.random.uniform(cabinet_pose['rot_angle_min_deg'], cabinet_pose['rot_angle_max_deg'])
 
-    cabinet_model = Cabinet(door_params=np.array(cabinet_dims), 
+    # Create a cabinet object
+    cabinet_model = Cabinet(door_params=np.array(door_params), 
                             axis_pos=cabinet_pose['axis_pos'],
-                            position=np.array([x, y, z]),
-                            spawn_angle_deg=spawn_angle_deg,
+                            position=np.array(cabinet_position),
+                            rotz_deg=rotz_deg,
                             save_path=config['cabinet_urdf_save_path'])
     
     # Save cabinet mesh to a file
@@ -51,54 +59,59 @@ if __name__ == '__main__':
     cabinet_model.change_door_angle(theta_deg)
     cabinet_model.update_mesh()
 
+
+    #### FEASIBLE POSES ####
     # Get feasible poses
+    feasible_poses_args['door_dims'] = np.array(door_params[:3])
+    feasible_poses_args['static_depth'] = door_params[3]
     feasible_poses = push.demo_push_poses_ros(**feasible_poses_args)
     
     # Pick one pose
-    T_G_DD = feasible_poses[51]
+    T_G_D = feasible_poses[2]
         
     # Get robot gripper pose in world
-    T_G0_0 = cabinet_model.get_feasible_pose_wrt_world(T_G_DD)
+    T_G_S = cabinet_model.get_feasible_pose_wrt_world(T_G_D)
     
     # Pose further away for approach
-    T_DD_G_prev = np.linalg.inv(T_G_DD.copy())
-    T_DD_G_prev[2, 3] += 0.30
-    T_G_DD_prev = np.linalg.inv(T_DD_G_prev)
-    T_G0_0_prev = cabinet_model.get_feasible_pose_wrt_world(T_G_DD_prev)
+    T_D_G_prev = np.linalg.inv(T_G_D)
+    T_D_G_prev[2, 3] += 0.30
+    T_G_D_prev = np.linalg.inv(T_D_G_prev)
+    T_G_S_prev = cabinet_model.get_feasible_pose_wrt_world(T_G_D_prev)
 
     # # Open3D visualization
-    # cabinet_model.visualize(T_G0_0)
+    cabinet_model.visualize(T_G_S)
     
     # Helping matrices
-    T_B_0 = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TB0.npy')))
-    T_G0_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TG0T.npy')))
+    # T_B_S = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_B_0.npy')))
+    # T_G_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_G_T.npy')))
     
-    # T_G0_T = np.eye(4)
-    # T_G0_T[:3, :3] = rot_z(np.radians(-90))
-    # T_G0_T[2, 3] = 0.115
-    # print(T_G0_T)
-    # np.save(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TG0T.npy'), T_G0_T)
+    # T_G_T = np.eye(4)
+    # T_G_T[:3, :3] = rot_z(np.radians(-90))
+    # T_G_T[2, 3] = 0.115
+    # print(T_G_T)
+    # np.save(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'TGT.npy'), T_G_T)
     
     # Robot handler
     robot = UR5Commander()
 
-    # Go to home pose - up by default
+    # Go to home pose
+    # robot.send_pose_to_robot(robot.T_T_B_home)
     robot.send_named_pose('up')
 
     # Add cabinet mesh to rviz
-    robot.add_mesh_to_scene(config['cabinet_mesh_save_path'], 'cabinet', np.linalg.inv(robot.T_B_0) @ cabinet_model.T_X_0)
+    robot.add_mesh_to_scene(config['cabinet_mesh_save_path'], 'cabinet', np.linalg.inv(robot.T_B_S) @ cabinet_model.T_O_S)
 
     # Calculate poses
-    T_T_B_fp_prev = robot.get_tool_pose(T_G0_0_prev) # approaching pose
-    T_T_B_fp = robot.get_tool_pose(T_G0_0) # feasible pose
-    T_G0_0_arr = cabinet_model.generate_opening_passing_poses(T_G_DD, max_angle_deg=70., num_poses=10) # passing poses
-    T_T_B_arr = [robot.get_tool_pose(T_G_0_) for T_G_0_ in T_G0_0_arr]
+    T_T_B_fp_prev = robot.get_tool_pose_from_gripper_pose(T_G_S_prev) # approaching pose
+    T_T_B_fp = robot.get_tool_pose_from_gripper_pose(T_G_S) # feasible pose
+    T_G_S_arr = cabinet_model.generate_opening_passing_poses(T_G_D, max_angle_deg=70., num_poses=10) # passing poses
+    T_T_B_arr = [robot.get_tool_pose_from_gripper_pose(T_G_S_) for T_G_S_ in T_G_S_arr]
 
     # Add door panel to planning scene to stop collision when approaching
     panel_rviz_name = 'door_panel'
-    T_DD0_B = np.linalg.inv(T_B_0) @ cabinet_model.T_X_0 @ cabinet_model.T_A_X @ cabinet_model.T_DD0_A
+    T_D_B = np.linalg.inv(robot.T_B_S) @ cabinet_model.T_O_S @ cabinet_model.T_A_O @ cabinet_model.T_D_A_init
     panel_size = (cabinet_model.d_door, cabinet_model.w_door, cabinet_model.h_door)
-    robot.add_box_to_scene(object_name=panel_rviz_name, pose=T_DD0_B, frame_id='base_link', size=panel_size)
+    robot.add_box_to_scene(object_name=panel_rviz_name, pose=T_D_B, frame_id='base_link', size=panel_size)
 
     # Approaching points - feasible pose
     robot.send_pose_to_robot(T_T_B_fp_prev)

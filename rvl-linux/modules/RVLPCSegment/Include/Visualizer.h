@@ -90,7 +90,7 @@ namespace RVL
 			double blue,
 			bool bWireFrame = false,
 			float lineWidth = 1.0);
-		void DisplayCylinder(
+		vtkSmartPointer<vtkActor> DisplayCylinder(
 			double r,
 			double h,
 			Pose3D *pPose,

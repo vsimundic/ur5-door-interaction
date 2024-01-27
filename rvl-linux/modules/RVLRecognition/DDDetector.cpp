@@ -83,6 +83,8 @@ DDDetector::DDDetector()
 	RVLSET3VECTOR(rectStructAlignmentCorrectionBounds, 0.2f, 0.2f, 0.2f); // m
 	orthogonalViewEdgeLineAngleTol = 10.0f;								  // deg
 	orthogonalViewPixSize = 0.005f;										  // m
+	orthogonalViewMaskedThr = 10;										  // %
+	orthogonalViewwTexture = 0.1f;
 }
 
 DDDetector::~DDDetector()
@@ -249,7 +251,7 @@ void DDDetector::DetectRGBEdgeLineSegments(
 	// Display Hough lines.
 
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE
-	cv::cvtColor(edges, *pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
+	cv::cvtColor(edges, pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE_HOUGH
 	for (size_t i = 0; i < houghLines.size(); i++)
 	{
@@ -476,19 +478,19 @@ void DDDetector::DetectRGBEdgeLineSegments(
 
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE_LINES
-    cv::cvtColor(edges, *pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
+	cv::cvtColor(edges, pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
     pVisualizationData->displayImg.create(h, w, CV_8UC3);
     pVisualizationData->displayImg.setTo(cv::Scalar(255, 255, 255));
 	for (iLineSegment = 0; iLineSegment < lineSegmentsOut.n; iLineSegment++)
 	{
 		pLineSegment = lineSegmentsOut.Element + iLineSegment;
-		cv::line(*pVisualizationData->displayImg,
+		cv::line(pVisualizationData->displayImg,
 				 cv::Point(pLineSegment->P[0][0], pLineSegment->P[0][1]),
 				 cv::Point(pLineSegment->P[1][0], pLineSegment->P[1][1]),
                  // cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
                  cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
 	}
-	cv::imshow("Hough Lines", *pVisualizationData->displayImg);
+	cv::imshow("Hough Lines", pVisualizationData->displayImg);
 	cv::waitKey();
 #endif
 #endif
@@ -852,7 +854,7 @@ void DDDetector::SegmentEdgeLines2(
 					pPix++;
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE_LINES
-					visPix = (unsigned char*) *pVisualizationData->displayImg->data + 3 * iPix;
+					visPix = pVisualizationData->displayImg.data + 3 * iPix;
 					RVLSET3VECTOR(visPix, 255, 0, 0);
 #endif
 #endif
@@ -888,7 +890,7 @@ void DDDetector::SegmentEdgeLines2(
 	///
 
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE
-	cv::imshow("Lines", *pVisualizationData->displayImg);
+	cv::imshow("Lines", pVisualizationData->displayImg);
 	cv::waitKey();
 #endif
 
@@ -1878,45 +1880,6 @@ void DDDetector::LoadModels(std::vector<std::string> modelFileNames)
 	}
 }
 
-void CreateOrientedPointArrayFromPointArray(
-	Array<Point> PtArraySrc,
-	Array<OrientedPoint> &PtArrayTgt)
-{
-	if (PtArrayTgt.Element == NULL)
-		PtArrayTgt.Element = new OrientedPoint[PtArraySrc.n];
-	PtArrayTgt.n = PtArraySrc.n;
-	int iPt;
-	OrientedPoint *pPtTgt;
-	Point *pPtSrc;
-	for (iPt = 0; iPt < PtArraySrc.n; iPt++)
-	{
-		pPtSrc = PtArraySrc.Element + iPt;
-		pPtTgt = PtArrayTgt.Element + iPt;
-		RVLCOPY3VECTOR(pPtSrc->P, pPtTgt->P);
-		RVLCOPY3VECTOR(pPtSrc->N, pPtTgt->N);
-	}
-}
-
-void CreateOrientedPointArrayFromPointArray(
-	Array<Point> PtArraySrc,
-	Array<int> PtIdx,
-	Array<OrientedPoint> &PtArrayTgt)
-{
-	if (PtArrayTgt.Element == NULL)
-		PtArrayTgt.Element = new OrientedPoint[PtIdx.n];
-	PtArrayTgt.n = PtIdx.n;
-	int iPt;
-	OrientedPoint *pPtTgt = PtArrayTgt.Element;
-	Point *pPtSrc;
-	for (int i = 0; i < PtIdx.n; i++, pPtTgt++)
-	{
-		iPt = PtIdx.Element[i];
-		pPtSrc = PtArraySrc.Element + iPt;
-		RVLCOPY3VECTOR(pPtSrc->P, pPtTgt->P);
-		RVLCOPY3VECTOR(pPtSrc->N, pPtTgt->N);
-	}
-}
-
 void DDDetector::Detect(
 	Array<Mesh> meshSeq,
 	RECOG::DDD::HypothesisDoorDrawer *pFinalHyp,
@@ -2202,7 +2165,7 @@ void DDDetector::Detect(
 					VisualizeHypothesisBoundingBox(&hyp);
 #ifdef NEVER
 					// imgGrid.Create(pMesh->NodeArray, &camera, pointAssociationGridCellSize);
-					// CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
+					// MESH::CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
 					ROI.minx = -0.5f * hyp.bboxSize[0];
 					ROI.maxx = 0.5f * hyp.bboxSize[0];
 					ROI.miny = -0.5f * hyp.bboxSize[1];
@@ -2819,7 +2782,6 @@ void DDDetector::Detect(
 				movingPartHyp = movingPartHyps[iHyp];
 				if (pVisualizationData->b3DVisualization)
 				{
-					// for (iMesh = 0; iMesh < 3; iMesh++)
 					for (iMesh = 0; iMesh < meshSeq.n; iMesh++)
 					{
 						pMesh = meshSeq.Element + iMesh;
@@ -2838,7 +2800,6 @@ void DDDetector::Detect(
 				cv::Mat display;
 				int iState;
 				for (iMesh = 0; iMesh < meshSeq.n; iMesh++)
-				// for (iMesh = 0; iMesh < 3; iMesh++)
 				{
 					for (iState = 0; iState < movingPartHyp.state.n; iState++)
 						if (movingPartHyp.state.Element[iState].imgID == iMesh)
@@ -2875,56 +2836,145 @@ void DDDetector::Detect(
 	RVL_DELETE_ARRAY(SMCorrespondence);
 }
 
+// Move to Util.h or some other appropriate general purpose source code file.
+
+#define RVLCOPY4VECTOR(x, y) \
+	{                        \
+		y[0] = x[0];         \
+		y[1] = x[1];         \
+		y[2] = x[2];         \
+		y[3] = x[3];         \
+	}
+#define RVLSET4VECTOR(x, x0, x1, x2, x3) \
+	{                                    \
+		x[0] = x0;                       \
+		x[1] = x1;                       \
+		x[2] = x2;                       \
+		x[3] = x3;                       \
+	}
+
+#define RVLDIFF4VECTORS(x, y, z) \
+	{                            \
+		z[0] = x[0] - y[0];      \
+		z[1] = x[1] - y[1];      \
+		z[2] = x[2] - y[2];      \
+		z[3] = x[3] - y[3];      \
+	}
+#define RVL4VECTORSUMELEMENTS(x) (x[0] + x[1] + x[2] + x[3])
+#define RVLCOPYRECTTO4VECTOR(rect, x) \
+	{                                 \
+		x[0] = rect.miny;             \
+		x[1] = rect.minx;             \
+		x[2] = rect.maxy;             \
+		x[3] = rect.maxx;             \
+	}
+#define RVLCOPYRECTTO4VECTOR2(pRect, x) \
+	{                                   \
+		x[0] = pRect->miny;             \
+		x[1] = pRect->minx;             \
+		x[2] = pRect->maxy;             \
+		x[3] = pRect->maxx;             \
+	}
+#define RVLCOPY4VECTORTORECT(x, rect) \
+	{                                 \
+		rect.miny = x[0];             \
+		rect.minx = x[1];             \
+		rect.maxy = x[2];             \
+		rect.maxx = x[3];             \
+	}
+#define RVLCOPY4VECTORTORECT2(x, pRect) \
+	{                                   \
+		pRect->miny = x[0];             \
+		pRect->minx = x[1];             \
+		pRect->maxy = x[2];             \
+		pRect->maxx = x[3];             \
+	}
+#define RVLRECTDIFF(rect1, rect2, rectDiff)      \
+	{                                            \
+		rectDiff.minx = rect1.minx - rect2.minx; \
+		rectDiff.miny = rect1.miny - rect2.miny; \
+		rectDiff.maxx = rect1.maxx - rect2.maxx; \
+		rectDiff.maxy = rect1.maxy - rect2.maxy; \
+	}
+
 void DDDetector::Detect3(
-	Array2D<uchar> mask,
-	Array<RECOG::DDD::Line2D> *pOrthogonalViewLines,
-	Array<Rect<int>> *pDDRects)
+	RECOG::DDD::FrontSurface *pFrontSurface,
+	bool bVisualization)
 {
+	Array2D<uchar> mask = pFrontSurface->mask;
+	Array<RECOG::DDD::Line2D> *pOrthogonalViewLines = &(pFrontSurface->lines);
+	Array<Rect<int>> *pDDRects = &(pFrontSurface->DDRects);
+
 	// Parameters.
 
 	int samplingRate = 5;
 	int minDDSize = 20;
+	int minRectSize = 3;
 	int NMSThr = 5;
+	int orthogonalViewFeatDetectTol = 3;
+	int nROCORIterations = 1000;
 
 	// Constants.
 
 	int w = mask.w;
 	int h = mask.h;
 	int nPix = h * w;
-	int maxDDCost = w * h;
+	float AImg = (float)nPix;
+	int maxDDCost = nPix;
 
-	// Edge image.
+	// Edge image and line bounding boxes.
 
-	cv::Mat cvHEdges(h, w, CV_8SC1);
-	uchar *bHEdge = cvHEdges.data;
-	memset(bHEdge, 0, nPix);
-	cv::Mat cvVEdges(h, w, CV_8SC1);
-	uchar *bVEdge = cvVEdges.data;
-	memset(bVEdge, 0, nPix);
+	cv::Mat cvHEdges(h, w, CV_32SC1);
+	int *iHEdge = (int *)(cvHEdges.data);
+	memset(iHEdge, 0xff, nPix * sizeof(int));
+	cv::Mat cvVEdges(h, w, CV_32SC1);
+	int *iVEdge = (int *)(cvVEdges.data);
+	memset(iVEdge, 0xff, nPix * sizeof(int));
+	int *edgeLineBBoxMem = new int[4 * (pOrthogonalViewLines->n + 4)];
+	int *edgeLineBBox = edgeLineBBoxMem;
 	RECOG::DDD::Line2D *pEdgeLine = pOrthogonalViewLines->Element;
 	int iEdgeLine;
-	for (iEdgeLine = 0; iEdgeLine < pOrthogonalViewLines->n; iEdgeLine++, pEdgeLine++)
+	Rect<int> edgeLineBBox_;
+	int iP[2];
+	for (iEdgeLine = 0; iEdgeLine < pOrthogonalViewLines->n; iEdgeLine++, pEdgeLine++, edgeLineBBox += 4)
+	{
 		if (RVLABS(pEdgeLine->N[0]) >= RVLABS(pEdgeLine->N[1]))
-			cv::line(cvVEdges, cv::Point(pEdgeLine->P[0][0], pEdgeLine->P[0][1]), cv::Point(pEdgeLine->P[1][0], pEdgeLine->P[1][1]), cv::Scalar(1));
+			cv::line(cvVEdges, cv::Point(pEdgeLine->P[0][0], pEdgeLine->P[0][1]), cv::Point(pEdgeLine->P[1][0], pEdgeLine->P[1][1]), cv::Scalar(iEdgeLine));
 		else
-			cv::line(cvHEdges, cv::Point(pEdgeLine->P[0][0], pEdgeLine->P[0][1]), cv::Point(pEdgeLine->P[1][0], pEdgeLine->P[1][1]), cv::Scalar(1));
-	cv::line(cvHEdges, cv::Point(0, 0), cv::Point(w - 1, 0), cv::Scalar(1));
-	cv::line(cvVEdges, cv::Point(0, 0), cv::Point(0, h - 1), cv::Scalar(1));
-	cv::line(cvHEdges, cv::Point(w - 1, 0), cv::Point(w - 1, h - 1), cv::Scalar(1));
-	cv::line(cvVEdges, cv::Point(0, h - 1), cv::Point(w - 1, h - 1), cv::Scalar(1));
+			cv::line(cvHEdges, cv::Point(pEdgeLine->P[0][0], pEdgeLine->P[0][1]), cv::Point(pEdgeLine->P[1][0], pEdgeLine->P[1][1]), cv::Scalar(iEdgeLine));
+		iP[0] = (int)round(pEdgeLine->P[0][0]);
+		iP[1] = (int)round(pEdgeLine->P[0][1]);
+		InitRect<int>(&edgeLineBBox_, iP);
+		iP[0] = (int)round(pEdgeLine->P[1][0]);
+		iP[1] = (int)round(pEdgeLine->P[1][1]);
+		UpdateRect<int>(&edgeLineBBox_, iP);
+		RVLCOPYRECTTO4VECTOR(edgeLineBBox_, edgeLineBBox);
+	}
+	cv::line(cvHEdges, cv::Point(0, 0), cv::Point(w - 1, 0), cv::Scalar(pOrthogonalViewLines->n));
+	RVLSET4VECTOR(edgeLineBBox, 0, 0, 0, w - 1);
+	cv::line(cvVEdges, cv::Point(0, 0), cv::Point(0, h - 1), cv::Scalar(pOrthogonalViewLines->n + 1));
+	edgeLineBBox += 4;
+	RVLSET4VECTOR(edgeLineBBox, 0, 0, h - 1, 0);
+	cv::line(cvVEdges, cv::Point(0, h - 1), cv::Point(w - 1, h - 1), cv::Scalar(pOrthogonalViewLines->n + 2));
+	edgeLineBBox += 4;
+	RVLSET4VECTOR(edgeLineBBox, h - 1, 0, h - 1, w - 1);
+	cv::line(cvHEdges, cv::Point(w - 1, 0), cv::Point(w - 1, h - 1), cv::Scalar(pOrthogonalViewLines->n + 3));
+	edgeLineBBox += 4;
+	RVLSET4VECTOR(edgeLineBBox, 0, w - 1, h - 1, w - 1);
 
 	// Integral images.
 
 	int u, v, iPix, dist;
 
-	int *leftDist = new int[nPix];
+	int *leftDist = pFrontSurface->leftDist = new int[nPix];
 	iPix = 0;
 	for (v = 0; v < h; v++)
 	{
-		dist = -1;
+		// dist = -1;
+		dist = w;
 		for (u = 0; u < w; u++, iPix++)
 		{
-			if (bVEdge[iPix])
+			if (iVEdge[iPix] >= 0)
 				dist = 0;
 			else
 				dist++;
@@ -2932,15 +2982,16 @@ void DDDetector::Detect3(
 		}
 	}
 
-	int *rightDist = new int[nPix];
+	int *rightDist = pFrontSurface->rightDist = new int[nPix];
 	iPix = -w - 1;
 	for (v = 0; v < h; v++)
 	{
-		dist = -1;
+		// dist = -1;
+		dist = w;
 		iPix += (2 * w);
 		for (u = w - 1; u >= 0; u--, iPix--)
 		{
-			if (bVEdge[iPix])
+			if (iVEdge[iPix] >= 0)
 				dist = 0;
 			else
 				dist++;
@@ -2948,14 +2999,15 @@ void DDDetector::Detect3(
 		}
 	}
 
-	int *upDist = new int[nPix];
+	int *upDist = pFrontSurface->upDist = new int[nPix];
 	for (u = 0; u < w; u++)
 	{
-		dist = -1;
+		// dist = -1;
+		dist = h;
 		iPix = u;
 		for (v = 0; v < h; v++, iPix += w)
 		{
-			if (bHEdge[iPix])
+			if (iHEdge[iPix] >= 0)
 				dist = 0;
 			else
 				dist++;
@@ -2963,14 +3015,15 @@ void DDDetector::Detect3(
 		}
 	}
 
-	int *downDist = new int[nPix];
+	int *downDist = pFrontSurface->downDist = new int[nPix];
 	for (u = 0; u < w; u++)
 	{
-		dist = -1;
+		// dist = -1;
+		dist = h;
 		iPix = u + w * (h - 1);
 		for (v = h - 1; v >= 0; v--, iPix -= w)
 		{
-			if (bHEdge[iPix])
+			if (iHEdge[iPix] >= 0)
 				dist = 0;
 			else
 				dist++;
@@ -2983,9 +3036,15 @@ void DDDetector::Detect3(
 	int nEdgePoints_ = 0;
 	int nMaskedPoints_ = 0;
 	iPix = 0;
+	int nEdgePixelsHTotal = 0;
+	int nEdgePixelsVTotal = 0;
 	for (u = 0; u < w; u++, iPix++)
 	{
-		if (bHEdge[iPix] || bVEdge[iPix])
+		if (iHEdge[iPix] >= 0)
+			nEdgePixelsHTotal++;
+		if (iVEdge[iPix] >= 0)
+			nEdgePixelsVTotal++;
+		if (iHEdge[iPix] >= 0 || iVEdge[iPix] >= 0)
 			nEdgePoints_++;
 		nEdgePoints[iPix] = nEdgePoints_;
 		if (mask.Element[iPix] == 0)
@@ -2998,7 +3057,11 @@ void DDDetector::Detect3(
 		nMaskedPoints_ = 0;
 		for (u = 0; u < w; u++, iPix++)
 		{
-			if (bHEdge[iPix] || bVEdge[iPix])
+			if (iHEdge[iPix] >= 0)
+				nEdgePixelsHTotal++;
+			if (iVEdge[iPix] >= 0)
+				nEdgePixelsVTotal++;
+			if (iHEdge[iPix] >= 0 || iVEdge[iPix] >= 0)
 				nEdgePoints_++;
 			nEdgePoints[iPix] = nEdgePoints[iPix - w] + nEdgePoints_;
 			if (mask.Element[iPix] == 0)
@@ -3007,35 +3070,61 @@ void DDDetector::Detect3(
 		}
 	}
 
+	int *nEdgePixelsH = new int[nPix];
+	int nEdgePixels;
 	float *scoreH = new float[nPix];
 	float score;
 	iPix = 0;
 	for (v = 0; v < h; v++)
 	{
 		score = 0.0f;
+		nEdgePixels = 0;
 		for (u = 0; u < w; u++, iPix++)
 		{
 			dist = RVLMIN(upDist[iPix], downDist[iPix]);
 			score += exp(-0.5 * (float)(dist * dist));
 			scoreH[iPix] = score;
+			if (dist <= orthogonalViewFeatDetectTol)
+				nEdgePixels++;
+			nEdgePixelsH[iPix] = nEdgePixels;
 		}
 	}
 
+	int *nEdgePixelsV = new int[nPix];
 	float *scoreV = new float[nPix];
 	for (u = 0; u < w; u++)
 	{
 		score = 0.0f;
+		nEdgePixels = 0;
 		iPix = u;
 		for (v = 0; v < h; v++, iPix += w)
 		{
 			dist = RVLMIN(leftDist[iPix], rightDist[iPix]);
 			score += exp(-0.5 * (float)(dist * dist));
 			scoreV[iPix] = score;
+			if (dist <= orthogonalViewFeatDetectTol)
+				nEdgePixels++;
+			nEdgePixelsV[iPix] = nEdgePixels;
 		}
 	}
 
-	// Hypothesis generation.
+	/// Hypothesis generation.
 
+	struct HypothesisDDRect
+	{
+		Rect<int> rect;
+		int iLine[4];
+		float edgeScore[4];
+		int nEdgePixels[4];
+		int w;
+		int h;
+		int boundaryLen;
+		float Anrm;
+		int rect_[4];
+		float cost;
+		int maskedPtPerc;
+	};
+	float borderCost;
 	Rect<int> imgRect;
 	imgRect.minx = 0;
 	imgRect.maxx = w - 1;
@@ -3043,112 +3132,503 @@ void DDDetector::Detect3(
 	imgRect.maxy = h - 1;
 	int samplingOffset = (samplingRate - 1) / 2;
 	int maxnSamples = (w / samplingRate + 1) * (h / samplingRate + 1);
-	Array<Rect<int>> DDRects;
-	DDRects.Element = new Rect<int>[maxnSamples];
-	Rect<int> *pRect;
+	Array<HypothesisDDRect> DDRects;
+	DDRects.Element = new HypothesisDDRect[maxnSamples];
+	HypothesisDDRect *pRect;
 	int iPixTL, iPixTR, iPixBL, iPixBR;
-	float edgeScore;
 	int textureCost;
-	int ddWidth, ddHeight, ddArea;
+	int ddArea;
 	std::vector<SortIndex<float>> ddIdxSorted(maxnSamples);
 	DDRects.n = 0;
+	int vw;
+	int i;
 	for (v = samplingOffset; v < h; v += samplingRate)
 	{
 		for (u = samplingOffset; u < w; u += samplingRate)
 		{
 			pRect = DDRects.Element + DDRects.n;
-			iPix = u + v * w;
-			pRect->minx = u - leftDist[iPix];
-			pRect->maxx = u + rightDist[iPix];
-			pRect->miny = v - upDist[iPix];
-			pRect->maxy = v + downDist[iPix];
-			ddWidth = pRect->maxx - pRect->minx + 1;
-			ddHeight = pRect->maxy - pRect->miny + 1;
-			if (ddWidth < minDDSize || ddHeight < minDDSize)
+			vw = v * w;
+			iPix = u + vw;
+			if (leftDist[iPix] > w)
 				continue;
-			iPixTL = pRect->minx + pRect->miny * w;
-			iPixTR = pRect->maxx + pRect->miny * w;
-			iPixBL = pRect->minx + pRect->maxy * w;
-			iPixBR = pRect->maxx + pRect->maxy * w;
+			if (rightDist[iPix] > w)
+				continue;
+			if (upDist[iPix] > h)
+				continue;
+			if (downDist[iPix] > h)
+				continue;
+			pRect->rect.minx = u - leftDist[iPix];
+			pRect->rect.maxx = u + rightDist[iPix];
+			pRect->rect.miny = v - upDist[iPix];
+			pRect->rect.maxy = v + downDist[iPix];
+			pRect->w = pRect->rect.maxx - pRect->rect.minx + 1;
+			pRect->h = pRect->rect.maxy - pRect->rect.miny + 1;
+			if (pRect->w < minRectSize || pRect->h < minRectSize)
+				continue;
+			iPixTL = pRect->rect.minx + pRect->rect.miny * w;
+			iPixTR = pRect->rect.maxx + pRect->rect.miny * w;
+			iPixBL = pRect->rect.minx + pRect->rect.maxy * w;
+			iPixBR = pRect->rect.maxx + pRect->rect.maxy * w;
 			nMaskedPoints_ = nMaskedPoints[iPixBR - 2 - 2 * w] - nMaskedPoints[iPixBL + 2 - 2 * w] - nMaskedPoints[iPixTR - 2 + 2 * w] + nMaskedPoints[iPixTL + 2 + 2 * w];
-			ddArea = ddWidth * ddHeight;
-            if (100 * nMaskedPoints_ / ddArea > orthogonalViewMaskedThr)
-				continue;
-			edgeScore = scoreH[iPixTR] + scoreH[iPixBR] + scoreV[iPixBL] + scoreV[iPixBR];
+			ddArea = pRect->w * pRect->h;
+			pRect->maskedPtPerc = 100 * nMaskedPoints_ / ddArea;
+			// if (pRect->maskedPtPerc > orthogonalViewMaskedThr)
+			//	continue;
+			RVLSET4VECTOR(pRect->edgeScore, scoreH[iPixTR], scoreV[iPixBL], scoreH[iPixBR], scoreV[iPixBR]);
+			RVLSET4VECTOR(pRect->nEdgePixels, nEdgePixelsH[iPixTR], nEdgePixelsV[iPixBL], nEdgePixelsH[iPixBR], nEdgePixelsV[iPixBR]);
 			textureCost = nEdgePoints[iPixBR - 2 - 2 * w] - nEdgePoints[iPixBL + 2 - 2 * w] - nEdgePoints[iPixTR - 2 + 2 * w] + nEdgePoints[iPixTL + 2 + 2 * w];
-			if (pRect->minx > 0)
-				edgeScore -= (scoreH[iPixTL - 1] + scoreH[iPixBL - 1]);
-			if (pRect->miny > 0)
-				edgeScore -= (scoreV[iPixTL - w] + scoreV[iPixTR - w]);
-            ddIdxSorted[DDRects.n].cost = (float)(2 * (ddWidth + ddHeight) - 4) - edgeScore + orthogonalViewwTexture * (float)textureCost;
+			if (pRect->rect.minx > 0)
+			{
+				pRect->edgeScore[0] -= scoreH[iPixTL - 1];
+				pRect->edgeScore[2] -= scoreH[iPixBL - 1];
+				pRect->nEdgePixels[0] -= nEdgePixelsH[iPixTL - 1];
+				pRect->nEdgePixels[2] -= nEdgePixelsH[iPixBL - 1];
+			}
+			if (pRect->rect.miny > 0)
+			{
+				pRect->edgeScore[1] -= scoreV[iPixTL - w];
+				pRect->edgeScore[3] -= scoreV[iPixTR - w];
+				pRect->nEdgePixels[1] -= nEdgePixelsV[iPixTL - w];
+				pRect->nEdgePixels[3] -= nEdgePixelsV[iPixTR - w];
+			}
+			// if (2 * pRect->nEdgePixels[0] <= pRect->w)
+			//	continue;
+			// if (2 * pRect->nEdgePixels[1] <= pRect->h)
+			//	continue;
+			// if (2 * pRect->nEdgePixels[2] <= pRect->w)
+			//	continue;
+			// if (2 * pRect->nEdgePixels[3] <= pRect->h)
+			//	continue;
+			// ddIdxSorted[DDRects.n].cost = (float)(2 * (ddWidth + ddHeight) - 4) - edgeScore + orthogonalViewwTexture * (float)textureCost;
+			pRect->boundaryLen = 2 * (pRect->w + pRect->h);
+			pRect->Anrm = (float)(pRect->w * pRect->h) / AImg;
+			RVLCOPYRECTTO4VECTOR(pRect->rect, pRect->rect_);
+			borderCost = (float)(pRect->boundaryLen);
+			for (i = 0; i < 4; i++)
+				borderCost -= pRect->edgeScore[i];
+			ddIdxSorted[DDRects.n].cost = borderCost;
 			ddIdxSorted[DDRects.n].idx = DDRects.n;
+			RVLSET4VECTOR(pRect->iLine, iHEdge[u + pRect->rect.miny * w], iVEdge[pRect->rect.minx + vw], iHEdge[u + pRect->rect.maxy * w], iVEdge[pRect->rect.maxx + vw]);
 			DDRects.n++;
 		}
 	}
 	ddIdxSorted.resize(DDRects.n);
 	std::sort(ddIdxSorted.begin(), ddIdxSorted.end(), RECOG::DDD::SortCompare);
 
-	// Non-maximum suppression.
+	if (DDRects.n == 0)
+	{
+		delete[] nEdgePoints;
+		delete[] nMaskedPoints;
+		delete[] scoreH;
+		delete[] scoreV;
+		delete[] nEdgePixelsH;
+		delete[] nEdgePixelsV;
+		delete[] edgeLineBBoxMem;
+		delete[] DDRects.Element;
+		pDDRects->n = 0;
+		pDDRects->Element = NULL;
+		return;
+	}
 
-	Array<int> validDDs;
-	validDDs.Element = new int[DDRects.n];
-	validDDs.n = 0;
-	int i;
+	///
+
 	int iDD, iDD_;
-	Rect<int> *pRect_;
-	Rect<int> intersection;
-	int NMSThr_ = NMSThr - 1;
+	HypothesisDDRect *pRect_;
+	int j;
+
+	// Removing redundant hypotheses.
+
+	Grid grid;
+	grid.Create(w, h, NMSThr, DDRects.n);
+	for (iDD = 0; iDD < DDRects.n; iDD++)
+	{
+		pRect = DDRects.Element + iDD;
+		grid.Add(pRect->rect.minx, pRect->rect.miny, iDD);
+	}
+	Array<int> nearTopLeftCornerDDs;
+	nearTopLeftCornerDDs.Element = new int[DDRects.n];
+	bool *bRedundant = new bool[DDRects.n];
+	memset(bRedundant, 0, DDRects.n * sizeof(bool));
+	Rect<int> rectDiff;
+	Array<int> uniqueDDs;
+	uniqueDDs.Element = new int[DDRects.n];
+	uniqueDDs.n = 0;
 	for (i = 0; i < DDRects.n; i++)
 	{
 		iDD = ddIdxSorted[i].idx;
+		if (bRedundant[iDD])
+			continue;
+		uniqueDDs.Element[uniqueDDs.n++] = iDD;
 		pRect = DDRects.Element + iDD;
-		for (iDD_ = 0; iDD_ < validDDs.n; iDD_++)
+		grid.GetNeighbors(pRect->rect.minx, pRect->rect.miny, nearTopLeftCornerDDs);
+		for (j = 0; j < nearTopLeftCornerDDs.n; j++)
 		{
-			pRect_ = DDRects.Element + validDDs.Element[iDD_];
-			intersection = *pRect;
-			CropRect<int>(intersection, *pRect_);
-			if (intersection.maxx - intersection.minx > NMSThr_ && intersection.maxy - intersection.miny > NMSThr_)
+			iDD_ = nearTopLeftCornerDDs.Element[j];
+			if (iDD_ == iDD)
+				continue;
+			pRect_ = DDRects.Element + iDD_;
+			RVLRECTDIFF(pRect_->rect, pRect->rect, rectDiff);
+			if (RVLABS(rectDiff.minx) <= orthogonalViewFeatDetectTol &&
+				RVLABS(rectDiff.maxx) <= orthogonalViewFeatDetectTol &&
+				RVLABS(rectDiff.miny) <= orthogonalViewFeatDetectTol &&
+				RVLABS(rectDiff.maxy) <= orthogonalViewFeatDetectTol)
+				bRedundant[iDD_] = true;
+		}
+	}
+	delete[] nearTopLeftCornerDDs.Element;
+
+	// Texture rectangles.
+
+	// Array<Rect<int>> textureRects;
+	// textureRects.Element = new Rect<int>[10 * nUniqueDDs];
+	// textureRects.n = 0;
+	// int missingBorderLines[][2] = { {2, 3}, {1, 3}, {1, 2}, {0, 3}, {0, 2}, {0, 1}, {3, -1}, {2, -1}, {1, -1}, {0, -1} };
+	// int iiMissingBorderLine;
+	// int iBorderLine[4];
+	// int k;
+	// int iiLine, diiLine;
+	// int missingBorderLinePosition;
+	// Rect<int>* pTextureRect;
+	// int rectTmp_[4];
+	// for (iDD = 0; iDD < DDRects.n; iDD++)
+	//{
+	//	if (bRedundant[iDD])
+	//		continue;
+	//	pRect = DDRects.Element + iDD;
+	//	for (i = 0; i < 10; i++)
+	//	{
+	//		RVLCOPY4VECTOR(pRect->rect_, rectTmp_);
+	//		RVLCOPY4VECTOR(pRect->iLine, iBorderLine);
+	//		for (j = 0; j < 2; j++)
+	//		{
+	//			iiMissingBorderLine = missingBorderLines[i][j];
+	//			if(iiMissingBorderLine >= 0)
+	//				iBorderLine[iiMissingBorderLine] = -1;
+	//		}
+	//		for (j = 0; j < 2; j++)	// for each missing border line
+	//		{
+	//			iiMissingBorderLine = missingBorderLines[i][j];
+	//			if (iiMissingBorderLine < 0)
+	//				continue;
+	//			missingBorderLinePosition = pRect->rect_[(iiMissingBorderLine + 2) % 4];
+	//			diiLine = 1;
+	//			for (k = 0; k < 2; k++, diiLine = 3)	// for the previous and next border line of the missing border line
+	//			{
+	//				iiLine = (iiMissingBorderLine + diiLine) % 4;
+	//				if (iBorderLine[iiLine] < 0)
+	//					continue;
+	//				edgeLineBBox = edgeLineBBoxMem + 4 * iBorderLine[iiLine];
+	//				if (iiMissingBorderLine < 2)
+	//				{
+	//					if (edgeLineBBox[iiMissingBorderLine] < missingBorderLinePosition)
+	//						missingBorderLinePosition = edgeLineBBox[iiMissingBorderLine];
+	//				}
+	//				else
+	//				{
+	//					if (edgeLineBBox[iiMissingBorderLine] > missingBorderLinePosition)
+	//						missingBorderLinePosition = edgeLineBBox[iiMissingBorderLine];
+	//				}
+	//			}
+	//			if (iiMissingBorderLine < 2)
+	//			{
+	//				if (missingBorderLinePosition > rectTmp_[iiMissingBorderLine] + NMSThr)
+	//					rectTmp_[iiMissingBorderLine] = missingBorderLinePosition;
+	//				else
+	//					break;
+	//			}
+	//			else
+	//			{
+	//				if (missingBorderLinePosition < rectTmp_[iiMissingBorderLine] - NMSThr)
+	//					rectTmp_[iiMissingBorderLine] = missingBorderLinePosition;
+	//				else
+	//					break;
+	//			}
+	//		}
+	//		if (j < 2)
+	//			continue;
+	//		pTextureRect = textureRects.Element + textureRects.n;
+	//		RVLCOPY4VECTORTORECT2(rectTmp_, pTextureRect);
+	//		textureRects.n++;
+	//	}
+	// }
+
+	//// Determining the most probable interpretation by stohastic search.
+
+	Rect<int> intersection;
+
+	// Rectangle costs and rectangle pair costs.
+
+	float *costRect = new float[uniqueDDs.n];
+	float *costRectPair = new float[uniqueDDs.n * uniqueDDs.n];
+	bool *bWithin = new bool[uniqueDDs.n * uniqueDDs.n];
+	float nEdgePixelsTotal = (float)(nEdgePixelsHTotal + nEdgePixelsVTotal);
+	int iPair;
+	int k, kPrev, kNext;
+	int rectDiff_[4];
+	int boundaryLineIntersection;
+	int iUDD, iUDD_;
+	int a, b;
+	for (iUDD = 0; iUDD < uniqueDDs.n; iUDD++)
+	{
+		if (iUDD == 18)
+			int debug = 0;
+		iDD = uniqueDDs.Element[iUDD];
+		pRect = DDRects.Element + iDD;
+		costRect[iUDD] = (float)(pRect->boundaryLen - 2 * RVL4VECTORSUMELEMENTS(pRect->nEdgePixels)) / nEdgePixelsTotal;
+		for (iUDD_ = 0; iUDD_ < uniqueDDs.n; iUDD_++)
+		{
+			iPair = iUDD * uniqueDDs.n + iUDD_;
+			if (iUDD_ == iUDD)
+			{
+				bWithin[iPair] = false;
+				costRectPair[iPair] = 0.0f;
+				continue;
+			}
+			iDD_ = uniqueDDs.Element[iUDD_];
+			pRect_ = DDRects.Element + iDD_;
+			RVLDIFF4VECTORS(pRect->rect_, pRect_->rect_, rectDiff_);
+			if (bWithin[iPair] = (rectDiff_[0] > orthogonalViewFeatDetectTol &&
+								  rectDiff_[1] > orthogonalViewFeatDetectTol &&
+								  rectDiff_[2] < -orthogonalViewFeatDetectTol &&
+								  rectDiff_[3] < -orthogonalViewFeatDetectTol))
+			{
+				costRectPair[iPair] = 0.0f;
+				continue;
+			}
+			intersection = pRect->rect;
+			CropRect<int>(intersection, pRect_->rect);
+			a = intersection.maxx - intersection.minx + 1;
+			if (a < 0)
+				a = 0;
+			b = intersection.maxy - intersection.miny + 1;
+			if (b < 0)
+				b = 0;
+			costRectPair[iPair] = (float)(a * b) / AImg;
+			for (k = 0; k < 4; k++)
+				if (RVLABS(rectDiff_[k]) <= orthogonalViewFeatDetectTol)
+				{
+					kNext = (k + 1) % 4;
+					kPrev = (k + 3) % 4;
+					if ((boundaryLineIntersection = (kPrev < 2 ? RVLMIN(pRect->rect_[kNext], pRect_->rect_[kNext]) - RVLMAX(pRect->rect_[kPrev], pRect_->rect_[kPrev]) : RVLMIN(pRect->rect_[kPrev], pRect_->rect_[kPrev]) - RVLMAX(pRect->rect_[kNext], pRect_->rect_[kNext])) + 1) > 0)
+						costRectPair[iPair] += (float)boundaryLineIntersection / nEdgePixelsTotal;
+				}
+		}
+	}
+
+	/// Interpretation cost minimization by Random Order COst Reduction (ROCOR).
+
+	int iteration;
+	Array<int> DDIdx;
+	DDIdx.n = uniqueDDs.n;
+	Array<int> interpretation;
+	interpretation.Element = new int[uniqueDDs.n];
+	Array<int> bestInterpretation;
+	bestInterpretation.Element = new int[uniqueDDs.n];
+	bestInterpretation.n = 0;
+	float cost, dCost;
+	float minCost = 0.0f;
+	int bestIteration = -1; // Only for debugging purpose!!!
+	for (iteration = 0; iteration < nROCORIterations; iteration++)
+	{
+		if (iteration == 7)
+			int debug = 0;
+		RandomIndices(DDIdx);
+		interpretation.n = 0;
+		cost = 0.0f;
+		for (i = 0; i < DDIdx.n; i++)
+		{
+			iUDD = DDIdx.Element[i];
+			dCost = costRect[iUDD];
+
+			// Is the rectangle with the index iUDD is contained within any of the rectangles in interpretation?
+
+			for (j = 0; j < interpretation.n; j++)
+			{
+				iUDD_ = interpretation.Element[j];
+				iPair = iUDD * uniqueDDs.n + iUDD_;
+				if (bWithin[iPair])
 				break;
 		}
-		if (iDD_ < validDDs.n)
-			continue;
-		validDDs.Element[validDDs.n++] = iDD;
+
+			// If it is not, then decrease dCost by the normalized area of this rectangle.
+
+			if (j >= interpretation.n)
+			{
+				iDD = uniqueDDs.Element[iUDD];
+				pRect = DDRects.Element + iDD;
+				dCost -= pRect->Anrm;
+
+				// If a rectangle in interpretation is contained within the the rectangle with index iUDD,
+				// then increase dCost by the normalized area of this rectangle.
+
+				for (j = 0; j < interpretation.n; j++)
+				{
+					iUDD_ = interpretation.Element[j];
+					iPair = iUDD_ * uniqueDDs.n + iUDD;
+					if (bWithin[iPair])
+					{
+						iDD_ = uniqueDDs.Element[iUDD_];
+						pRect_ = DDRects.Element + iDD_;
+						dCost += pRect_->Anrm;
+					}
+				}
+			}
+
+			// Increase dCost by the costRectPair of all rectangles in interpretation.
+
+			for (j = 0; j < interpretation.n; j++)
+			{
+				iUDD_ = interpretation.Element[j];
+				iPair = iUDD * uniqueDDs.n + iUDD_;
+				dCost += (2.0f * costRectPair[iPair]);
+			}
+
+			//
+
+			if (dCost < 0)
+			{
+				interpretation.Element[interpretation.n++] = iUDD;
+				cost += dCost;
+			}
+			if (cost < minCost)
+			{
+				minCost = cost;
+				memcpy(bestInterpretation.Element, interpretation.Element, interpretation.n * sizeof(int));
+				bestInterpretation.n = interpretation.n;
+				bestIteration = iteration;
+			}
+		}
+		delete[] DDIdx.Element;
 	}
-	pDDRects->Element = new Rect<int>[validDDs.n];
-	pDDRects->n = validDDs.n;
-	for (iDD = 0; iDD < validDDs.n; iDD++)
-		pDDRects->Element[iDD] = DDRects.Element[validDDs.Element[iDD]];
+	delete[] interpretation.Element;
+
+	///
+
+	delete[] costRect;
+	delete[] costRectPair;
+
+	////
+
+	// Remove rectangles which are not doors/drawers.
+
+	pDDRects->Element = new Rect<int>[bestInterpretation.n];
+	pDDRects->n = 0;
+	for (i = 0; i < bestInterpretation.n; i++)
+	{
+		iUDD = bestInterpretation.Element[i];
+		pRect = DDRects.Element + uniqueDDs.Element[iUDD];
+		if (pRect->w < minDDSize || pRect->h < minDDSize)
+			continue;
+		if (pRect->maskedPtPerc > orthogonalViewMaskedThr)
+			continue;
+		for (j = 0; j < bestInterpretation.n; j++)
+		{
+			iUDD_ = bestInterpretation.Element[j];
+			iPair = iUDD * uniqueDDs.n + iUDD_;
+			if (bWithin[iPair])
+				break;
+	}
+		if (j < bestInterpretation.n)
+			continue;
+		pDDRects->Element[pDDRects->n++] = pRect->rect;
+	}
+	delete[] bWithin;
+
+	/// Non-maximum suppression.
+
+	// Array<int> validDDs;
+	// validDDs.Element = new int[nUniqueDDs];
+	// validDDs.n = 0;
+	// int NMSThr_ = NMSThr - 1;
+	// for (i = 0; i < DDRects.n; i++)
+	//{
+	//	iDD = ddIdxSorted[i].idx;
+	//	if (bRedundant[iDD])
+	//		continue;
+	//	pRect = DDRects.Element + iDD;
+	//	for (iDD_ = 0; iDD_ < validDDs.n; iDD_++)
+	//	{
+	//		pRect_ = DDRects.Element + validDDs.Element[iDD_];
+	//		intersection = pRect->rect;
+	//		CropRect<int>(intersection, pRect_->rect);
+	//		if (intersection.maxx - intersection.minx > NMSThr_ && intersection.maxy - intersection.miny > NMSThr_)
+	//			break;
+	//	}
+	//	if (iDD_ < validDDs.n)
+	//		continue;
+	//	validDDs.Element[validDDs.n++] = iDD;
+	// }
+
+	// pDDRects->Element = new Rect<int>[validDDs.n];
+	// pDDRects->n = validDDs.n;
+	// for (iDD = 0; iDD < validDDs.n; iDD++)
+	//	pDDRects->Element[iDD] = DDRects.Element[validDDs.Element[iDD]].rect;
+
+	// pDDRects->Element = new Rect<int>[uniqueDDs.n];
+	// pDDRects->n = uniqueDDs.n;
+	// for (i = 0; i < uniqueDDs.n; i++)
+	//	pDDRects->Element[i] = DDRects.Element[uniqueDDs.Element[i]].rect;
+
+	// pDDRects->Element = new Rect<int>[bestInterpretation.n];
+	// pDDRects->n = bestInterpretation.n;
+	// for (i = 0; i < bestInterpretation.n; i++)
+	//	pDDRects->Element[i] = DDRects.Element[uniqueDDs.Element[bestInterpretation.Element[i]]].rect;
+
+	///
+
 	delete[] DDRects.Element;
-	delete[] validDDs.Element;
+	// delete[] validDDs.Element;
+	// delete[] textureRects.Element;
+	delete[] edgeLineBBoxMem;
+	delete[] bRedundant;
+	delete[] uniqueDDs.Element;
 
 	// Visualization.
 
-	cv::Mat displayImg(h, w, CV_8UC3);
-	uchar *visPix = displayImg.data;
+	if (bVisualization)
+	{
+		uchar *edgeImg = new uchar[3 * nPix];
+		uchar *visPix = edgeImg;
 	for (iPix = 0; iPix < nPix; iPix++, visPix += 3)
-		if (bHEdge[iPix] || bVEdge[iPix])
+			if (iHEdge[iPix] >= 0 || iVEdge[iPix] >= 0)
             RVLSET3VECTOR(visPix, 0, 0, 0)
         else
 			RVLSET3VECTOR(visPix, 255, 255, 255)
+		cv::Mat displayImg(h, w, CV_8UC3);
+		memcpy(displayImg.data, edgeImg, 3 * nPix);
+		cv::imshow("detected door/drawer", displayImg);
+		cv::waitKey();
+		cv::destroyWindow("detected door/drawer");
+		Rect<int> *pRect__;
 	for (iDD = 0; iDD < pDDRects->n; iDD++)
 	{
-		pRect = pDDRects->Element + iDD;
-		cv::rectangle(displayImg, cv::Point(pRect->minx, pRect->miny), cv::Point(pRect->maxx, pRect->maxy), cv::Scalar(0, 255, 0));
+			memcpy(displayImg.data, edgeImg, 3 * nPix);
+			for (iDD_ = 0; iDD_ < pDDRects->n; iDD_++)
+			{
+				pRect__ = pDDRects->Element + iDD_;
+				if (iDD_ != iDD)
+					cv::rectangle(displayImg, cv::Point(pRect__->minx, pRect__->miny), cv::Point(pRect__->maxx, pRect__->maxy), cv::Scalar(0, 255, 0));
 	}
+			pRect__ = pDDRects->Element + iDD;
+			cv::rectangle(displayImg, cv::Point(pRect__->minx, pRect__->miny), cv::Point(pRect__->maxx, pRect__->maxy), cv::Scalar(0, 0, 255));
+			printf("rectangle %d\n", bestInterpretation.Element[iDD]);
+			// printf("rectangle %d\n", iDD);
 	cv::imshow("detected door/drawer", displayImg);
 	cv::waitKey();
     cv::destroyWindow("detected door/drawer");
+		}
+		delete[] edgeImg;
+	}
 
 	//
 
-	delete[] leftDist;
-	delete[] rightDist;
-	delete[] upDist;
-	delete[] downDist;
 	delete[] nEdgePoints;
 	delete[] nMaskedPoints;
 	delete[] scoreH;
 	delete[] scoreV;
+	delete[] nEdgePixelsH;
+	delete[] nEdgePixelsV;
+	delete[] bestInterpretation.Element;
 }
 
 bool DDDetector::GenerateHypotheses(
@@ -4163,8 +4643,8 @@ void DDDetector::GenerateDoorHypotheses(
 							// Visualize door hypothesis.
 
 							VisualizeDoorHypothesis(doorHyp);
-							// pVisualizationData->pVisualizer->Run();
-							// pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
+							pVisualizationData->pVisualizer->Run();
+							pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
 						}
 		}
 		delete[] PAClusterID;
@@ -4575,12 +5055,7 @@ void DDDetector::DetectCuboids(Mesh *pMesh)
 	imgGrid.Create(pMesh->NodeArray, &camera, 8);
 	Array<OrientedPoint> pointsS;
 	pointsS.Element = new OrientedPoint[camera.w * camera.h];
-#ifdef RVLLINUX
-	CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
-#else
 	MESH::CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
-
-#endif
 	PointAssociationData pointAssociationData;
 	RECOG::DDD::Model *pModel = models.Element;
 	pointAssociationData.Create(pModel->points.n, pointsS.n, true);
@@ -5252,15 +5727,71 @@ void DDDetector::DetectStorageVolumes(Mesh *pMesh)
 	delete[] SMCorrespondence;
 }
 
+// Move to Util.cpp.
+
+bool LineRectIntersection(
+	float *lineP1,
+	float *lineP2,
+	Rect<float> rect,
+	float *intersectionP1,
+	float *intersectionP2)
+{
+	float s1 = 0.0f;
+	float s2 = 1.0f;
+	float V[2];
+	V[0] = lineP2[0] - lineP1[0];
+	V[1] = lineP2[1] - lineP1[1];
+	float lineLen = sqrt(V[0] * V[0] + V[1] * V[1]);
+	float N[4][2];
+	float d[4];
+	N[0][0] = 0.0f;
+	N[0][1] = -1.0f;
+	N[1][0] = -1.0f;
+	N[1][1] = 0.0f;
+	N[2][0] = 0.0f;
+	N[2][1] = 1.0f;
+	N[3][0] = 1.0f;
+	N[3][1] = 0.0f;
+	d[0] = -rect.miny;
+	d[1] = -rect.minx;
+	d[2] = rect.maxy;
+	d[3] = rect.maxx;
+	float s;
+	float k;
+	float e;
+	for (int i = 0; i < 4; i++)
+	{
+		e = N[i][0] * lineP1[0] + N[i][1] * lineP1[1] - d[i];
+		k = N[i][0] * V[0] + N[i][1] * V[1];
+		if (RVLABS(k) < 1e-7)
+		{
+			if (e > 0.0f)
+				return false;
+		}
+		else
+		{
+			s = -e / k;
+			if (k > 0 && s < s2)
+				s2 = s;
+			if (k < 0 && s > s1)
+				s1 = s;
+			if (s1 > s2)
+				return false;
+		}
+	}
+	intersectionP1[0] = lineP1[0] + s1 * V[0];
+	intersectionP1[1] = lineP1[1] + s1 * V[1];
+	intersectionP2[0] = lineP1[0] + s2 * V[0];
+	intersectionP2[1] = lineP1[1] + s2 * V[1];
+	return true;
+}
+
 void DDDetector::DDOrthogonalView(
 	RECOG::DDD::RectStruct *pRectStruct,
 	Array<RECOG::DDD::EdgeLineSegment> edgeLineSegments,
 	float *verticalAxis,
 	int nOrthogonalViews,
-	Pose3D *&poseFCOut,
-	std::vector<cv::Mat> &orthogonalViews,
-	Array<Array2D<uchar>> &masks,
-	Array<RECOG::DDD::Line2D> *&orthogonalViewLines,
+	Array<RECOG::DDD::FrontSurface> &orthogonalViews,
 	bool bVisualize,
 	Mesh *pMesh)
 {
@@ -5269,6 +5800,8 @@ void DDDetector::DDOrthogonalView(
 	float planeDistTol = 0.040f;   // m
 	float normalOrientTol = 30.0f; // deg
 	int dilationSize = 6;		   // pix
+	// float orthogonalViewExpansion = 0.03f;	// m
+	float orthogonalViewExpansion = 0.0f;
 
 	// Constants.
 
@@ -5322,12 +5855,11 @@ void DDDetector::DDOrthogonalView(
 
 	/// Create orthogonal views.
 
-	orthogonalViewLines = new Array<RECOG::DDD::Line2D>[nOrthogonalViews];
-	Array<RECOG::DDD::Line2D> *pOrthogonalViewLines = orthogonalViewLines;
+	int nOrthogonalViews_ = RVLMIN(nOrthogonalViews, sortedVerticalRects.size());
+	orthogonalViews.Element = new RECOG::DDD::FrontSurface[nOrthogonalViews_];
+	orthogonalViews.n = nOrthogonalViews_;
+	RECOG::DDD::FrontSurface *pOrthogonalView = orthogonalViews.Element;
 	int i;
-	cv::Mat orthogonalView;
-	masks.Element = new Array2D<uchar>[nOrthogonalViews];
-	Array2D<uchar> *pMask;
 	int iPix, nPix;
 	Point *pPt;
 	int *piSrcPt;
@@ -5335,8 +5867,7 @@ void DDDetector::DDOrthogonalView(
 	float e;
 	float dP[3];
 	uchar *pMaskPix;
-	poseFCOut = new Pose3D[nOrthogonalViews];
-	for (int iOrthogonalView = 0; iOrthogonalView < nOrthogonalViews; iOrthogonalView++, pOrthogonalViewLines++)
+	for (int iOrthogonalView = 0; iOrthogonalView < nOrthogonalViews_; iOrthogonalView++, pOrthogonalView++)
 	{
 		// Pose of the face reference frame (F) with respect to the camera reference frame (C).
 
@@ -5373,6 +5904,8 @@ void DDDetector::DDOrthogonalView(
 			fw = pRect->s[0];
 			fh = pRect->s[1];
 		}
+		fw += (2.0f * orthogonalViewExpansion);
+		fh += (2.0f * orthogonalViewExpansion);
 		float half_fw = 0.5f * fw;
 		float half_fh = 0.5f * fh;
 		float PcC[3];
@@ -5382,16 +5915,19 @@ void DDDetector::DDOrthogonalView(
 		RVLSUM3VECTORS(PcC, V3Tmp, poseFC.t);
 		RVLSCALE3VECTOR(YFC, -half_fh, V3Tmp);
 		RVLSUM3VECTORS(poseFC.t, V3Tmp, poseFC.t);
-		poseFCOut[iOrthogonalView] = poseFC;
+		pOrthogonalView->poseFC = poseFC;
 
 		// Mapping between the original image and the orthogonal view.
 
 		int w = (int)floor(fw / pixSize);
 		int h = (int)floor(fh / pixSize);
+		pOrthogonalView->w = w;
+		pOrthogonalView->h = h;
+		pOrthogonalView->pixSize = pixSize;
 		nPix = w * h;
-		orthogonalView.create(h, w, CV_32SC1);
-		orthogonalView.setTo(-1);
-		int *tgtPix = (int *)(orthogonalView.data);
+		pOrthogonalView->pixMap.create(h, w, CV_32SC1);
+		pOrthogonalView->pixMap.setTo(-1);
+		int *tgtPix = (int *)(pOrthogonalView->pixMap.data);
 		int x, y, u, v;
 		float PF[3], PC[3];
 		PF[2] = 0.0f;
@@ -5423,17 +5959,15 @@ void DDDetector::DDOrthogonalView(
 				iPix = u + v * camera.w;
 				*tgtPix = iPix;
 			}
-		orthogonalViews.push_back(orthogonalView);
 
 		// Mask the points which don't lie on the face.
 
-		pMask = masks.Element + iOrthogonalView;
-		pMask->Element = new uchar[nPix];
-		pMask->w = w;
-		pMask->h = h;
-		memset(pMask->Element, 0, nPix * sizeof(uchar));
-		pMaskPix = pMask->Element;
-		piSrcPt = (int *)(orthogonalView.data);
+		pOrthogonalView->mask.Element = new uchar[nPix];
+		pOrthogonalView->mask.w = w;
+		pOrthogonalView->mask.h = h;
+		memset(pOrthogonalView->mask.Element, 0, nPix * sizeof(uchar));
+		pMaskPix = pOrthogonalView->mask.Element;
+		piSrcPt = (int *)(pOrthogonalView->pixMap.data);
 		for (iTgtPt = 0; iTgtPt < nPix; iTgtPt++, piSrcPt++, pMaskPix++)
 		{
 			iSrcPt = *piSrcPt;
@@ -5457,35 +5991,23 @@ void DDDetector::DDOrthogonalView(
 		ROI.maxy = (float)h;
 		int iEdgeLine;
 		RECOG::DDD::EdgeLineSegment *pEdgeLine;
-		float rayC[3];
-		rayC[2] = 1.0f;
-		float rayF[3];
-
-		pOrthogonalViewLines->Element = new RECOG::DDD::Line2D[edgeLineSegments.n];
-		float s;
-		RECOG::DDD::Line2D *pEdgeLineF = pOrthogonalViewLines->Element;
-		bool bInROI;
+		pOrthogonalView->lines.Element = new RECOG::DDD::Line2D[edgeLineSegments.n];
+		RECOG::DDD::Line2D *pEdgeLineF = pOrthogonalView->lines.Element;
 		float edgeLineLen;
 		float V[2];
 		float vx, vy;
+		float P_[2][2];
 		for (iEdgeLine = 0; iEdgeLine < edgeLineSegments.n; iEdgeLine++)
 		{
 			pEdgeLine = edgeLineSegments.Element + iEdgeLine;
-			bInROI = false;
 			for (i = 0; i < 2; i++)
-			{
-				rayC[0] = (pEdgeLine->P[i][0] - camera.uc) / camera.fu;
-				rayC[1] = (pEdgeLine->P[i][1] - camera.vc) / camera.fv;
-				RVLMULMX3X3VECT(poseCF.R, rayC, rayF);
-				s = -poseCF.t[2] / rayF[2];
-				RVLSCALE3VECTOR(rayF, s, V3Tmp);
-				pEdgeLineF->P[i][0] = (poseCF.t[0] + V3Tmp[0]) / pixSize;
-				pEdgeLineF->P[i][1] = (poseCF.t[1] + V3Tmp[1]) / pixSize;
-				if (IsInRect<float>(pEdgeLineF->P[i][0], pEdgeLineF->P[i][1], ROI))
-					bInROI = true;
-			}
-			if (!bInROI)
+				ProjectImgPtToPlanarSurface(pEdgeLine->P[i], &poseCF, pixSize, pEdgeLineF->P[i]);
+			if (!LineRectIntersection(pEdgeLineF->P[0], pEdgeLineF->P[1], ROI, P_[0], P_[1]))
 				continue;
+			pEdgeLineF->P[0][0] = P_[0][0];
+			pEdgeLineF->P[0][1] = P_[0][1];
+			pEdgeLineF->P[1][0] = P_[1][0];
+			pEdgeLineF->P[1][1] = P_[1][1];
 			dP[0] = pEdgeLineF->P[1][0] - pEdgeLineF->P[0][0];
 			dP[1] = pEdgeLineF->P[1][1] - pEdgeLineF->P[0][1];
 			edgeLineLen = sqrt(dP[0] * dP[0] + dP[1] * dP[1]);
@@ -5497,9 +6019,10 @@ void DDDetector::DDOrthogonalView(
 				continue;
 			pEdgeLineF->N[0] = -V[1];
 			pEdgeLineF->N[1] = V[0];
+			pEdgeLineF->d = pEdgeLineF->N[0] * pEdgeLineF->P[0][0] + pEdgeLineF->N[1] * pEdgeLineF->P[0][1];
 			pEdgeLineF++;
 		}
-		pOrthogonalViewLines->n = pEdgeLineF - pOrthogonalViewLines->Element;
+		pOrthogonalView->lines.n = pEdgeLineF - pOrthogonalView->lines.Element;
 
 		// Visualization.
 
@@ -5515,21 +6038,21 @@ void DDDetector::DDOrthogonalView(
 				delete[] visPts.Element;
 			}
 			cv::Mat displayImg;
-			RECOG::DDD::MapMeshRGB(pMesh, orthogonalView, displayImg);
+			RECOG::DDD::MapMeshRGB(pMesh, pOrthogonalView->pixMap, displayImg);
 			uchar *displayPix = (uchar *)(displayImg.data);
-			cv::Mat cvMask(h, w, CV_8UC1, pMask->Element);
+			cv::Mat cvMask(h, w, CV_8UC1, pOrthogonalView->mask.Element);
 			cv::Mat dilatedMask;
 			int dilationStructElementSize = 2 * dilationSize + 1;
 			cv::Mat dilationStructElement = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(dilationStructElementSize, dilationStructElementSize), cv::Point(dilationSize, dilationSize));
 			cv::dilate(cvMask, dilatedMask, dilationStructElement);
 			// pMaskPix = (uchar*)(dilatedMask.data);
-			pMaskPix = pMask->Element;
+			pMaskPix = pOrthogonalView->mask.Element;
 			for (iPix = 0; iPix < nPix; iPix++, displayPix += 3, pMaskPix++)
 				if (*pMaskPix == 0)
 					RVLSET3VECTOR(displayPix, 255, 0, 0);
 			std::string displayName = "Orthogonal view " + std::to_string(iOrthogonalView);
-			pEdgeLineF = pOrthogonalViewLines->Element;
-			for (i = 0; i < pOrthogonalViewLines->n; i++, pEdgeLineF++)
+			pEdgeLineF = pOrthogonalView->lines.Element;
+			for (i = 0; i < pOrthogonalView->lines.n; i++, pEdgeLineF++)
 				cv::line(displayImg, cv::Point(pEdgeLineF->P[0][0], pEdgeLineF->P[0][1]), cv::Point(pEdgeLineF->P[1][0], pEdgeLineF->P[1][1]), cv::Scalar(0, 255, 0));
 			cv::imshow(displayName, displayImg);
 			cv::waitKey();
@@ -8247,21 +8770,11 @@ void DDDetector::DetectDominantShiftPoints2(
 	RVLCOPYMX3X3(R, pose.R);
 
 	// pMeshM = meshSeq.Element + meshSeq.n - 1;
-
-#ifdef RVLLINUX
-	// CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
-	MeshSubsample(pMeshQ, &pointsQSubsampledIdx);
-	CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQSubsampledIdx, pointsQSubsampled);
-#else
 	// MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 	MeshSubsample(pMeshQ, &pointsQSubsampledIdx);
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQSubsampledIdx, pointsQSubsampled);
 	// pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
-#endif
-
-	// pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 	pointAssociationData.Create(pointsQSubsampled.n, pointsM.n, true);
 	imgGrid.Create(pMeshM->NodeArray, &camera, ROIPointAssociationGridCellSize);
 	// imgGrid.Create(pMeshQ->NodeArray, &camera, pointAssociationGridCellSize);
@@ -8576,6 +9089,153 @@ void DDDetector::LoadDDStates(
 		fscanf(fp, "\n");
 		pDD++;
 	}
+}
+
+void DDDetector::SaveDDRectangles(
+	std::string DDRectFileName,
+	Array<RECOG::DDD::FrontSurface> *pFrontSurfaces)
+{
+	cv::FileStorage fs(DDRectFileName, cv::FileStorage::WRITE);
+	fs << "num_surfaces" << pFrontSurfaces->n;
+	fs << "surfaces"
+	   << "[";
+	int iSurface;
+	RECOG::DDD::FrontSurface *pFrontSurface;
+	cv::Mat cvTFC(4, 4, CV_32FC1);
+	float *TFC = (float *)(cvTFC.data);
+	RECOG::DDD::Line2D *pLine;
+	float *lineData;
+	Rect<int> *pRect;
+	int *rectData;
+	for (iSurface = 0; iSurface < pFrontSurfaces->n; iSurface++)
+	{
+		fs << "{";
+		fs << "SurfaceID" << iSurface;
+		pFrontSurface = pFrontSurfaces->Element + iSurface;
+		RVLHTRANSFMX(pFrontSurface->poseFC.R, pFrontSurface->poseFC.t, TFC);
+		fs << "poseFC" << cvTFC;
+		fs << "w" << pFrontSurface->w;
+		fs << "h" << pFrontSurface->h;
+		fs << "pixSize" << pFrontSurface->pixSize;
+		fs << "pixMap" << pFrontSurface->pixMap;
+		cv::Mat cvMask(pFrontSurface->mask.h, pFrontSurface->mask.w, CV_8UC1, pFrontSurface->mask.Element);
+		fs << "mask" << cvMask;
+		cv::Mat cvLines(pFrontSurface->lines.n, 7, CV_32FC1);
+		lineData = (float *)(cvLines.data);
+		for (int iLine = 0; iLine < pFrontSurface->lines.n; iLine++, lineData += 7)
+		{
+			pLine = pFrontSurface->lines.Element + iLine;
+			lineData[0] = pLine->P[0][0];
+			lineData[1] = pLine->P[0][1];
+			lineData[2] = pLine->P[1][0];
+			lineData[3] = pLine->P[1][1];
+			lineData[4] = pLine->N[0];
+			lineData[5] = pLine->N[1];
+			lineData[6] = pLine->d;
+		}
+		fs << "lines" << cvLines;
+		cv::Mat cvLeftDist(pFrontSurface->h, pFrontSurface->w, CV_32SC1, pFrontSurface->leftDist);
+		fs << "leftDist" << cvLeftDist;
+		cv::Mat cvRightDist(pFrontSurface->h, pFrontSurface->w, CV_32SC1, pFrontSurface->rightDist);
+		fs << "rightDist" << cvRightDist;
+		cv::Mat cvUpDist(pFrontSurface->h, pFrontSurface->w, CV_32SC1, pFrontSurface->upDist);
+		fs << "upDist" << cvUpDist;
+		cv::Mat cvDownDist(pFrontSurface->h, pFrontSurface->w, CV_32SC1, pFrontSurface->downDist);
+		fs << "downDist" << cvDownDist;
+		cv::Mat cvRects(pFrontSurface->DDRects.n, 4, CV_32SC1);
+		rectData = (int *)(cvRects.data);
+		for (int iRect = 0; iRect < pFrontSurface->DDRects.n; iRect++, rectData += 4)
+		{
+			pRect = pFrontSurface->DDRects.Element + iRect;
+			RVLCOPYRECTTO4VECTOR2(pRect, rectData);
+		}
+		fs << "DDRects" << cvRects;
+		fs << "}";
+	}
+	fs << "]";
+	fs.release();
+}
+
+bool DDDetector::LoadDDRectangles(
+	std::string DDRectFileName,
+	Array<RECOG::DDD::FrontSurface> *pFrontSurfaces)
+{
+	cv::FileStorage fs;
+	fs.open(DDRectFileName, cv::FileStorage::READ);
+	if (!fs.isOpened())
+		return false;
+	pFrontSurfaces->n = (int)fs["num_surfaces"];
+	pFrontSurfaces->Element = new RECOG::DDD::FrontSurface[pFrontSurfaces->n];
+	int iSurface;
+	RECOG::DDD::FrontSurface *pFrontSurface;
+	cv::Mat cvTFC;
+	float *TFC;
+	RECOG::DDD::Line2D *pLine;
+	float *lineData;
+	Rect<int> *pRect;
+	int *rectData;
+	cv::Mat cvMask;
+	cv::Mat cvLines;
+	cv::Mat cvDist;
+	cv::Mat cvRects;
+	int nPix;
+	cv::FileNode fn = fs["surfaces"];
+	for (cv::FileNodeIterator it = fn.begin(); it != fn.end(); it++)
+	{
+		cv::FileNode surface = *it;
+		surface["SurfaceID"] >> iSurface;
+		pFrontSurface = pFrontSurfaces->Element + iSurface;
+		surface["poseFC"] >> cvTFC;
+		TFC = (float *)(cvTFC.data);
+		RVLHTRANSFMXDECOMP(TFC, pFrontSurface->poseFC.R, pFrontSurface->poseFC.t);
+		pFrontSurface->w = (int)surface["w"];
+		pFrontSurface->h = (int)surface["h"];
+		nPix = pFrontSurface->w * pFrontSurface->h;
+		pFrontSurface->pixSize = (float)surface["pixSize"];
+		surface["pixMap"] >> pFrontSurface->pixMap;
+		surface["mask"] >> cvMask;
+		pFrontSurface->mask.w = cvMask.cols;
+		pFrontSurface->mask.h = cvMask.rows;
+		pFrontSurface->mask.Element = new uchar[nPix];
+		memcpy(pFrontSurface->mask.Element, cvMask.data, nPix * sizeof(uchar));
+		surface["lines"] >> cvLines;
+		pFrontSurface->lines.n = cvLines.rows;
+		pFrontSurface->lines.Element = new RECOG::DDD::Line2D[pFrontSurface->lines.n];
+		lineData = (float *)(cvLines.data);
+		for (int iLine = 0; iLine < pFrontSurface->lines.n; iLine++, lineData += 7)
+		{
+			pLine = pFrontSurface->lines.Element + iLine;
+			pLine->P[0][0] = lineData[0];
+			pLine->P[0][1] = lineData[1];
+			pLine->P[1][0] = lineData[2];
+			pLine->P[1][1] = lineData[3];
+			pLine->N[0] = lineData[4];
+			pLine->N[1] = lineData[5];
+			pLine->d = lineData[6];
+		}
+		surface["leftDist"] >> cvDist;
+		pFrontSurface->leftDist = new int[nPix];
+		memcpy(pFrontSurface->leftDist, cvDist.data, nPix * sizeof(int));
+		surface["rightDist"] >> cvDist;
+		pFrontSurface->rightDist = new int[nPix];
+		memcpy(pFrontSurface->rightDist, cvDist.data, nPix * sizeof(int));
+		surface["upDist"] >> cvDist;
+		pFrontSurface->upDist = new int[nPix];
+		memcpy(pFrontSurface->upDist, cvDist.data, nPix * sizeof(int));
+		surface["downDist"] >> cvDist;
+		pFrontSurface->downDist = new int[nPix];
+		memcpy(pFrontSurface->downDist, cvDist.data, nPix * sizeof(int));
+		surface["DDRects"] >> cvRects;
+		pFrontSurface->DDRects.n = cvRects.rows;
+		pFrontSurface->DDRects.Element = new Rect<int>[pFrontSurface->DDRects.n];
+		rectData = (int *)(cvRects.data);
+		for (int iRect = 0; iRect < pFrontSurface->DDRects.n; iRect++, rectData += 4)
+		{
+			pRect = pFrontSurface->DDRects.Element + iRect;
+			RVLCOPY4VECTORTORECT2(rectData, pRect);
+		}
+	}
+	return true;
 }
 
 void DDDetector::LoadArticulatedObject(
@@ -9197,9 +9857,7 @@ void DDDetector::VisualizeHypothesis(
 
 void DDDetector::Display(
 	cv::Mat BGR,
-	Pose3D *poseFC,
-	int nOrthogonalViews,
-	Array<Rect<int>> *DDRects)
+	Array<RECOG::DDD::FrontSurface> *pFrontSurfaces)
 {
 	int i;
 	int iView;
@@ -9207,13 +9865,15 @@ void DDDetector::Display(
 	int DDRectVertex[4][2];
 	float PF[3], PC[3];
 	cv::Point imgP[4];
-	Array<Rect<int>> *pDDRects = DDRects;
+	Array<Rect<int>> *pDDRects;
 	Rect<int> *pDDRect;
-	for (iView = 0; iView < nOrthogonalViews; iView++, pDDRects++)
+	RECOG::DDD::FrontSurface *pFrontSurface;
+	for (iView = 0; iView < pFrontSurfaces->n; iView++)
 	{
-		for (iDDRect = 0; iDDRect < pDDRects->n; iDDRect++)
+		pFrontSurface = pFrontSurfaces->Element + iView;
+		for (iDDRect = 0; iDDRect < pFrontSurface->DDRects.n; iDDRect++)
 		{
-			pDDRect = pDDRects->Element + iDDRect;
+			pDDRect = pFrontSurface->DDRects.Element + iDDRect;
 			DDRectVertex[0][0] = pDDRect->minx;
 			DDRectVertex[0][1] = pDDRect->miny;
 			DDRectVertex[1][0] = pDDRect->maxx;
@@ -9227,14 +9887,33 @@ void DDDetector::Display(
 				PF[0] = (float)DDRectVertex[i][0] * orthogonalViewPixSize;
 				PF[1] = (float)DDRectVertex[i][1] * orthogonalViewPixSize;
 				PF[2] = 0.0f;
-				RVLTRANSF3(PF, poseFC[iView].R, poseFC[iView].t, PC);
+				RVLTRANSF3(PF, pFrontSurface->poseFC.R, pFrontSurface->poseFC.t, PC);
 				imgP[i].x = camera.fu * PC[0] / PC[2] + camera.uc;
 				imgP[i].y = camera.fv * PC[1] / PC[2] + camera.vc;
 			}
 			for (i = 0; i < 4; i++)
 				cv::line(BGR, imgP[(i + 1) % 4], imgP[i], cv::Scalar(0, 255, 0), 2);
+			cv::line(BGR, imgP[0], imgP[2], cv::Scalar(0, 255, 0), 1);
+			cv::line(BGR, imgP[1], imgP[3], cv::Scalar(0, 255, 0), 1);
 		}
 	}
+}
+
+bool DDDetector::DisplayAndEdit(
+	cv::Mat BGR,
+	Array<RECOG::DDD::FrontSurface> *pFrontSurfaces)
+{
+	cv::Mat displayImg = BGR.clone();
+	Display(displayImg, pFrontSurfaces);
+	RECOG::DDD::Detect3CallBackFuncData displayCallBackFuncData;
+	displayCallBackFuncData.vpDetector = this;
+	displayCallBackFuncData.pFrontSurfaces = pFrontSurfaces;
+	displayCallBackFuncData.pBGR = &BGR;
+	displayCallBackFuncData.bEdited = false;
+	cv::imshow("Doors and Drawers", displayImg);
+	cv::setMouseCallback("Doors and Drawers", RECOG::DDD::Detect3CallBackFunc, &displayCallBackFuncData);
+	cv::waitKey();
+	return displayCallBackFuncData.bEdited;
 }
 
 void DDDetector::SetSceneForHypothesisVisualization(Mesh *pMesh)
@@ -9722,7 +10401,7 @@ void DDDetector::Fit3DTo2D(
 	float eThr = 0.2f;
 	float eN = 30.0f;
 	float rotStD = 0.125 * PI; // rad
-	float tStD = 0.05;         // m
+	float tStD = 0.05;		   // m
 	float chamferThr = 3.0f;   // pix
 	int i;
 	float csNThr = cos(eN * DEG2RAD);
@@ -10812,6 +11491,25 @@ void DDDetector::AOZeroState(
 	}
 }
 
+void DDDetector::ProjectImgPtToPlanarSurface(
+	float PSrc[2],
+	Pose3D *pPoseCF,
+	float pixSize,
+	float PTgt[2])
+{
+	float rayC[3];
+	rayC[2] = 1.0f;
+	rayC[0] = (PSrc[0] - camera.uc) / camera.fu;
+	rayC[1] = (PSrc[1] - camera.vc) / camera.fv;
+	float rayF[3];
+	RVLMULMX3X3VECT(pPoseCF->R, rayC, rayF);
+	float s = -pPoseCF->t[2] / rayF[2];
+	float V3Tmp[3];
+	RVLSCALE3VECTOR(rayF, s, V3Tmp);
+	PTgt[0] = (pPoseCF->t[0] + V3Tmp[0]) / pixSize;
+	PTgt[1] = (pPoseCF->t[1] + V3Tmp[1]) / pixSize;
+}
+
 void DDDetector::Visualize3DModelImageProjection(
 	cv::Mat displayImg,
 	Mesh *pModelMesh,
@@ -11582,6 +12280,416 @@ void RECOG::DDD::MapMeshRGB(
 
 void RECOG::DDD::Detect3CallBackFunc(int event, int x, int y, int flags, void *userdata)
 {
+	RECOG::DDD::Detect3CallBackFuncData *pData = (RECOG::DDD::Detect3CallBackFuncData *)userdata;
+	DDDetector *pDetector = (DDDetector *)(pData->vpDetector);
+	Array<RECOG::DDD::FrontSurface> *pFrontSurfaces = pData->pFrontSurfaces;
+	int w = pDetector->camera.w;
+	int h = pDetector->camera.h;
+
+	//
+
+	if (event == CV_EVENT_LBUTTONDOWN || event == CV_EVENT_RBUTTONDOWN || event == CV_EVENT_LBUTTONUP)
+	{
+		// Determine the selected view and pixel within this view.
+
+		int iView;
+		cv::Mat *pView;
+		int iPix, iPix_;
+		int u, v;
+		int nPix_;
+		int iClosestPix_ = -1;
+		int minDist2 = 0;
+		int du, dv;
+		int dist2;
+		int iRect;
+		RECOG::DDD::FrontSurface *pFrontSurface;
+		Array<Rect<int>> *pRects;
+		Rect<int> rect;
+		int u_, v_;
+		float imgP[2];
+		imgP[0] = (float)x;
+		imgP[1] = (float)y;
+		float PF[2];
+		bool bRectangleSelected = false;
+		Pose3D poseCF;
+		int w_;
+		Rect<int> frontSurfRect;
+		for (iView = 0; iView < pFrontSurfaces->n; iView++)
+		{
+			pFrontSurface = pFrontSurfaces->Element + iView;
+			pView = &(pFrontSurface->pixMap);
+			RVLINVTRANSF3D(pFrontSurface->poseFC.R, pFrontSurface->poseFC.t, poseCF.R, poseCF.t);
+			pDetector->ProjectImgPtToPlanarSurface(imgP, &poseCF, pFrontSurface->pixSize, PF);
+			u_ = (int)round(PF[0]);
+			v_ = (int)round(PF[1]);
+			pRects = &(pFrontSurface->DDRects);
+			for (iRect = 0; iRect < pRects->n; iRect++)
+			{
+				rect = pRects->Element[iRect];
+				if (IsInRect<int>(u_, v_, rect))
+					break;
+			}
+			if (iRect < pRects->n)
+			{
+				pData->iSelectedView = iView;
+				pData->iSlectedRect = iRect;
+				frontSurfRect.minx = 0;
+				frontSurfRect.maxx = pView->cols - 1;
+				frontSurfRect.miny = 0;
+				frontSurfRect.maxy = pView->rows - 1;
+				w_ = pView->cols;
+				iPix_ = (IsInRect<int>(u_, v_, frontSurfRect) ? u_ + v_ * w_ : -1);
+				bRectangleSelected = true;
+				break;
+			}
+		}
+		if (!bRectangleSelected)
+		{
+			for (iView = 0; iView < pFrontSurfaces->n; iView++)
+			{
+				pFrontSurface = pFrontSurfaces->Element + iView;
+				pView = &(pFrontSurface->pixMap);
+				nPix_ = pView->rows * pView->cols;
+				for (iPix_ = 0; iPix_ < nPix_; iPix_++)
+				{
+					iPix = ((int *)(pView->data))[iPix_];
+					if (iPix < 0)
+						continue;
+					if (!pFrontSurface->mask.Element[iPix_])
+						continue;
+					u = iPix % w;
+					v = iPix / w;
+					du = u - x;
+					dv = v - y;
+					dist2 = du * du + dv * dv;
+					if (dist2 < minDist2 || iClosestPix_ < 0)
+					{
+						minDist2 = dist2;
+						iClosestPix_ = iPix_;
+						pData->iSelectedView = iView;
+					}
+				}
+			}
+			iView = pData->iSelectedView;
+			pFrontSurface = pFrontSurfaces->Element + iView;
+			pView = &(pFrontSurface->pixMap);
+			w_ = pView->cols;
+			iPix_ = iClosestPix_;
+			u_ = iPix_ % w_;
+			v_ = iPix_ / w_;
+			pRects = &(pFrontSurface->DDRects);
+			// for (iRect = 0; iRect < pRects->n; iRect++)
+			//{
+			//	rect = pRects->Element[iRect];
+			//	if (IsInRect<int>(u_, v_, rect))
+			//	{
+			//		bRectangleSelected = true;
+			//		pData->iSlectedRect = iRect;
+			//		break;
+			//	}
+			// }
+		}
+		int rectV4[4];
+		int i;
+		int P[2];
+		P[0] = u_;
+		P[1] = v_;
+		Rect<int> *pRect;
+		bool bUpdateDisplay = false;
+
+		if (event == CV_EVENT_RBUTTONDOWN)
+		{
+			// If left mouse button is doubleclicked inside a rectange, then remove the rectangle containing the selected pixel.
+
+			if (bRectangleSelected)
+			{
+				if (pData->iSlectedRect < pRects->n - 1)
+					memmove(pRects->Element + pData->iSlectedRect, pRects->Element + pData->iSlectedRect + 1, (pRects->n - pData->iSlectedRect - 1) * sizeof(Rect<int>));
+				pRects->n--;
+			}
+
+			/// If left mouse button is doubleclicked outside a rectange, then add a new rectangle.
+
+			else
+			{
+				// Create new rectangle as the bounding box of the closest edge points to the selected point in all four directions.
+
+				Rect<int> rect;
+				rect.minx = u_ - pFrontSurface->leftDist[iPix_];
+				rect.maxx = u_ + pFrontSurface->rightDist[iPix_];
+				rect.miny = v_ - pFrontSurface->upDist[iPix_];
+				rect.maxy = v_ + pFrontSurface->downDist[iPix_];
+
+				// If the new rectangle intersects another rectangle, then adapt it to avoid intersection.
+
+				int rectV4_[4], bestRectV4[4];
+				RVLCOPYRECTTO4VECTOR(rect, rectV4);
+				int iPrev, iNext, iOpp;
+				int A;
+				int maxA;
+				int i_;
+				int a, b, a_, b_;
+				bool bChanged;
+				for (iRect = 0; iRect < pRects->n; iRect++)
+				{
+					pRect = pRects->Element + iRect;
+					RVLCOPYRECTTO4VECTOR2(pRect, rectV4_);
+					maxA = 0;
+					for (i = 0; i < 2; i++)
+					{
+						i_ = 1 - i;
+						iNext = (i + 1) % 4;
+						iPrev = (i + 3) % 4;
+						bChanged = false;
+						if ((rectV4_[iNext] - P[i]) * (rectV4_[iPrev] - P[i]) < 0)
+						{
+							iOpp = (i + 2) % 4;
+							b_ = rectV4_[iOpp] - P[i_];
+							if (b_ < 0)
+							{
+								if (b_ > rectV4[i] - P[i_])
+								{
+									rectV4[i] = rectV4_[iOpp];
+									bChanged = true;
+								}
+							}
+							else
+							{
+								a_ = rectV4_[i] - P[i_];
+								if (a_ < rectV4[iOpp] - P[i_])
+								{
+									rectV4[iOpp] = rectV4_[i];
+									bChanged = true;
+								}
+							}
+						}
+						if (bChanged)
+						{
+							A = (rectV4[2] - rectV4[0]) * (rectV4[3] - rectV4[1]);
+							if (A < 0)
+								A = -A;
+							if (A > maxA)
+							{
+								maxA = A;
+								RVLCOPY4VECTOR(rectV4, bestRectV4);
+							}
+						}
+					}
+					if (maxA > 0)
+						RVLCOPY4VECTOR(bestRectV4, rectV4);
+				}
+
+				/// If a side of the new rectangle is outside the image area, then adapt it to fit into the image.
+
+				// Project the vertices of the image border onto the selected front surface.
+
+				float imgVertex[4][2];
+				imgVertex[0][0] = 0.0f;
+				imgVertex[0][1] = 0.0f;
+				imgVertex[1][0] = 0.0f;
+				imgVertex[1][1] = (float)h;
+				imgVertex[2][0] = (float)w;
+				imgVertex[2][1] = imgVertex[1][1];
+				imgVertex[3][0] = imgVertex[2][0];
+				imgVertex[3][1] = 0.0f;
+				PSD::Point2D imgVertexF[4];
+				Pose3D *pPoseFC = &(pFrontSurface->poseFC);
+				RVLINVTRANSF3D(pPoseFC->R, pPoseFC->t, poseCF.R, poseCF.t);
+				float rectVertexF[4][2];
+				std::vector<PSD::Point2D> imgRectIS;
+				for (i = 0; i < 4; i++)
+				{
+					pDetector->ProjectImgPtToPlanarSurface(imgVertex[i], &poseCF, pDetector->orthogonalViewPixSize, imgVertexF[i].P);
+					imgRectIS.push_back(imgVertexF[i]);
+					rectVertexF[i][0] = (float)rectV4[(i / 2) * 2 + 1];
+					rectVertexF[i][1] = (float)rectV4[(((i + 1) % 4) / 2) * 2];
+				}
+
+				// Intersection between rect and the image border.
+
+				float N[4][2];
+				float fTmp;
+				float d[4];
+				std::vector<PSD::Point2D> imgRectIS_;
+				for (i = 0; i < 4; i++)
+				{
+					iPrev = (i + 3) % 4;
+					N[i][0] = -(rectVertexF[i][1] - rectVertexF[iPrev][1]);
+					N[i][1] = rectVertexF[i][0] - rectVertexF[iPrev][0];
+					fTmp = sqrt(N[i][0] * N[i][0] + N[i][1] * N[i][1]);
+					N[i][0] /= fTmp;
+					N[i][1] /= fTmp;
+					d[i] = N[i][0] * rectVertexF[i][0] + N[i][1] * rectVertexF[i][1];
+					imgRectIS_.clear();
+					PSD::UpdateConvexSet(imgRectIS, N[i], d[i], imgRectIS_);
+					imgRectIS = imgRectIS_;
+					if (imgRectIS.size() < 3)
+						break;
+				}
+
+				if (imgRectIS.size() >= 3)
+				{
+					// Adapt rect to fit inside the image.
+
+					int j;
+					float e;
+					// float eNext, ePrev;
+					float eMax = 0.0f;
+					PSD::Point2D imgRectISVertex;
+					bool bFirst;
+					int iClosest;
+					for (i = 0; i < 4; i++)
+					{
+						bFirst = true;
+						for (j = 0; j < imgRectIS.size(); j++)
+						{
+							imgRectISVertex = imgRectIS[j];
+							e = N[i][0] * imgRectISVertex.P[0] + N[i][1] * imgRectISVertex.P[1] - d[i];
+							if (bFirst || e > eMax)
+							{
+								bFirst = false;
+								eMax = e;
+								iClosest = j;
+							}
+						}
+						// imgRectISVertex = imgRectIS[(iClosest + 1) % imgRectIS.size()];
+						// eNext = N[0] * imgRectISVertex.P[0] + N[1] * imgRectISVertex.P[1] - d;
+						// imgRectISVertex = imgRectIS[(iClosest + imgRectIS.size() - 1) % imgRectIS.size()];
+						// ePrev = N[0] * imgRectISVertex.P[0] + N[1] * imgRectISVertex.P[1] - d;
+						if (eMax < -1.0f)
+							rectV4[i] += (i < 2 ? -1 : 1) * ((int)floor(eMax) - 8);
+					}
+					RVLCOPY4VECTORTORECT(rectV4, rect);
+				}
+				else
+				{
+					rect.maxx = rect.minx = 0;
+					rect.maxy = rect.miny = 0;
+				}
+
+				///
+
+				// If both the width and the height of the new rectangle are greater than 3 pixels, then add it to DDRects.
+
+				int rectWidth = rect.maxx - rect.minx + 1;
+				int rectHeight = rect.maxy - rect.miny + 1;
+				if (rectWidth >= 3 && rectHeight >= 3)
+				{
+					Rect<int> *pRectMemPtrTmp = pRects->Element;
+					pRects->n++;
+					pRects->Element = new Rect<int>[pRects->n];
+					if (pRects->n > 1)
+						memcpy(pRects->Element, pRectMemPtrTmp, (pRects->n - 1) * sizeof(Rect<int>));
+					delete[] pRectMemPtrTmp;
+					pRects->Element[pRects->n - 1] = rect;
+				}
+			}
+
+			///
+
+			bUpdateDisplay = true;
+		}
+		else if (event == CV_EVENT_LBUTTONDOWN)
+		{
+			int e;
+			int emin = pFrontSurface->w + pFrontSurface->h;
+			int iEdge;
+			if (bRectangleSelected)
+			{
+				pRect = pRects->Element + pData->iSlectedRect;
+				RVLCOPYRECTTO4VECTOR2(pRect, rectV4);
+				for (iEdge = 0; iEdge < 4; iEdge++)
+				{
+					e = P[1 - (iEdge % 2)] - rectV4[iEdge];
+					if (e < 0)
+						e = -e;
+					if (e < emin)
+					{
+						emin = e;
+						pData->iSelectedEdge = iEdge;
+					}
+				}
+			}
+			else
+			{
+				int emax;
+				int iClosestEdge;
+				for (iRect = 0; iRect < pRects->n; iRect++)
+				{
+					pRect = pRects->Element + iRect;
+					RVLCOPYRECTTO4VECTOR2(pRect, rectV4);
+					emax = -(pFrontSurface->w + pFrontSurface->h);
+					for (iEdge = 0; iEdge < 4; iEdge++)
+					{
+						e = (iEdge / 2 * 2 - 1) * (P[1 - (iEdge % 2)] - rectV4[iEdge]);
+						if (e > emax)
+						{
+							emax = e;
+							iClosestEdge = iEdge;
+						}
+					}
+					if (emax < emin)
+					{
+						emin = emax;
+						pData->iSlectedRect = iRect;
+						pData->iSelectedEdge = iClosestEdge;
+					}
+				}
+			}
+		}
+		else if (event == CV_EVENT_LBUTTONUP)
+		{
+			pFrontSurface = pFrontSurfaces->Element + pData->iSelectedView;
+			pRects = &(pFrontSurface->DDRects);
+			pRect = pRects->Element + pData->iSlectedRect;
+			switch (pData->iSelectedEdge)
+			{
+			case 0:
+				pRect->miny = v_;
+				break;
+			case 1:
+				pRect->minx = u_;
+				break;
+			case 2:
+				pRect->maxy = v_;
+				break;
+			case 3:
+				pRect->maxx = u_;
+			}
+			bUpdateDisplay = true;
+		}
+
+		// Display image.
+
+		if (bUpdateDisplay)
+		{
+			cv::Mat displayImg = pData->pBGR->clone();
+			pDetector->Display(displayImg, pFrontSurfaces);
+			cv::imshow("Doors and Drawers", displayImg);
+			pData->bEdited = true;
+		}
+	}
+}
+
+RECOG::DDD::FrontSurface::FrontSurface()
+{
+	mask.Element = NULL;
+	lines.Element = NULL;
+	leftDist = NULL;
+	rightDist = NULL;
+	upDist = NULL;
+	downDist = NULL;
+}
+
+RECOG::DDD::FrontSurface::~FrontSurface()
+{
+	RVL_DELETE_ARRAY(mask.Element);
+	RVL_DELETE_ARRAY(lines.Element);
+	RVL_DELETE_ARRAY(leftDist);
+	RVL_DELETE_ARRAY(rightDist);
+	RVL_DELETE_ARRAY(upDist);
+	RVL_DELETE_ARRAY(downDist);
+	RVL_DELETE_ARRAY(DDRects.Element);
 }
 
 // The following three functions could be moved to some general purpose utility cpp file, e.g. Util.cpp.
@@ -11967,11 +13075,7 @@ void DDDetector::Detect2(Array<Mesh> meshSeq)
 
 		// Perform AICP on generated hypothesis
 		imgGrid.Create(pMesh->NodeArray, &camera, pointAssociationGridCellSize);
-		#ifdef RVLLINUX
-		CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
-		#else
 		MESH::CreateOrientedPointArrayFromPointArray(pMesh->NodeArray, pointsS);
-		#endif
 		pointAssociationData.Create(pModel->points.n, pointsS.n, true);
 		// PointAssociation(pModel->points, &(hyp.pose), pointsS, pointAssociationData, ptBuff, true, &pointsMS);
 		SetSceneForHypothesisVisualization(pMesh);
@@ -12215,10 +13319,10 @@ void DDDetector::FitBBoxToPlanarSurface(RECOG::DDD::Hypothesis *hyp, Surfel *pPl
 //	RVLCOPYMX3X3(R, pose.R);
 //
 //	pMeshM = meshSeq.Element + meshSeq.n - 1;
-//	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
+//	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 //	MeshSubsample(pMeshM, &pointsMSubsampled);
 //	pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
-//	CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
+//	MESH::CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
 //	pointAssociationData.Create(pointsMSubsampled.n, pointsQ.n, true);
 //	imgGrid.Create(pMeshQ->NodeArray, &camera, ROIScene2SubsampleCellSize);
 //	SampleImage(pMeshQ);
@@ -12312,19 +13416,11 @@ void DDDetector::DetectDominantShiftPoints(Array<Mesh> meshSeq, Array<int> *domi
 	RVLCOPYMX3X3(R, pose.R);
 
 	pMeshM = meshSeq.Element + meshSeq.n - 1;
-#ifdef RVLLINUX
-	// CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
-	MeshSubsample(pMeshM, &pointsMSubsampledIdx);
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMSubsampledIdx, pointsMSubsampled);
-	pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
-	CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
-#else
 	// MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 	MeshSubsample(pMeshM, &pointsMSubsampledIdx);
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMSubsampledIdx, pointsMSubsampled);
 	pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
-#endif
 	pointAssociationData.Create(pointsMSubsampled.n, pointsQ.n, true);
 	imgGrid.Create(pMeshQ->NodeArray, &camera, ROIPointAssociationGridCellSize);
 	// imgGrid.Create(pMeshQ->NodeArray, &camera, pointAssociationGridCellSize);
@@ -12336,21 +13432,15 @@ void DDDetector::DetectDominantShiftPoints(Array<Mesh> meshSeq, Array<int> *domi
 	Voter3D voter;
 	float cellSize[3] = {votingCellSizeX, votingCellSizeY, votingCellSizeZ};
 	CalculatePointsShiftVector(pMeshM->NodeArray, pointsMSubsampledIdx, pointsQ, &pointAssociationData, &pointsShift, minPointShift, &pointsMValidShiftIdx);
-#ifdef RVLLINUX
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMValidShiftIdx, pointsMValidShift);
-#else
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMValidShiftIdx, pointsMValidShift);
-#endif
+
 	voter.Vote(pointsShift, cellSize);
 	Vector3<float> dominantShift = voter.GetMax();
 
 	float shiftThresh[3] = {shiftThreshX, shiftThreshY, shiftThreshZ};
 	FindPointsWithShift(pMeshM->NodeArray, pointsMSubsampledIdx, pointsQ, &pointAssociationData, &dominantShift, shiftThresh, dominantShiftPointsIdx);
-#ifdef RVLLINUX
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, *dominantShiftPointsIdx, dominantShiftPoints);
-#else
+
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, *dominantShiftPointsIdx, dominantShiftPoints);
-#endif
 
 	if (bVisualize && pVisualizationData->bVisualizeROIDetection)
 	{
@@ -12426,19 +13516,11 @@ void DDDetector::DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int
 	RVLCOPYMX3X3(R, pose.R);
 
 // pMeshM = meshSeq.Element + meshSeq.n - 1;
-#ifdef RVLLINUX
-	// CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
-	MeshSubsample(pMeshM, &pointsMSubsampledIdx);
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMSubsampledIdx, pointsMSubsampled);
-	// pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
-	CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
-#else
 	// MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 	MeshSubsample(pMeshM, &pointsMSubsampledIdx);
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMSubsampledIdx, pointsMSubsampled);
 	// pMeshQ = meshSeq.Element + meshSeq.n - 1 - ROICalculationStep;
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshQ->NodeArray, pointsQ);
-#endif
 	pointAssociationData.Create(pointsMSubsampled.n, pointsQ.n, true);
 	imgGrid.Create(pMeshQ->NodeArray, &camera, ROIPointAssociationGridCellSize);
 	// imgGrid.Create(pMeshQ->NodeArray, &camera, pointAssociationGridCellSize);
@@ -12450,11 +13532,7 @@ void DDDetector::DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int
 	Voter3D voter;
 	float cellSize[3] = {votingCellSizeX, votingCellSizeY, votingCellSizeZ};
 	CalculatePointsShiftVector(pMeshM->NodeArray, pointsMSubsampledIdx, pointsQ, &pointAssociationData, &pointsShift, minPointShift, &pointsMValidShiftIdx);
-#ifdef RVLLINUX
-	CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMValidShiftIdx, pointsMValidShift);
-#else
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMValidShiftIdx, pointsMValidShift);
-#endif
 
 	if (voter.Vote(pointsShift, cellSize))
 	{
@@ -12463,11 +13541,8 @@ void DDDetector::DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int
 		float shiftThresh[3] = {shiftThreshX, shiftThreshY, shiftThreshZ};
 		FindPointsWithShift(pMeshM->NodeArray, pointsMSubsampledIdx, pointsQ, &pointAssociationData, &dominantShift, shiftThresh, dominantShiftPointsIdx);
 
-#ifdef RVLLINUX
-		CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, *dominantShiftPointsIdx, dominantShiftPoints);
-#else
 		MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, *dominantShiftPointsIdx, dominantShiftPoints);
-#endif
+
 		// Visualization.
 		
 		if (bVisualize && pVisualizationData->bVisualizeROIDetection)
@@ -12689,7 +13764,7 @@ void DDDetector::RecognizeArticulatedObjectState(
 	float openingDirectionTolRad = openingDirectionTol * DEG2RAD;
 	bool bAlignWithSurfel = true;
 	bool bDebug = false;
-	float surfOrientTol = 30.0;   // deg
+	float surfOrientTol = 30.0;	  // deg
 	float surfPositionTol = 0.05; // m
 
 	// Constants.
@@ -13009,7 +14084,7 @@ float DDDetector::CreateAndEvaluateAOHypothesis(
 {
 	// Parameters.
 
-	float stdZeroStateDoor = 5.0f;   // deg
+	float stdZeroStateDoor = 5.0f;	 // deg
 	float stdZeroStateDrawer = 0.05; // m
 
 	// Constants.
@@ -13641,7 +14716,7 @@ void DDDetector::getPolarLineFromCartPoints(float *params, cv::Point pt1, cv::Po
 	float theta, rho;
 
 	theta = atan2((float)pt2.x - pt1.x, (float)pt2.y - pt1.y + std::numeric_limits<float>::epsilon()); // theta
-	rho = b_ / (sin(params[0]) - m * cos(params[0]));                                                  // rho
+	rho = b_ / (sin(params[0]) - m * cos(params[0]));												   // rho
 
 	rho = params[0];
 	theta = params[1];
@@ -13714,7 +14789,7 @@ void DDDetector::HoughLinesPtAssociationCylinder(
 		cv::waitKey(0);
 	}
 
-	int offsetFromTop = 100;    // Offset pixels from top of the image
+	int offsetFromTop = 100;	// Offset pixels from top of the image
 	int offsetFromBottom = 450; // Offset pixels from bottom of the image
 
 	// Set 4 points on the two longest lines
@@ -13740,7 +14815,7 @@ void DDDetector::HoughLinesPtAssociationCylinder(
 	// Select random points on the lines and check if the pixels at the coordinates are "white"
 	int x_temp, y_temp; // random point coordinates on a line
 	int y_temps[4];
-	int iiQPix;                    // Index of the point on the image
+	int iiQPix;					   // Index of the point on the image
 	for (size_t i = 0; i < 2; i++) // take 2 points on the first detected line
 	{
 		while (1)
@@ -14023,7 +15098,7 @@ void DDDetector::HoughLinesPtAssociationLHTCP(
 	cv::cvtColor(edges, linesImg, cv::COLOR_GRAY2BGR);
 	cv::cvtColor(edges, randPtImg, cv::COLOR_GRAY2BGR);
 
-	pVisualizationData->displayImg = &linesImg;
+	pVisualizationData->displayImg = linesImg;
 
 	std::vector<cv::Vec2f> vecHoughLines;
 	cv::HoughLines(edges, vecHoughLines, 1, CV_PI / 180, 70, 0, 0);
@@ -14051,32 +15126,32 @@ void DDDetector::HoughLinesPtAssociationLHTCP(
 	{
 		cv::Scalar color(0, 0, 255);
 		// Visualize the dominant line
-		drawLine(*pVisualizationData->displayImg, vecHoughLines[0], color);
-		cv::imshow("Hough 5 Pts", *pVisualizationData->displayImg);
+		drawLine(pVisualizationData->displayImg, vecHoughLines[0], color);
+		cv::imshow("Hough 5 Pts", pVisualizationData->displayImg);
 		cv::waitKey(0);
 
 		// Visualize all lines
 		for (int i = 0; i < vecHoughLines.size(); i++)
 		{
-			drawLine(*pVisualizationData->displayImg, vecHoughLines[i], color);
+			drawLine(pVisualizationData->displayImg, vecHoughLines[i], color);
 		}
-		cv::imshow("Hough 5 Pts", *pVisualizationData->displayImg);
+		cv::imshow("Hough 5 Pts", pVisualizationData->displayImg);
 		cv::waitKey(0);
 
 		// Visualize 4 longest lines
-		cv::cvtColor(edges, *pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
+		cv::cvtColor(edges, pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
 		for (int i = 0; i < 4; i++)
 		{
-			drawLine(*pVisualizationData->displayImg, vecHoughLines[i], color);
+			drawLine(pVisualizationData->displayImg, vecHoughLines[i], color);
 		}
-		cv::imshow("Hough 5 Pts", *pVisualizationData->displayImg);
+		cv::imshow("Hough 5 Pts", pVisualizationData->displayImg);
 		cv::waitKey(0);
 	}
 
 	// Get 4 assoc pts
 	// cv::Point outerPts[2];
 	cv::Point pt;
-	pVisualizationData->displayImg = &randPtImg;
+	pVisualizationData->displayImg = randPtImg;
 	float rho_t, theta_t;
 	int y_t, x_t, iiQPix;
 	float *QN;
@@ -14102,8 +15177,8 @@ void DDDetector::HoughLinesPtAssociationLHTCP(
 				// pt.y = y_t;
 				// if (bHoughLinesVis) // Show rand pts
 				// {
-				// 	cv::circle(*pVisualizationData->displayImg, pt, 3, cv::Scalar(0, 255, 0), 2);
-				// 	cv::imshow("Random pt", *pVisualizationData->displayImg);
+				// 	cv::circle(pVisualizationData->displayImg, pt, 3, cv::Scalar(0, 255, 0), 2);
+				// 	cv::imshow("Random pt", pVisualizationData->displayImg);
 				// 	cv::waitKey(10);
 				// }
 
@@ -14158,8 +15233,8 @@ void DDDetector::HoughLinesPtAssociationLHTCP(
 	if (bHoughLinesVis) // Show midline
 	{
 		cv::Vec2f midLine(rhoMid, thetaMid);
-		drawLine(*pVisualizationData->displayImg, midLine, cv::Scalar(255, 0, 0));
-		cv::imshow("Hough 5 Pts", *pVisualizationData->displayImg);
+		drawLine(pVisualizationData->displayImg, midLine, cv::Scalar(255, 0, 0));
+		cv::imshow("Hough 5 Pts", pVisualizationData->displayImg);
 		cv::waitKey(0);
 	}
 
@@ -14184,22 +15259,22 @@ void DDDetector::HoughLinesPtAssociationLHTCP(
 	if (bHoughLinesVis) // Show all points
 	{
 
-		cv::cvtColor(edges, *pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
+		cv::cvtColor(edges, pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
 		cv::Point ptVis;
 		int i;
 		for (i = 0; i < 4; i++)
 		{
 			ptVis.x = ptAssoc[i].iQPix % edges.cols;
 			ptVis.y = ptAssoc[i].iQPix / edges.cols;
-			cv::circle(*pVisualizationData->displayImg, ptVis, 3, cv::Scalar(0, 0, 255), 2);
+			cv::circle(pVisualizationData->displayImg, ptVis, 3, cv::Scalar(0, 0, 255), 2);
 		}
 		for (i = 0; i < fifthAssocPtHypsIdxs.size(); i++)
 		{
 			ptVis.x = fifthAssocPtHypsIdxs[i] % edges.cols;
 			ptVis.y = fifthAssocPtHypsIdxs[i] / edges.cols;
-			cv::circle(*pVisualizationData->displayImg, ptVis, 3, cv::Scalar(255, 255, 0), 2);
+			cv::circle(pVisualizationData->displayImg, ptVis, 3, cv::Scalar(255, 255, 0), 2);
 		}
-		cv::imshow("Hough 5 Pts", *pVisualizationData->displayImg);
+		cv::imshow("Hough 5 Pts", pVisualizationData->displayImg);
 		cv::waitKey(0);
 	}
 }
@@ -14976,12 +16051,12 @@ void DDDetector::Fit3DTo2D2S(
 				// SampleEdges(pMesh, edge, edgeSamplePts);
 
 				cv::cvtColor(edges[iImg], visualizeICPStepsImg, cv::COLOR_GRAY2RGB);
-				pVisualizationData->displayImg = &visualizeICPStepsImg;
+				pVisualizationData->displayImg = visualizeICPStepsImg;
 				// SuperposeBinaryImage(pVisualizationData->displayImg, edges[iImg].data, yellow);
-				VisualizeEdgeSamples(*pVisualizationData->displayImg, edgeSamplePts);
+				VisualizeEdgeSamples(pVisualizationData->displayImg, edgeSamplePts);
 				// Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge);
-				Visualize2DPointAssociation(*pVisualizationData->displayImg, ptAssoc, edgeSamplePts.Element);
-				cv::imshow("ICPAssocs", *pVisualizationData->displayImg);
+				Visualize2DPointAssociation(pVisualizationData->displayImg, ptAssoc, edgeSamplePts.Element);
+				cv::imshow("ICPAssocs", pVisualizationData->displayImg);
 				cv::waitKey(0);
 				cv::destroyWindow("ICPAssocs");
 			}
@@ -15958,11 +17033,11 @@ void DDDetector::Fit3DTo2DStereo(
 							SampleEdges2(pMesh, edge, edgeSamplePts, iImg);
 
 							cv::cvtColor(pVisualizationData->EDTDisplayImage[iImg], visualizePtAssocImg, cv::COLOR_GRAY2RGB);
-							pVisualizationData->displayImg = &visualizePtAssocImg;
-							SuperposeBinaryImage(*pVisualizationData->displayImg, edges[iImg].data, yellow);
-							VisualizeEdgeSamples(*pVisualizationData->displayImg, edgeSamplePts);
-							Visualize2DPointAssociation(*pVisualizationData->displayImg, ptAssocsVis, edgeSamplePts.Element);
-							cv::imshow("modelPtAssoc", *pVisualizationData->displayImg);
+							pVisualizationData->displayImg = visualizePtAssocImg;
+							SuperposeBinaryImage(pVisualizationData->displayImg, edges[iImg].data, yellow);
+							VisualizeEdgeSamples(pVisualizationData->displayImg, edgeSamplePts);
+							Visualize2DPointAssociation(pVisualizationData->displayImg, ptAssocsVis, edgeSamplePts.Element);
+							cv::imshow("modelPtAssoc", pVisualizationData->displayImg);
 							cv::waitKey(0);
 							cv::destroyWindow("modelPtAssoc");
 
@@ -16111,9 +17186,9 @@ void DDDetector::Fit3DTo2DStereo(
 							Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 							// Project3DModelToImage(pMesh, poseMC_, edge_, PRMem, PCMem, NCMem, iImg);
 							cv::cvtColor(edges[iImg], visualizeInitialHypothesisImg, cv::COLOR_GRAY2RGB);
-							pVisualizationData->displayImg = &visualizeInitialHypothesisImg;
-							Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_);
-							cv::imshow("modelInitHyps", *pVisualizationData->displayImg);
+							pVisualizationData->displayImg = visualizeInitialHypothesisImg;
+							Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_);
+							cv::imshow("modelInitHyps", pVisualizationData->displayImg);
 							cv::waitKey(0);
 							cv::destroyWindow("modelInitHyps");
 						}
@@ -16219,9 +17294,9 @@ void DDDetector::Fit3DTo2DStereo(
 			RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 			Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 			cv::cvtColor(edges[iImg], visualizeBestHypothesisImg, cv::COLOR_GRAY2RGB);
-			pVisualizationData->displayImg = &visualizeBestHypothesisImg;
-			Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_);
-			cv::imshow("modelBeforeICP", *pVisualizationData->displayImg);
+			pVisualizationData->displayImg = visualizeBestHypothesisImg;
+			Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_);
+			cv::imshow("modelBeforeICP", pVisualizationData->displayImg);
 			cv::waitKey(0);
 		}
 	}
@@ -16301,10 +17376,10 @@ void DDDetector::Fit3DTo2DStereo(
 				RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 				Project3DModelToImage(pMesh, poseMCc, edge, PRMem, PCMem, NCMem, iImg);
 				cv::cvtColor(edges[iImg], visualizeICPStepsImg, cv::COLOR_GRAY2RGB);
-				pVisualizationData->displayImg = &visualizeICPStepsImg;
-				Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge);
+				pVisualizationData->displayImg = visualizeICPStepsImg;
+				Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge);
 				std::string displayImgName = "ICP iteration " + std::to_string(iIteration) + " image " + std::to_string(iImg);
-				cv::imshow(displayImgName, *pVisualizationData->displayImg);
+				cv::imshow(displayImgName, pVisualizationData->displayImg);
 				cv::waitKey(0);
 				cv::destroyWindow(displayImgName);
 			}
@@ -16328,16 +17403,16 @@ void DDDetector::Fit3DTo2DStereo(
 		// RVLTRANSF3(poseMC, poseC_C0[iImg].R, poseC_C0[iImg].t, tempPose);
 		RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 
-		pVisualizationData->displayImg = &visualizeFinalSolutionImg;
+		pVisualizationData->displayImg = visualizeFinalSolutionImg;
 		Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 		// cv::cvtColor(edges, displayImg, cv::COLOR_GRAY2RGB);
-		Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_, red);
+		Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_, red);
 
-		solutions[iImg] = *pVisualizationData->displayImg;
+		solutions[iImg] = pVisualizationData->displayImg;
 		std::string filename = "/home/RVLuser/rvl-linux/data/DANIELI_LHTCP/experiments/Exp-LHTCP_measurements-230201/results/" + std::to_string(counter) + "-" + std::to_string(iImg) + ".png";
 		// cout << filename << endl;
-		cv::imwrite(filename, *pVisualizationData->displayImg);
-		// cv::imshow("solution" + std::to_string(iImg), *pVisualizationData->displayImg);
+		cv::imwrite(filename, pVisualizationData->displayImg);
+		// cv::imshow("solution" + std::to_string(iImg), pVisualizationData->displayImg);
 		// cv::waitKey(0);
 	}
 
@@ -16785,11 +17860,11 @@ RVL::Pose3D DDDetector::Fit3DTo2DStereo2(
 							SampleEdges2(pMesh, edge, edgeSamplePts, iImg);
 
 							cv::cvtColor(pVisualizationData->EDTDisplayImage[iImg], visualizePtAssocImg, cv::COLOR_GRAY2RGB);
-							pVisualizationData->displayImg = &visualizePtAssocImg;
-							SuperposeBinaryImage(*pVisualizationData->displayImg, edges[iImg].data, yellow);
-							VisualizeEdgeSamples(*pVisualizationData->displayImg, edgeSamplePts);
-							Visualize2DPointAssociation(*pVisualizationData->displayImg, ptAssocsVis, edgeSamplePts.Element);
-							cv::imshow("modelPtAssoc", *pVisualizationData->displayImg);
+							pVisualizationData->displayImg = visualizePtAssocImg;
+							SuperposeBinaryImage(pVisualizationData->displayImg, edges[iImg].data, yellow);
+							VisualizeEdgeSamples(pVisualizationData->displayImg, edgeSamplePts);
+							Visualize2DPointAssociation(pVisualizationData->displayImg, ptAssocsVis, edgeSamplePts.Element);
+							cv::imshow("modelPtAssoc", pVisualizationData->displayImg);
 							cv::waitKey(0);
 							cv::destroyWindow("modelPtAssoc");
 
@@ -16938,9 +18013,9 @@ RVL::Pose3D DDDetector::Fit3DTo2DStereo2(
 							Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 							// Project3DModelToImage(pMesh, poseMC_, edge_, PRMem, PCMem, NCMem, iImg);
 							cv::cvtColor(edges[iImg], visualizeInitialHypothesisImg, cv::COLOR_GRAY2RGB);
-							pVisualizationData->displayImg = &visualizeInitialHypothesisImg;
-							Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_);
-							cv::imshow("modelInitHyps", *pVisualizationData->displayImg);
+							pVisualizationData->displayImg = visualizeInitialHypothesisImg;
+							Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_);
+							cv::imshow("modelInitHyps", pVisualizationData->displayImg);
 							cv::waitKey(0);
 							cv::destroyWindow("modelInitHyps");
 						}
@@ -17046,9 +18121,9 @@ RVL::Pose3D DDDetector::Fit3DTo2DStereo2(
 			RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 			Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 			cv::cvtColor(edges[iImg], visualizeBestHypothesisImg, cv::COLOR_GRAY2RGB);
-			pVisualizationData->displayImg = &visualizeBestHypothesisImg;
-			Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_);
-			cv::imshow("modelBeforeICP", *pVisualizationData->displayImg);
+			pVisualizationData->displayImg = visualizeBestHypothesisImg;
+			Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_);
+			cv::imshow("modelBeforeICP", pVisualizationData->displayImg);
 			cv::waitKey(0);
 		}
 	}
@@ -17128,10 +18203,10 @@ RVL::Pose3D DDDetector::Fit3DTo2DStereo2(
 				RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 				Project3DModelToImage(pMesh, poseMCc, edge, PRMem, PCMem, NCMem, iImg);
 				cv::cvtColor(edges[iImg], visualizeICPStepsImg, cv::COLOR_GRAY2RGB);
-				pVisualizationData->displayImg = &visualizeICPStepsImg;
-				Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge);
+				pVisualizationData->displayImg = visualizeICPStepsImg;
+				Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge);
 				std::string displayImgName = "ICP iteration " + std::to_string(iIteration) + " image " + std::to_string(iImg);
-				cv::imshow(displayImgName, *pVisualizationData->displayImg);
+				cv::imshow(displayImgName, pVisualizationData->displayImg);
 				cv::waitKey(0);
 				cv::destroyWindow(displayImgName);
 			}
@@ -17156,16 +18231,16 @@ RVL::Pose3D DDDetector::Fit3DTo2DStereo2(
 			// RVLTRANSF3(poseMC, poseC_C0[iImg].R, poseC_C0[iImg].t, tempPose);
 			RVLCOMPTRANSF3DWITHINV(poseC_C0[iImg].R, poseC_C0[iImg].t, poseMC.R, poseMC.t, poseMCc.R, poseMCc.t, tmp3x1);
 
-			pVisualizationData->displayImg = &visualizeFinalSolutionImg;
+			pVisualizationData->displayImg = visualizeFinalSolutionImg;
 			Project3DModelToImage(pMesh, poseMCc, edge_, PRMem, PCMem, NCMem, iImg);
 			// cv::cvtColor(edges, displayImg, cv::COLOR_GRAY2RGB);
-			Visualize3DModelImageProjection(*pVisualizationData->displayImg, pMesh, edge_, red);
+			Visualize3DModelImageProjection(pVisualizationData->displayImg, pMesh, edge_, red);
 
-			solutions[iImg] = *pVisualizationData->displayImg;
+			solutions[iImg] = pVisualizationData->displayImg;
 			std::string filename = "/home/RVLuser/rvl-linux/data/DANIELI_LHTCP/experiments/Exp-LHTCP-221216/results-20230117-dist/" + std::to_string(counter) + "-" + std::to_string(iImg) + ".png";
 			// cout << filename << endl;
-			// cv::imwrite(filename, *pVisualizationData->displayImg);
-			cv::imshow("solution" + std::to_string(iImg), *pVisualizationData->displayImg);
+			// cv::imwrite(filename, pVisualizationData->displayImg);
+			cv::imshow("solution" + std::to_string(iImg), pVisualizationData->displayImg);
 			cv::waitKey(0);
 		}
 	}

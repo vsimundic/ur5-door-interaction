@@ -11404,7 +11404,7 @@ void VN_::Create(
 	// pVN->boundingBox.maxz = 0.5f;
 }
 
-// Created by Robert Cupec and modified by Siniï¿½a Staniï¿½.
+// Created by Robert Cupec and modified by Sini�a Stani�.
 
 void VN::DetectTorusRings(
 	Mesh *pMesh,
@@ -11743,7 +11743,7 @@ void VN::DetectTorusRings(
 	delete[] ringEdgeArray.Element;
 }
 
-// Created by Robert Cupec and modified by Siniï¿½a Staniï¿½.
+// Created by Robert Cupec and modified by Sini�a Stani�.
 
 void VN::ToroidalClusters2(
 	Mesh *pMesh,
@@ -12403,7 +12403,7 @@ void VN::ToroidalClusters2(
 	// QLIST::CreatePtrArray<VN_::Torus>(pTorusList, &SClusters);
 }
 
-// Created Siniï¿½a Staniï¿½.
+// Created Sini�a Stani�.
 
 bool RECOG::VN_::TorusDetectionKeyPressCallback(
 	// vtkObject* caller, unsigned long eid, void* clientdata, void *calldata)
@@ -12460,7 +12460,7 @@ bool RECOG::VN_::TorusDetectionKeyPressCallback(
 	return false;
 }
 
-// Created Siniï¿½a Staniï¿½.
+// Created Sini�a Stani�.
 
 void RECOG::VN_::TorusVisualization(
 	Mesh *pMesh,

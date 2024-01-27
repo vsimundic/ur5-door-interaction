@@ -242,7 +242,7 @@ void PlanarSurfelDetector::RandomIndices(Array<int> &A)
 #ifdef RVLPLANARSURFELDETECTOR_PSEUDO_RANDOM_DEBUG
 #ifdef RVLLINUX
 	//FILE *fp = fopen((std::string(precomputesFolder) + "/pseudorandom1000000.dat").data(), "rb");
-	FILE *fp = fopen("/home/RVLuser/rvl-linux/pseudorandom1000000.dat", "rb");
+	FILE *fp = fopen("/home/robert/Documents/RVL/RVL/pseudorandom1000000.dat", "rb");
 #else
 	FILE *fp = fopen("..\\pseudorandom1000000.dat", "rb");
 #endif
@@ -6734,11 +6734,11 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 		while (pPtP)
 		{
 			C_.clear();
-			if (bBelow1 = UpdateConvexSet(C, pPtP->P, pPtP->rho[0], C_))
+			if (bBelow1 = PSD::UpdateConvexSet(C, pPtP->P, pPtP->rho[0], C_))
 			{
 				P_[0] = -pPtP->P[0]; P_[1] = -pPtP->P[1];
 				C__.clear();
-				bBelow2 = UpdateConvexSet(C_, P_, pPtP->rho[1], C__);
+				bBelow2 = PSD::UpdateConvexSet(C_, P_, pPtP->rho[1], C__);
 			}
 			if (bBelow1 && bBelow2)
 			{
@@ -6779,11 +6779,11 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 							pPtP_->rho[0] = fTmp - pPtP_->P[2];
 							pPtP_->rho[1] = fTmp + pPtP_->P[2];
 							C_.clear();
-							if (bBelow1 = UpdateConvexSet(C, pPtP_->P, pPtP_->rho[0], C_))
+							if (bBelow1 = PSD::UpdateConvexSet(C, pPtP_->P, pPtP_->rho[0], C_))
 							{
 								P_[0] = -pPtP_->P[0]; P_[1] = -pPtP_->P[1];
 								C__.clear();
-								bBelow2 = UpdateConvexSet(C_, P_, pPtP_->rho[1], C__);
+								bBelow2 = PSD::UpdateConvexSet(C_, P_, pPtP_->rho[1], C__);
 							}
 							//if (iPt_ == 163633)
 							//	VisualizeConvexSet(C__, 200);
@@ -6852,7 +6852,7 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 
 bool PlanarSurfelDetector::UpdateConvexSet(
 	std::vector<PSD::Point2D> CIn,
-	float* N,
+	float *N,
 	float d,
 	std::vector<PSD::Point2D> &COut)
 {
@@ -6883,7 +6883,7 @@ bool PlanarSurfelDetector::UpdateConvexSet(
 				vIS.P[1] = s_ * vPrev.P[1] + s * v.P[1];
 				COut.push_back(vIS);
 			}
-			if(bBelow)
+			if (bBelow)
 				COut.push_back(v);
 			bPtsBelow = true;
 		}
@@ -6991,4 +6991,45 @@ void PSD::MouseRButtonDown(vtkObject* caller, unsigned long eid, void* clientdat
 		pData->selectedPtActor = pVisualizer->DisplayPointSet<float, Point>(selectedPts, yellow, 6);
 		interactor->GetRenderWindow()->Render();
 	}
+}
+
+bool PSD::UpdateConvexSet(
+	std::vector<PSD::Point2D> CIn,
+	float* N,
+	float d,
+	std::vector<PSD::Point2D>& COut)
+{
+	int n = CIn.size();
+	PSD::Point2D v = CIn[n - 1];
+	float e = v.P[0] * N[0] + v.P[1] * N[1] - d;
+	float ePrev;
+	PSD::Point2D vPrev, vIS, dv;
+	float s, s_;
+	bool bBelow = (e < 0.0f);
+	bool bPrevIsBelow;
+	bool bPtsBelow = false;
+	for (int i = 0; i < n; i++)
+	{
+		vPrev = v;
+		ePrev = e;
+		v = CIn[i];
+		e = v.P[0] * N[0] + v.P[1] * N[1] - d;
+		bPrevIsBelow = bBelow;
+		bBelow = (e < 0.0f);
+		if (bBelow || bPrevIsBelow)
+		{
+			if (bBelow != bPrevIsBelow)
+			{
+				s = ePrev / (ePrev - e);
+				s_ = 1.0f - s;
+				vIS.P[0] = s_ * vPrev.P[0] + s * v.P[0];
+				vIS.P[1] = s_ * vPrev.P[1] + s * v.P[1];
+				COut.push_back(vIS);
+			}
+			if (bBelow)
+				COut.push_back(v);
+			bPtsBelow = true;
+		}
+	}
+	return bPtsBelow;
 }

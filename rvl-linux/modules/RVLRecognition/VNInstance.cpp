@@ -1,6 +1,7 @@
 //#include "stdafx.h"
 #include "RVLCore2.h"
 #ifndef RVLLINUX
+#define RVLVN_TIME_MESUREMENT //Vidovic
 #include <Windows.h>
 #endif
 #include <algorithm>
@@ -156,6 +157,7 @@ void VNInstance::Match(
 	pClassifier->pTimer->Start();
 
 	double StartTime = pClassifier->pTimer->GetTime();
+
 #ifdef RVLVN_TIME_MESUREMENT
 	LARGE_INTEGER CNTRSegmentationSTART, CNTRSegmentationEND;
 	LARGE_INTEGER CNTRDescriptorGenerationSTART, CNTRDescriptorGenerationEND;
@@ -165,6 +167,7 @@ void VNInstance::Match(
 
 	QueryPerformanceCounter((LARGE_INTEGER *)&CNTRSegmentationSTART);
 	#endif
+
 #ifdef RVLVN_PART_SEGMENTATION_MATCH_LOG
 	FILE *fpMatch = fopen((std::string(pClassifier->resultsFolder) + "\\VNInstanceToClassMatch.dat").data(), "w");
 #endif
@@ -247,6 +250,7 @@ void VNInstance::Match(
 	QueryPerformanceCounter((LARGE_INTEGER *)&CNTRSegmentationEND);
 	double timeSegmentation = (CNTRSegmentationEND.QuadPart - CNTRSegmentationSTART.QuadPart) * 1000.0 / frequency.QuadPart;
 	#endif
+
 #ifdef RVLVN_PART_SEGMENTATION_MATCH_LOG
 	fclose(fpMatch);
 #endif
@@ -6272,7 +6276,7 @@ void VNInstance::Display(
 	{
 		Array2D<float> *pPC = (pPCIn ? pPCIn : &PC);
 
-		uchar green[] = { 0, 255, 0};
+		uchar green[] = { 0, 255, 0 };
 
 		Array<Point> ptArray;
 

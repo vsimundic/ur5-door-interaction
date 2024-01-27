@@ -38,7 +38,7 @@
 #include <Eigen/Eigenvalues>
 #else
 #include <Eigen\Eigenvalues>
-#endif 
+#endif
 #include <random> //VIDOVIC
 #include <nanoflann.hpp>
 
@@ -103,7 +103,7 @@ PSGM::PSGM()
     kReferenceTangentSize = 0.3f;
     baseSeparationAngle = 22.5f;
     // edgeTangentAngle = 100.0f;
-    nModels = 35;   // Vidovic
+	nModels = 35;	// Vidovic
     nMSegments = 3; // Vidovic
     minClusterSize = 400;
     maxClusterSize = 66122;
@@ -157,9 +157,9 @@ PSGM::PSGM()
     activeModels.Element = NULL;
     activeModels.n = 0;
     modelInstanceDB.Element = NULL; // Vidovic
-    modelInstanceDB.n = 0;          // Vidovic
-    modelDataBase = NULL;           // Vidovic
-    modelsInDataBase = NULL;        // Vidovic
+	modelInstanceDB.n = 0;			// Vidovic
+	modelDataBase = NULL;			// Vidovic
+	modelsInDataBase = NULL;		// Vidovic
     hollowModelsFileName = NULL;
     sceneMIMatch = NULL; // Vidovic
     // matchMatrixMem = NULL;
@@ -322,13 +322,13 @@ PSGM::~PSGM()
     RVL_DELETE_ARRAY(sceneFileName);
     RVL_DELETE_ARRAY(activeModels.Element);
     RVL_DELETE_ARRAY(modelInstanceDB.Element); // Vidovic
-    RVL_DELETE_ARRAY(modelDataBase);           // Vidovic
-    RVL_DELETE_ARRAY(modelsInDataBase);        // Vidovic
+	RVL_DELETE_ARRAY(modelDataBase);		   // Vidovic
+	RVL_DELETE_ARRAY(modelsInDataBase);		   // Vidovic
     RVL_DELETE_ARRAY(hollowModelsFileName);
-    RVL_DELETE_ARRAY(sceneMIMatch);             // Vidovic
-    RVL_DELETE_ARRAY(centroidID.Element);       // Vidovic
+	RVL_DELETE_ARRAY(sceneMIMatch);				// Vidovic
+	RVL_DELETE_ARRAY(centroidID.Element);		// Vidovic
     RVL_DELETE_ARRAY(pCTImatchesArray.Element); // Vidovic
-    RVL_DELETE_ARRAY(segmentGT.Element);        // Vidovic
+	RVL_DELETE_ARRAY(segmentGT.Element);		// Vidovic
     // RVL_DELETE_ARRAY(matchMatrixMem);
     // RVL_DELETE_ARRAY(matchMatrix.Element);
     RVL_DELETE_ARRAY(sceneSegmentMatches.Element);
@@ -491,16 +491,16 @@ void PSGM::CreateParamList(CRVLMem *pMem)
     pParamData = ParamList.AddParam("PSGM.planeDetection.minBoundingSphereRadius", RVLPARAM_TYPE_FLOAT, &planeDetectionMinBoundingSphereRadius);
     pParamData = ParamList.AddParam("PSGM.wholeMeshCluster", RVLPARAM_TYPE_BOOL, &bWholeMeshCluster);
     // pParamData = ParamList.AddParam("PSGM.edgeTangentAngle", RVLPARAM_TYPE_FLOAT, &edgeTangentAngle);
-    pParamData = ParamList.AddParam("ModelDataBase", RVLPARAM_TYPE_STRING, &modelDataBase);       // Vidovic
+	pParamData = ParamList.AddParam("ModelDataBase", RVLPARAM_TYPE_STRING, &modelDataBase);		  // Vidovic
     pParamData = ParamList.AddParam("ModelsInDataBase", RVLPARAM_TYPE_STRING, &modelsInDataBase); // Vidovic
     pParamData = ParamList.AddParam("PSGM.HollowModelsFileName", RVLPARAM_TYPE_STRING, &hollowModelsFileName);
-    pParamData = ParamList.AddParam("PSGM.Match.RANSAC", RVLPARAM_TYPE_BOOL, &bMatchRANSAC); // Vidovic
-    // pParamData = ParamList.AddParam("PSGM.RANSAC.nSamples", RVLPARAM_TYPE_INT, &nSamples); //Vidovic
-    pParamData = ParamList.AddParam("PSGM.RANSAC.stdNoise", RVLPARAM_TYPE_INT, &stdNoise);                // Vidovic
+	pParamData = ParamList.AddParam("PSGM.Match.RANSAC", RVLPARAM_TYPE_BOOL, &bMatchRANSAC); // Vidovic
+                                                                                                          // pParamData = ParamList.AddParam("PSGM.RANSAC.nSamples", RVLPARAM_TYPE_INT, &nSamples); //Vidovic
+	pParamData = ParamList.AddParam("PSGM.RANSAC.stdNoise", RVLPARAM_TYPE_INT, &stdNoise);				  // Vidovic
     pParamData = ParamList.AddParam("PSGM.normalValidityTest", RVLPARAM_TYPE_BOOL, &bNormalValidityTest); // Vidovic
-    pParamData = ParamList.AddParam("PSGM.SceneMIMatch", RVLPARAM_TYPE_STRING, &sceneMIMatch);            // Vidovic
-    pParamData = ParamList.AddParam("PSGM.nModels", RVLPARAM_TYPE_INT, &nModels);                         // Vidovic
-    pParamData = ParamList.AddParam("PSGM.nMSegments", RVLPARAM_TYPE_INT, &nMSegments);                   // Vidovic
+	pParamData = ParamList.AddParam("PSGM.SceneMIMatch", RVLPARAM_TYPE_STRING, &sceneMIMatch);			  // Vidovic
+	pParamData = ParamList.AddParam("PSGM.nModels", RVLPARAM_TYPE_INT, &nModels);						  // Vidovic
+	pParamData = ParamList.AddParam("PSGM.nMSegments", RVLPARAM_TYPE_INT, &nMSegments);					  // Vidovic
     pParamData = ParamList.AddParam("PSGM.minClusterSize", RVLPARAM_TYPE_INT, &minClusterSize);
     pParamData = ParamList.AddParam("PSGM.maxClusterSize", RVLPARAM_TYPE_INT, &maxClusterSize);
     pParamData = ParamList.AddParam("PSGM.minSignificantClusterSize", RVLPARAM_TYPE_INT, &minSignificantClusterSize);
@@ -533,10 +533,10 @@ void PSGM::CreateParamList(CRVLMem *pMem)
     pParamData = ParamList.AddParam("PSGM.camera.fv", RVLPARAM_TYPE_FLOAT, &(camera.fv));
     pParamData = ParamList.AddParam("PSGM.camera.uc", RVLPARAM_TYPE_FLOAT, &(camera.uc));
     pParamData = ParamList.AddParam("PSGM.camera.vc", RVLPARAM_TYPE_FLOAT, &(camera.vc));
-    pParamData = ParamList.AddParam("Recognition.dataSet", RVLPARAM_TYPE_ID, &dataSet);         // Vidovic
-    ParamList.AddID(pParamData, "TUW_KINECT", RVL_DATASET_FLAG_TUW_KINECT);                     // Vidovic
+	pParamData = ParamList.AddParam("Recognition.dataSet", RVLPARAM_TYPE_ID, &dataSet);			// Vidovic
+	ParamList.AddID(pParamData, "TUW_KINECT", RVL_DATASET_FLAG_TUW_KINECT);						// Vidovic
     ParamList.AddID(pParamData, "WILLOW_AND_CHALLENGE", RVL_DATASET_FLAG_WILLOW_AND_CHALLENGE); // Vidovic
-    pParamData = ParamList.AddParam("Recognition.useColor", RVLPARAM_TYPE_BOOL, &bUseColor);    // Vidovic
+	pParamData = ParamList.AddParam("Recognition.useColor", RVLPARAM_TYPE_BOOL, &bUseColor);	// Vidovic
 }
 
 void PSGM::Init(char *cfgFileName)
@@ -1924,8 +1924,8 @@ void PSGM::VisualizeCTIMatchidx(int iSCTI, int iMCTI)
     for (int i = 0; i < 66; i++)
     {
         validS[i] = pSIE->valid; // visibility mask
-        dS[i] = pSIE->d;         // *1000; // Scene descriptor
-        dM[i] = pMIE->d / 1000;  // Model descriptor
+		dS[i] = pSIE->d;		 // *1000; // Scene descriptor
+		dM[i] = pMIE->d / 1000;	 // Model descriptor
         pSIE++;
         pMIE++;
     }
@@ -3240,10 +3240,10 @@ bool PSGM::ReferenceFrames(
                             iAngle = (iAngle + iTangentAngleArray.n - 1) % iTangentAngleArray.n;
                         }
                     } // if (pTangent->len >= kReferenceTangentSize2 * maxTangentLen)
-                }     // for every tangent
-            }         // if (maxTangentLen > 0.0f)
-        }             // if (pSurfel->size >= kReferenceSurfelSize * maxSize)
-    }                 // for every surfel in the cluster
+				}	  // for every tangent
+			}		  // if (maxTangentLen > 0.0f)
+		}			  // if (pSurfel->size >= kReferenceSurfelSize * maxSize)
+	}				  // for every surfel in the cluster
 
     delete[] tangentArray.Element;
     delete[] tangentRGData.bParent;
@@ -3471,7 +3471,7 @@ int RVL::RECOG::PSGM_::ValidTangent(
                         bMindT = true;
                     }
                 } // if (pVertex->iSurfelArray.Element[i] == iSurfel_)
-            }     // for all surfels meeting in pVertex
+			}	  // for all surfels meeting in pVertex
 
             pVertexIdx = pVertexIdx->pNext;
         } // for all vertices on the boundary of iSurfel
@@ -7230,7 +7230,7 @@ void PSGM::Match()
                     iMatchFiltered++;
                 }
             } // if (matchID != -1)
-        }     // for every hypothesis related to the scene segment iSCluster
+		}	  // for every hypothesis related to the scene segment iSCluster
 
 #ifdef RVLPSGM_VERBOSE
         if (bVerbose)
@@ -7514,7 +7514,7 @@ void PSGM::HypothesisEvaluation(
 
     float wGndDistance22 = wGndDistance2 * wGndDistance2;
 
-    float gndDistance = 0.0; // Ovdje treba racunati ground distance.
+	float gndDistance = 0.0; // Ovdje treba ra�unati ground distance.
 
     int i, iSSegment, iHypothesis;
     float score, totalScore, prevScore;
@@ -8679,7 +8679,7 @@ void PSGM::Match(
                 E = 412.5;
             }
         } // 	if (nValidSampleCandidates > 2)
-    }     // for all model CTIs
+	}	  // for all model CTIs
 }
 
 void PSGM::MatchTGs()
@@ -8916,10 +8916,10 @@ void PSGM::MatchTGs()
 
                         RVL_DELETE_ARRAY(correspondences.Element);
                     } // If there is at least one point in the vertex graph
-                }     // If pMTG has a vertex graph
-            }         // If there is a TG in MTGSet which corresponds to the model CTI
-        }             // for the first nBestMatches
-    }                 // for every scene segment
+				}	  // If pMTG has a vertex graph
+			}		  // If there is a TG in MTGSet which corresponds to the model CTI
+		}			  // for the first nBestMatches
+	}				  // for every scene segment
 
     delete[] iVertexArray.Element;
     delete[] bAlreadyInArray;
@@ -12945,11 +12945,11 @@ void PSGM::CalculateNNCost(Visualizer *pVisualizer, RVL::PSGM::ICPfunction ICPFu
 
                 // VTK ICP
                 // vtkSmartPointer<vtkIterativeClosestPointTransform> vtkicp = vtkSmartPointer<vtkIterativeClosestPointTransform>::New();
-                // vtkicp->SetSource(visiblePD); //Ulazni objekt (poï¿½etna poza objekta)
-                // vtkicp->SetTarget(this->segmentN_PD.at(iCluster)); //Konaï¿½ni objekt (ï¿½eljena poza objekta)
-                // vtkicp->GetLandmarkTransform()->SetModeToRigidBody(); //Potrebni naï¿½in rada je transformacija za kruta tijela
-                // vtkicp->SetMaximumNumberOfIterations(10); //ï¿½eljeni broj iteracija
-                // vtkicp->SetMaximumNumberOfLandmarks(1000); //Koliko parova toï¿½aka da se koristi prilikom minimiziranja cost funkcije
+				// vtkicp->SetSource(visiblePD); //Ulazni objekt (po�etna poza objekta)
+				// vtkicp->SetTarget(this->segmentN_PD.at(iCluster)); //Kona�ni objekt (�eljena poza objekta)
+				// vtkicp->GetLandmarkTransform()->SetModeToRigidBody(); //Potrebni na�in rada je transformacija za kruta tijela
+				// vtkicp->SetMaximumNumberOfIterations(10); //�eljeni broj iteracija
+				// vtkicp->SetMaximumNumberOfLandmarks(1000); //Koliko parova to�aka da se koristi prilikom minimiziranja cost funkcije
                 // vtkicp->Update(); //Provedi algoritam
                 // vtkSmartPointer<vtkMatrix4x4> m = vtkSmartPointer<vtkMatrix4x4>::New();
                 // vtkicp->GetMatrix(m);
@@ -13150,7 +13150,7 @@ float PSGM::NNCost(int iCluster, vtkSmartPointer<vtkPolyData> sourcePD, vtkSmart
         }
 
         // if (iCluster == 3)
-        //	printf("Broj tocaka: %d, Score: %f\n", sourcePoints->GetNumberOfPoints(), score);
+		//	printf("Broj to�aka: %d, Score: %f\n", sourcePoints->GetNumberOfPoints(), score);
 
         return score / sourcePoints->GetNumberOfPoints();
 
@@ -13299,7 +13299,7 @@ void PSGM::RVLPSGInstanceMesh(Eigen::MatrixXf nI, float *dI)
         iNewVertices.resize(0, 0);
         iNeighbors.resize(0, 0);
         N = nIE.block<3, 1>(0, i); // normal of the i-th face
-        d = dIE(0, i);             // distance of the i-th face
+		d = dIE(0, i);			   // distance of the i-th face
         dCut = Eigen::MatrixXf::Zero(P.cols(), 1);
         dCutSorted = Eigen::MatrixXf::Zero(P.cols(), 1);
         nCut = 0;
@@ -13338,13 +13338,13 @@ void PSGM::RVLPSGInstanceMesh(Eigen::MatrixXf nI, float *dI)
         }
         d += dCorr;
 
-        Eigen::MatrixXi F_;    // j-th face
+		Eigen::MatrixXi F_;	   // j-th face
         Eigen::MatrixXi Fn_;   // neighbors of F_
-        Eigen::MatrixXf P_;    // position vector of vector iP
+		Eigen::MatrixXf P_;	   // position vector of vector iP
         Eigen::MatrixXf Pnext; // position vector of vertex iPNext
-        int nP_;               // number of vertices od F_
-        int iP;                // k-th vertex of F_
-        int iPNext;            // next vertex
+		int nP_;			   // number of vertices od F_
+		int iP;				   // k-th vertex of F_
+		int iPNext;			   // next vertex
         Eigen::MatrixXf dP;
         int L; // neighbor of F_ on the opposite side of edge iP-iPNext
 
@@ -17300,7 +17300,7 @@ float PSGM::Symmetry(
                     symmetryMatch_.n++;
                 }
             } // if (NSymmetryPlaneC' * NC > -1e-6)
-        }     // for every element of convexTemplate
+		}	  // for every element of convexTemplate
 
         // Compute optimal symmetry plane offset.
 
@@ -17533,7 +17533,7 @@ void PSGM::RVLPSGInstanceMesh(Eigen::MatrixXf nI, float *dI)
         iNewVertices.resize(0, 0);
         iNeighbors.resize(0, 0);
         N = nIE.block<3, 1>(0, i); // normal of the i-th face
-        d = dIE(0, i);             // distance of the i-th face
+		d = dIE(0, i);			   // distance of the i-th face
         dCut = Eigen::MatrixXf::Zero(P.cols(), 1);
         dCutSorted = Eigen::MatrixXf::Zero(P.cols(), 1);
         nCut = 0;
@@ -17572,13 +17572,13 @@ void PSGM::RVLPSGInstanceMesh(Eigen::MatrixXf nI, float *dI)
         }
         d += dCorr;
 
-        Eigen::MatrixXi F_;    // j-th face
+		Eigen::MatrixXi F_;	   // j-th face
         Eigen::MatrixXi Fn_;   // neighbors of F_
-        Eigen::MatrixXf P_;    // position vector of vector iP
+		Eigen::MatrixXf P_;	   // position vector of vector iP
         Eigen::MatrixXf Pnext; // position vector of vertex iPNext
-        int nP_;               // number of vertices od F_
-        int iP;                // k-th vertex of F_
-        int iPNext;            // next vertex
+		int nP_;			   // number of vertices od F_
+		int iP;				   // k-th vertex of F_
+		int iPNext;			   // next vertex
         Eigen::MatrixXf dP;
         int L; // neighbor of F_ on the opposite side of edge iP-iPNext
 
@@ -20042,7 +20042,7 @@ void PSGM::ObjectAlignment()
     A = ConvexTemplatenT(); // normals
 
     int m_l = MCTISet.SegmentCTIs.Element[0].n; // number of reference model CTI-s
-    int n = MCTISet.nModels;                    // number of models in database
+	int n = MCTISet.nModels;					// number of models in database
     int iPrevClusters = m_l;
 
     for (int i = 1; i < n - 1; i++) // for all non-reference models
@@ -20653,11 +20653,8 @@ int PSGM::CheckHypothesesToSegmentEnvelopmentAndCollision(int hyp, int segment, 
                 sPm[0] = rvlvertex->P[0] / 1000;
                 sPm[1] = rvlvertex->P[1] / 1000;
                 sPm[2] = rvlvertex->P[2] / 1000;
-                #ifdef RVLLINUX
                 RVLTRANSF3(sPm, RMS, st, tPm);
-                #else
-                RVLTRANSF3(sPm, RMS, st, tPm, V3Tmp);
-                #endif
+
                 N = &hypTG->A.Element[hypTG->A.w * plane->i]; // Same normal at same index as the model CTI?
 
                 // mDistances[i * hypTG->A.h + j] = RVLDOTPRODUCT3(N, tPm) - pMIE[0].d;
@@ -22046,8 +22043,8 @@ void RECOG::PSGM_::ConvexAndConcaveClusters(
 // A must contain vectors in directions of all reference frame axes including their opposites.
 // The function requires mesh.NodeArray.Element to be allocated in advance.
 // According to P. McMullen, "The maximum number of faces of a convex polytope",
-// Mathematika 17 (1970), pp. 179ï¿½184 (or D. Gale, "Neighborly and cyclic polytopes",
-// in Proc. Sympos. Pure Math., Vol. VII, Amer. Math. Soc., Providence, R.I., 1963, pp. 225ï¿½232),
+// Mathematika 17 (1970), pp. 179�184 (or D. Gale, "Neighborly and cyclic polytopes",
+// in Proc. Sympos. Pure Math., Vol. VII, Amer. Math. Soc., Providence, R.I., 1963, pp. 225�232),
 // the maximum number of vertices of a 3D convex polyhedron with m faces is 2 * (m - 2).
 // However, some auxiliary vertices are generated in the process. Hence, more memory could be required.
 // Anyway, the function allocates additional memory if the number of generated vertices exceeds mesh.NodeArray.n
@@ -23675,11 +23672,7 @@ float PSGM::HypothesesToSegmentCollision(int iHypothesis, int iSegment, RECOG::P
             sPm[0] = rvlvertex->P[0] / 1000;
             sPm[1] = rvlvertex->P[1] / 1000;
             sPm[2] = rvlvertex->P[2] / 1000;
-            #ifdef RVLLINUX
             RVLTRANSF3(sPm, RMS, st, tPm);
-            #else
-            RVLTRANSF3(sPm, RMS, st, tPm, V3Tmp);
-            #endif
 
             N = &hypTG->A.Element[hypTG->A.w * plane->i]; // Same normal at same index as the model CTI?
 

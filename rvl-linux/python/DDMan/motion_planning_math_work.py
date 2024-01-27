@@ -1,6 +1,18 @@
 import numpy as np
-import rvlpyutil as rvl
-import matplotlib.pyplot as plt
+
+def base(A):
+	m = A.shape[0]
+	n = A.shape[1]
+	B = np.zeros(m).astype('int')
+	T = np.concatenate((A, np.eye(m)), 1)
+	all_raw_idx = np.arange(m)
+	for i in range(m):
+		B[i] = np.argmax(np.abs(T[i,:n]))
+		T[i,:] /= T[i,B[i]]
+		if m > 1:
+			non_pivot_row = (all_raw_idx != i)
+			T[non_pivot_row,:] = T[non_pivot_row,:] - T[non_pivot_row,B[i],np.newaxis] * T[np.newaxis,i,:]
+	return B, T
 
 def test1():
 	A = np.random.rand(2,6)
@@ -29,13 +41,13 @@ def test1():
 		x[other_idx,:] = x2
 		print(A@x)
 		
-def demo_6d():
+def test2():
 	n = 6
 	m = 10
 	load_from_file = False
 	verbose = False
 
-	for iTest in range(10):
+	for iTest in range(1000):
 		print('Test %d' % iTest)
 		print(' ')
 		if load_from_file:
@@ -49,59 +61,94 @@ def demo_6d():
 			b = 2.0 * np.random.rand(m, 1) - 1.0
 			np.save('data', np.concatenate((A,b), 1))
 		
-		x0 = np.zeros((n,1))
-				
-		x, feasible_solution_exists = rvl.feasible_solution(A, b, x0, verbose=verbose)
-		
-		if feasible_solution_exists:
-			print('Feasible solution is:')
-			print(x)
-			maxe = np.max(A@x-b)
-			print('max(e)=%f' % maxe)
+		x = np.zeros((n,1))
+		K = np.squeeze(A@x <= b, 1)
+		J = np.zeros(m).astype('bool')
+
+		if np.count_nonzero(K) == m:
+			print('Zero vector is feasible solution.')
 			print(' ')
-			if maxe > 1e-10:
-				print('Error! False feasible solution!')
-				break
 		else:
-			print('No feasible solution exists.')
-		input("Press Enter to continue...")
-
-def demo_2d():
-	n = 2
-	m = 10
-	
-	for iTest in range(10):
-		print('Test %d' % iTest)
-		print(' ')
-
-		c = 2.0 * np.random.rand(m, n) - 1.0
-		v = np.stack((-c[:,1], c[:,0]), 1)
-		r = 2.0
-		a_ = np.sum(v*v, 1)
-		c_ = np.sum(c*c, 1) - r**2
-		s = np.sqrt(- 4 * a_ * c_) / (2.0 * a_)
-		x1 = c + s[:,np.newaxis] * v
-		x2 = c - s[:,np.newaxis] * v
-		b = np.linalg.norm(c,axis=1)[:,np.newaxis]
-		A = c/b
-		x0 = 2.0 * np.random.rand(n,1) - 1.0
-		x, feasible_solution_exists = rvl.feasible_solution(A,b,x0)
-		print(x)
-		if feasible_solution_exists:
-			c_nrm = c + 0.1*A
-			plt.plot(np.stack((x1[:,0], x2[:,0]),0), np.stack((x1[:,1], x2[:,1]),0))
-			plt.plot(np.stack((c[:,0], c_nrm[:,0]),0), np.stack((c[:,1], c_nrm[:,1]),0))
-			plt.plot(x0[0], x0[1], marker='+', markerfacecolor='red')
-			plt.plot(x[0], x[1], marker='x', markerfacecolor='green')
-			plt.grid()
-			plt.show()
-		else:
-			print('No feasible solution exists.')
-		
-		
-		
-	
-						
+			while np.count_nonzero(K) < m:
+				K_ = np.logical_not(K)
+				k = np.argmax(K_)
+				r = np.count_nonzero(J)
+				if r == 0:
+					v = -A[k,:,np.newaxis]
+				else:
+					B, T = base(A[J,:])				
+					B_ = np.ones(n+r).astype('bool')
+					B_[B] = False
+					B_[n:] = False
+					M = T[:,B_]
+					N = T[:,n:]
+					B_ = B_[:n]
+					a_kB = A[np.newaxis,k,B]
+					a_kB_ = A[np.newaxis,k,B_]
+					c1 = a_kB @ M - a_kB_
+					c2 = a_kB @ N
+					zero_e_J = np.squeeze(c2 < 0, 0)
+					if r == n and np.count_nonzero(zero_e_J) == n:
+						print('No feasible solution exists.')
+						print(' ')
+						break
+					else:
+						v_B_ = c1.T
+						e_J = c2.T
+						e_J[zero_e_J,:] = 0
+						v = np.zeros((n,1))
+						v[B,:] = -M @ v_B_ - N @ e_J
+						v[B_,:] = v_B_
+						J_prev = J.copy()
+						J[np.nonzero(J)] = zero_e_J
+				w = A @ v
+				s_k = (b[k,:,np.newaxis] - A[np.newaxis,k,:] @ x) / w[k,:,np.newaxis]
+				intersect = (w[:,0] > 1e-10)
+				K_intersect = np.logical_and(K, intersect)
+				free_to_target = True
+				if np.count_nonzero(K_intersect) > 0:
+					s_K = np.zeros((m,1))
+					s_K[K_intersect,:] = (b[K_intersect,:] - A[K_intersect,:] @ x) / w[K_intersect,:]
+					K_intersect_positive = np.squeeze(s_K > 0, 1)
+					if np.count_nonzero(K_intersect_positive) > 0:
+						s_tmp = 2.0 * np.max(s_K) * np.ones(m)
+						s_tmp[K_intersect_positive] = s_K[K_intersect_positive,0]
+						j = np.argmin(s_tmp)
+						s_j = s_K[j,:]
+						if s_j[0] < s_k[0]:
+							free_to_target = False
+				if free_to_target:
+					K[k] = True
+					J[k] = True
+					s = s_k
+				else:
+					J[j] = True
+					s = s_j
+				if s < 1e-10:
+					J = np.logical_or(J, J_prev)
+				x += s * v
+				K = np.logical_or(K, np.squeeze(A@x <= b))
+				if verbose:
+					print('k=%d' % k)
+					if free_to_target:
+						print('point on k')
+					else:
+						print('point on %d in K' % j)
+						print('distance to k=%f' % np.squeeze(A[np.newaxis,k,:]@x-b[k]))			
+					print('J: ', np.nonzero(J))
+					print('K: ', np.nonzero(K))
+					debug = 0
+			if np.count_nonzero(K) == m:
+				print('Feasible solution is:')
+				print(x)
+				maxe = np.max(A@x-b)
+				print('max(e)=%f' % maxe)
+				print(' ')
+				if maxe > 1e-10:
+					print('Error! False feasible solution!')
+					break
+					
+test2()				
 					
 					
 					
