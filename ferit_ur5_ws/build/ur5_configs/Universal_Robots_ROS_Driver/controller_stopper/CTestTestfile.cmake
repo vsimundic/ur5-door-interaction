@@ -1,6 +1,0 @@
-# CMake generated Testfile for 
-# Source directory: /home/RVLuser/ferit_ur5_ws/src/ur5_configs/Universal_Robots_ROS_Driver/controller_stopper
-# Build directory: /home/RVLuser/ferit_ur5_ws/build/ur5_configs/Universal_Robots_ROS_Driver/controller_stopper
-# 
-# This file includes the relevant testing commands required for 
-# testing this directory and lists subdirectories to be tested as well.

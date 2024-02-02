@@ -1,0 +1,6 @@
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/share/stomp_plugins/cmake/stomp_pluginsConfig.cmake
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/share/stomp_plugins/cmake/stomp_pluginsConfig-version.cmake
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/libstomp_plugins_update_filters.so
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/libstomp_plugins_cost_functions.so
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/libstomp_plugins_noise_generators.so
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/stomp_plugins.pc

@@ -82,7 +82,57 @@ class push():
         self.dd = dd
         self.tool = tool
 
-    def z_shift(self, tcs_params, R, contact_point, visualization = False):
+    def intersection(self, tcs_vertices, tcs_normal, d_tcs, dcs_vertices, vision_tolerance):
+        # Intersections of the orthogonal projections of the TCS edges onto the supporting plane of DCS with the DCS edges.
+
+        A_dcs = np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]])
+        d_dcs = np.array([self.dd.dd_contact_surface_params[0], self.dd.dd_contact_surface_params[1], -vision_tolerance, -vision_tolerance])
+        e_tcs = A_dcs @ tcs_vertices.T - d_dcs[:, np.newaxis]
+        next_vertex_idx = np.array([1, 3, 0, 2]).astype(np.int32)
+        v = tcs_vertices[next_vertex_idx, :] - tcs_vertices
+        f = A_dcs @ v.T
+        edge_intersection = (np.abs(f) > 1e-10)
+        s = -np.ones((4, 4))
+        s[edge_intersection] = -e_tcs[edge_intersection] / f[edge_intersection]
+        edge_intersection = np.logical_and(edge_intersection, s >= 0.0)
+        edge_intersection = np.logical_and(edge_intersection, s <= 1.0)
+        edge_intersection_points = tcs_vertices[np.newaxis,:,:] + s[:,:,np.newaxis] * v[np.newaxis,:,:]
+        e_edge_intersection_points = edge_intersection_points @ A_dcs.T - d_dcs
+        edge_intersection_points_out = (e_edge_intersection_points >= 0.0)
+        for dcs_edge_idx in range(4):
+            edge_intersection_points_out[dcs_edge_idx, :, dcs_edge_idx] = False
+        edge_intersection_points_out = np.any(edge_intersection_points_out, axis=2)
+        edge_intersection = np.logical_and(edge_intersection, np.logical_not(edge_intersection_points_out))
+        intersection_vertices = edge_intersection_points[edge_intersection,:]
+
+        # Orthogonal projection planes.
+
+        A_tcs = np.cross(np.array([0, 0, 1]), v)
+        A_tcs /= np.expand_dims(np.linalg.norm(A_tcs, axis=1), 1)    
+        d_tcs_pp = np.sum(A_tcs * tcs_vertices, axis=1)
+
+        # DCS vertices inside the orthogonal projection of TCS.
+
+        e_dcs = dcs_vertices @ A_tcs.T - d_tcs_pp
+        dcs_vertices_inside_tcs = dcs_vertices[np.all(e_dcs <= 0, axis=1),:]
+        if dcs_vertices_inside_tcs.shape[0] > 0:
+            e_dcs_vertices_inside_tcs = d_tcs - dcs_vertices_inside_tcs @ tcs_normal
+            e_dcs_vertices_inside_tcs = e_dcs_vertices_inside_tcs[0,:]
+            s = e_dcs_vertices_inside_tcs / tcs_normal[2]
+            tcs_points_projecting_to_dcs_vertices = dcs_vertices_inside_tcs.copy()
+            tcs_points_projecting_to_dcs_vertices[:,2] += s
+            intersection_vertices = np.concatenate((intersection_vertices, tcs_points_projecting_to_dcs_vertices), 0)
+
+        # TCS vertices with orthogonal projection to DCS.
+    
+        tcs_vertices_projecting_to_dcs = tcs_vertices[np.all(e_tcs <= 0, axis=0),:]
+        if tcs_vertices_projecting_to_dcs.shape[0] > 0:
+            intersection_vertices = np.concatenate((intersection_vertices, tcs_vertices_projecting_to_dcs), 0)
+
+        return intersection_vertices
+
+
+    def z_shift(self, tcs_params, vision_tolerance, R, contact_point, visualization = False):
         # Tool contact surface (TCS).
 
         tcs_vertices_TCS = np.stack((tcs_params[0,:], tcs_params[0,:], tcs_params[1,:], tcs_params[1,:]))
@@ -94,9 +144,19 @@ class push():
 
         # Door/drawer contact surface (DCS).
 
-        dcs_vertices = np.array([[0.0, 0.0, 0.0], [self.dd.dd_contact_surface_params[0], 0.0, 0.0],
+        dcs_vertices = np.array([[vision_tolerance, vision_tolerance, 0.0], [self.dd.dd_contact_surface_params[0], vision_tolerance, 0.0],
             [self.dd.dd_contact_surface_params[0], self.dd.dd_contact_surface_params[1], 0.0], 
-            [0.0, self.dd.dd_contact_surface_params[1], 0.0]])
+            [vision_tolerance, self.dd.dd_contact_surface_params[1], 0.0]])
+        dcs_vertices_in = dcs_vertices.copy()
+        dcs_vertices_in[0,0] = vision_tolerance
+        dcs_vertices_in[0,1] = vision_tolerance
+        dcs_vertices_in[1,1] = vision_tolerance
+        dcs_vertices_in[3,0] = vision_tolerance
+        dcs_vertices_out = dcs_vertices.copy()
+        dcs_vertices_out[0,0] = -vision_tolerance
+        dcs_vertices_out[0,1] = -vision_tolerance
+        dcs_vertices_out[1,1] = -vision_tolerance
+        dcs_vertices_out[3,0] = -vision_tolerance
         dcs_triangles = np.array([[0, 3, 1], [1, 3, 2], [0, 1, 3], [1, 2, 3]]).astype(np.int32)
 
         # Transform TCS to the DCS reference frame (RF).
@@ -111,69 +171,31 @@ class push():
             valid = False
             z = 0.0
         else:
-            # Intersections of the orthogonal projections of the TCS edges onto the supporting plane of DCS with the DCS edges.
-
-            A_dcs = np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]])
-            d_dcs = np.array([self.dd.dd_contact_surface_params[0], self.dd.dd_contact_surface_params[1], 0.0, 0.0])
-            e_tcs = A_dcs @ tcs_vertices.T - d_dcs[:, np.newaxis]
-            next_vertex_idx = np.array([1, 3, 0, 2]).astype(np.int32)
-            v = tcs_vertices[next_vertex_idx, :] - tcs_vertices
-            f = A_dcs @ v.T
-            edge_intersection = (np.abs(f) > 1e-10)
-            s = -np.ones((4, 4))
-            s[edge_intersection] = -e_tcs[edge_intersection] / f[edge_intersection]
-            edge_intersection = np.logical_and(edge_intersection, s >= 0.0)
-            edge_intersection = np.logical_and(edge_intersection, s <= 1.0)
-            edge_intersection_points = tcs_vertices[np.newaxis,:,:] + s[:,:,np.newaxis] * v[np.newaxis,:,:]
-            e_edge_intersection_points = edge_intersection_points @ A_dcs.T - d_dcs
-            edge_intersection_points_out = (e_edge_intersection_points >= 0.0)
-            for dcs_edge_idx in range(4):
-                edge_intersection_points_out[dcs_edge_idx, :, dcs_edge_idx] = False
-            edge_intersection_points_out = np.any(edge_intersection_points_out, axis=2)
-            edge_intersection = np.logical_and(edge_intersection, np.logical_not(edge_intersection_points_out))
-            intersection_vertices = edge_intersection_points[edge_intersection,:]
-
-            # Orthogonal projection planes.
-
-            A_tcs = np.cross(np.array([0, 0, 1]), v)
-            A_tcs /= np.expand_dims(np.linalg.norm(A_tcs, axis=1), 1)    
-            d_tcs_pp = np.sum(A_tcs * tcs_vertices, axis=1)
-
-            # DCS vertices inside the orthogonal projection of TCS.
-
-            e_dcs = dcs_vertices @ A_tcs.T - d_tcs_pp
-            dcs_vertices_inside_tcs = dcs_vertices[np.all(e_dcs <= 0, axis=1),:]
-            if dcs_vertices_inside_tcs.shape[0] > 0:
-                e_dcs_vertices_inside_tcs = d_tcs - dcs_vertices_inside_tcs @ tcs_normal
-                e_dcs_vertices_inside_tcs = e_dcs_vertices_inside_tcs[0,:]
-                s = e_dcs_vertices_inside_tcs / tcs_normal[2]
-                tcs_points_projecting_to_dcs_vertices = dcs_vertices_inside_tcs.copy()
-                tcs_points_projecting_to_dcs_vertices[:,2] += s
-                intersection_vertices = np.concatenate((intersection_vertices, tcs_points_projecting_to_dcs_vertices), 0)
-
-            # TCS vertices with orthogonal projection to DCS.
-        
-            tcs_vertices_projecting_to_dcs = tcs_vertices[np.all(e_tcs <= 0, axis=0),:]
-            if tcs_vertices_projecting_to_dcs.shape[0] > 0:
-                intersection_vertices = np.concatenate((intersection_vertices, tcs_vertices_projecting_to_dcs), 0)
+            intersection_vertices_in = self.intersection(tcs_vertices, tcs_normal, d_tcs, dcs_vertices_in, vision_tolerance)
 
             # Translation in z-direction.
 
-            if intersection_vertices.shape[0] == 0:
+            if intersection_vertices_in.shape[0] == 0:
                 valid = False
                 z = 0.0
-            else:        
-                z = intersection_vertices[:,2].min()
+            else:
+                intersection_vertices_out = self.intersection(tcs_vertices, tcs_normal, d_tcs, dcs_vertices_out, -vision_tolerance)
+                z = intersection_vertices_out[:,2].min()
                 
                 if visualization:
                     # 2D visualization.
 
                     tcs_vis = tcs_vertices[[0, 1, 3, 2, 0], :]
-                    dcs_vis = np.concatenate((dcs_vertices, np.expand_dims(dcs_vertices[0,:], 0)), axis=0)
                     plt.plot(tcs_vis[:,0], tcs_vis[:,1], 'b')
+                    dcs_vis = np.concatenate((dcs_vertices, np.expand_dims(dcs_vertices[0,:], 0)), axis=0)
                     plt.plot(dcs_vis[:,0], dcs_vis[:,1], 'g')
+                    dcs_vis = np.concatenate((dcs_vertices_in, np.expand_dims(dcs_vertices_in[0,:], 0)), axis=0)
+                    plt.plot(dcs_vis[:,0], dcs_vis[:,1], 'g:')
+                    dcs_vis = np.concatenate((dcs_vertices_out, np.expand_dims(dcs_vertices_out[0,:], 0)), axis=0)
+                    plt.plot(dcs_vis[:,0], dcs_vis[:,1], 'g:')
                     plt.plot(contact_point[0], contact_point[1], '+r')
-                    plt.plot(intersection_vertices[:,0], intersection_vertices[:,1], 'yx')
+                    plt.plot(intersection_vertices_in[:,0], intersection_vertices_in[:,1], 'yx')
+                    plt.plot(intersection_vertices_out[:,0], intersection_vertices_out[:,1], 'yx')
                     ax = plt.gca()
                     ax.set_aspect('equal')
                     plt.show()
@@ -198,7 +220,7 @@ class push():
                     dcs_normal.paint_uniform_color([0.0, 0.5, 0.0])
 
                     intersection_vertices_pcd = o3d.geometry.PointCloud()
-                    intersection_vertices_pcd.points = o3d.utility.Vector3dVector(intersection_vertices - z_shift)
+                    intersection_vertices_pcd.points = o3d.utility.Vector3dVector(intersection_vertices_in - z_shift)
                     intersection_vertices_pcd.paint_uniform_color([1.0, 0.0, 0.0])
 
                     o3d.visualization.draw_geometries([tcs_mesh, dcs_mesh, dcs_normal, intersection_vertices_pcd])
@@ -207,7 +229,7 @@ class push():
         
         return valid, z
 
-    def valid_contact_poses(self, tool_finger_distances, sphere_to_TCS_distance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
+    def valid_contact_poses(self, tool_finger_distances, sphere_to_TCS_distance, vision_tolerance, contact_points, num_viewpoints = 300, num_rot_angles = 12):
         # Constants.
 
         num_contact_points = contact_points.shape[0]
@@ -218,13 +240,19 @@ class push():
  
         rot_mx = random_orientations(num_viewpoints * num_contact_points, num_rot_angles)
 
+        # Only for debugging purpose!!!
+
+        #rot_mx[22 * num_orientations, :, :] = np.array([[0, 1, 0], [-0.479426, 0, 0.877583], [0.877583, 0, 0.479426]])
+
         # Compute tool poses suitable for pushing the contact surface.
 
         valid_contact_poses_ = []
         #valid_poses = 0
         #invalid_poses = 0
         prev_contact_point = contact_points[0,:]
-        for contact_point_idx in range(num_contact_points):            
+        for contact_point_idx in range(num_contact_points):  
+            # if contact_point_idx == 22:
+            #     debug = 0
             contact_point = contact_points[contact_point_idx,:]
             if contact_point[1] != prev_contact_point[1]:
                 print(' ')
@@ -232,11 +260,10 @@ class push():
             prev_contact_point = contact_point
             for orientation_idx in range(num_orientations):
                 R = rot_mx[contact_point_idx * num_orientations + orientation_idx,:,:]
-                valid, z = self.z_shift(self.tool.tool_contact_surface_params[:2,:], R, contact_point, visualization=False)
+                valid, z = self.z_shift(self.tool.tool_contact_surface_params[:2,:], vision_tolerance, R, contact_point, visualization=False)
                 if not valid:
-                    valid, z = self.z_shift(self.tool.tool_contact_surface_params[1:,:], R, contact_point, visualization=False)
+                    valid, z = self.z_shift(self.tool.tool_contact_surface_params[1:,:], vision_tolerance, R, contact_point, visualization=False)
                 if valid:
-
                     T_G_DD = self.tool_pose(R, contact_point, z, tool_finger_distances, sphere_to_TCS_distance)																					   
                     valid_contact_poses_.append(T_G_DD)
                     # valid_poses += 1
@@ -268,6 +295,11 @@ class push():
         T_TCS_DD[2,3] -= z
         T_TCS_DD[2,3] += sphere_to_TCS_distance
         T_G_DD = T_TCS_DD @ T_G_TCS      
+        c_G = rvl.homogeneous(self.tool.tool_sample_spheres[self.tool.tool_sample_spheres_contact,:3])
+        c_DD = T_G_DD @ c_G[:,:,np.newaxis]
+        e = (c_DD[:,2] - self.tool.tool_sample_spheres[self.tool.tool_sample_spheres_contact,3]).min()
+        if e < 0.0:
+            T_G_DD[2,3] -= e
         return T_G_DD
 
     def path(self, push_poses, init_pose):
@@ -312,16 +344,18 @@ class push():
             obstacles = np.reshape(obstacles, (num_samples_per_iteration, num_tool_sample_spheres, 2))
 
 
+
 class door_model():
     def __init__(self):
         self.dd_contact_surface_params = np.array([0.1, 0.1])
+        #self.dd_contact_surface_params = np.array([0.05, 0.01])
         self.dd_plate_params = np.array([0.3, 0.5, 0.018])
         self.dd_moving_to_static_part_distance = 0.005
         self.dd_static_side_width = 0.018
         self.dd_static_depth = 0.3
         self.dd_axis_distance = 0.01
 
-    def create(self, dd_state_deg):
+    def create(self, dd_state_deg, vision_tolerance):
         # Moving part pose with respect to the static part.
 
         T_A_W = np.eye(4)
@@ -340,8 +374,10 @@ class door_model():
         self.vn_dd = vn.vn()
         A = self.vn_dd.create_base_18()    
         dd_plate_max_vertex_coordinates = self.dd_plate_params.copy()
+        dd_plate_max_vertex_coordinates[:2] += (2.0 * vision_tolerance)
         dd_plate_max_vertex_coordinates[2] = -dd_plate_max_vertex_coordinates[2]
         dd_plate_box = (self.vn_dd.unit_box_vertices() + 1.0) * 0.5 * dd_plate_max_vertex_coordinates
+        dd_plate_box[:,:2] -= vision_tolerance
         d_mov = self.vn_dd.convex_hull(A, dd_plate_box)
         self.vn_dd.add_bl_nodes(A, d_mov)
         self.vn_dd.add_hl_node(1.0, range(18))
@@ -371,7 +407,7 @@ class door_model():
 
         return T_A_W, T_Arot_DD
 
-    def create2(self, dd_state_deg):
+    def create2(self, dd_state_deg, vision_tolerance):
         # Moving part pose with respect to the static part.
 
         T_A_W = np.eye(4)
@@ -392,6 +428,7 @@ class door_model():
         self.vn_dd = vn.vn()
         A = self.vn_dd.create_base_18()    
         dd_plate_max_vertex_coordinates = self.dd_plate_params.copy()
+        dd_plate_max_vertex_coordinates[:2] += (2.0 * vision_tolerance)
         dd_plate_max_vertex_coordinates[2] = -dd_plate_max_vertex_coordinates[2]
         dd_plate_box = (self.vn_dd.unit_box_vertices() + 1.0) * 0.5 * dd_plate_max_vertex_coordinates
         d_mov = self.vn_dd.convex_hull(A, dd_plate_box)
@@ -546,6 +583,7 @@ class tool_model():
         else:
             with open(self.custom_gripper_spheres_path, 'rb') as f:
                 self.tool_sample_spheres = np.array(np.load(f))
+            self.tool_sample_spheres_contact = np.arange(17,23)
             
             self.tool_sample_spheres /= 1000.
 
@@ -622,11 +660,12 @@ def demo_single_random():
     contact_point = np.array([0.01, 0.01, 0.0])
     load_tool_pose = False
     is_3finger_used = True
+    vision_tolerance = 0.005
 
     # Door model.
 
     door = door_model()
-    door.create(dd_state_deg)
+    door.create(dd_state_deg, vision_tolerance)
 
     # Tool model.
 
@@ -655,7 +694,7 @@ def demo_single_random():
 
             # Z-shift.
 
-            valid, z = push_.z_shift(tool.tool_contact_surface_params[:2,:], R, contact_point, visualization=False)
+            valid, z = push_.z_shift(tool.tool_contact_surface_params[:2,:], vision_tolerance, R, contact_point, visualization=False)
 
         # Tool pose.
 
@@ -764,7 +803,7 @@ def demo():
                 for dd_contact_point_x_idx in range(num_dd_contact_point_samples_x):
                     contact_point_x = dd_contact_point_x_idx * dd_contact_surface_sampling_resolution
                     contact_point = np.array([contact_point_x, contact_point_y, 0.0])
-                    valid, z = push_.z_shift(tool_contact_surface_params, R, contact_point, visualization=True)
+                    valid, z = push_.z_shift(tool_contact_surface_params, 0.01, R, contact_point, visualization=True)
                     if valid:
                         print('valid')
  
@@ -829,6 +868,7 @@ def demo_push_poses():
         tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025], [0.006, -0.026, 0.0]])
         tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
         sphere_to_TCS_distance = 0.004609
+    vision_tolerance = 0.005
 
     gripper_params = {'is_default_gripper': use_default_gripper,
                         'custom_gripper_spheres_path': custom_gripper_spheres_path, 
@@ -839,9 +879,8 @@ def demo_push_poses():
     # Door model.
 
     door = door_model()
-    door.create(dd_state_deg)
+    door.create(dd_state_deg, vision_tolerance)
     
-
     # Tool model.
 
     tool = tool_model(gripper_params)
@@ -866,7 +905,7 @@ def demo_push_poses():
     if load_valid_contact_poses_from_file:
         valid_contact_poses_ = np.load("valid_contact_poses.npy")
     else:        
-        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
+        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, vision_tolerance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
         np.save("valid_contact_poses", valid_contact_poses_)
 
     # Feasible poses (no collision with the door/drawer plate).
@@ -896,11 +935,8 @@ def demo_push_poses():
         # sample_idx = 0
         T_G_DD = samples[sample_idx,:,:]
         dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
-        # Visualize gripper origin
-        tool_origin = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
-        tool_origin.transform(door.T_DD_W @ T_G_DD)
+        o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
 
-        o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh, tool_origin])
 
 def demo_push_poses_ros(door_dims: np.array,
                         static_depth: float,
@@ -936,7 +972,9 @@ def demo_push_poses_ros(door_dims: np.array,
         tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025]])
         tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
         sphere_to_TCS_distance = 0.004609
-
+    
+    vision_tolerance = 0.005
+    
     # gripper_params = {'is_default_gripper': use_default_gripper,
     #                     'custom_gripper_spheres_path': custom_gripper_spheres_path, 
     #                     'custom_gripper_model_path': custom_gripper_model_path,
@@ -948,7 +986,7 @@ def demo_push_poses_ros(door_dims: np.array,
     door = door_model()
     door.dd_plate_params = door_dims
     door.dd_static_depth = static_depth
-    _, _ = door.create(dd_state_deg)
+    _, _ = door.create(dd_state_deg, vision_tolerance)
 
     # Tool model.
     tool = tool_model(gripper_params)
@@ -973,7 +1011,7 @@ def demo_push_poses_ros(door_dims: np.array,
         valid_contact_poses_ = np.load(valid_contact_poses_path)
     else:        
         # valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
-        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
+        valid_contact_poses_ = push_.valid_contact_poses(tool.tool_finger_distances, tool.sphere_to_TCS_distance, vision_tolerance, contact_points, num_viewpoints=num_viewpoints, num_rot_angles=num_rot_angles)
         np.save(valid_contact_poses_path, valid_contact_poses_)
 
     # Feasible poses (no collision with the door/drawer plate).

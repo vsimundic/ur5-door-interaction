@@ -92,6 +92,7 @@ namespace RVL
 			float minr;
 			float minz;
 			Pose3D pose_TCP_6;
+			float rotz_TCP_6;
 			Pose3D link_pose[6];
 			Pose3D pose_0_W;
 			float minq[6], maxq[6];
@@ -142,15 +143,16 @@ namespace RVL
 		void Path(Pose3D * pPose_G_S_init);
 		bool Path2(
 			Pose3D* pPose_G_S_init,
-			Array<Pose3D> &poses_G_0);
+			Array<Pose3D> &poses_G_0,
+			Array2D<float> &robotJoints);
 		void TileFeasibleToolContactPoses(
 			std::vector<Pose3D>* pAllFeasibleTCPs,
 			Box<float> &TCPSpace);
 		bool ApproachPath(
 			Pose3D *pPose_G_S_contact,
-			Array<Pose3D> &poses_G_0_via);
+			Array<Pose3D> &poses_G_0_via,
+			float *SDF);
 		void SetDoorModelParams(
-			Pose3D pose_A_S,
 			float sx,
 			float sy,
 			float sz,
@@ -159,6 +161,7 @@ namespace RVL
 			float opening_direction,
 			float static_side_width,
 			float moving_to_static_part_distance);
+		void SetDoorPose(Pose3D pose_A_S);
 		void UpdateStaticPose();
 		void LoadFeasibleToolContactPoses(std::string contactPosesFileName);
 		void LoadToolModel(std::string toolModelDir);

@@ -453,10 +453,14 @@ int main(int argc, char** argv)
 
     //TestSolver();
 
-    // Path planning.
+    // Robot pose.
 
     RVLUNITMX3(manipulator.robot.pose_0_W.R);
     RVLNULL3VECTOR(manipulator.robot.pose_0_W.t);
+    manipulator.robot.pose_0_W.t[2] = 0.005f;
+
+    // Initial tool pose.
+
     Pose3D pose_G_S_init;
     float robot_home_0[3];
     if (manipulator.bDefaultToolModel)
@@ -474,30 +478,58 @@ int main(int argc, char** argv)
         RVLSET3VECTOR(robot_home_0, 0.3f + manipulator.robot.d[5], 0.0f, 0.5f);
     }
     RVLSUM3VECTORS(manipulator.robot.pose_0_W.t, robot_home_0, pose_G_S_init.t);
-    RVLNULLMX3X3(manipulator.pose_F_S.R);
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 2) = 1.0f;
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 0) = -1.0f;
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
-    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.0f, 0.546f);
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = -1.0f;
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = -1.0f;
-    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
-    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.2f, -0.3f, 0.546f);
-    RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = 1.0f;
-    RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = 1.0f;
-    RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
-    RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.2f, 0.546f);
-    manipulator.UpdateStaticPose();
-    //manipulator.Path(&pose_G_S_init);
-    Array<Pose3D> poses_G_0;
-    poses_G_0.Element = NULL;
     //FILE *fpDebug = fopen("pose_G_S_init.txt", "w");
     //float T_G_S_init[16];
     //RVLHTRANSFMX(pose_G_S_init.R, pose_G_S_init.t, T_G_S_init);
     //PrintMatrix(fpDebug, T_G_S_init, 4, 4);
     //fclose(fpDebug);
+
+    /// Furniture pose.
+
+    // Furniture pose 1.
+
+    //RVLNULLMX3X3(manipulator.pose_F_S.R);
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 2) = 1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 0) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+
+    // Furniture pose 2.
+
+    //RVLNULLMX3X3(manipulator.pose_F_S.R);
+    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.0f, 0.546f);
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = -1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.2f, -0.3f, 0.546f);
+
+    // Furniture pose 3.
+
+    //RVLNULLMX3X3(manipulator.pose_F_S.R);
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 0, 0) = 1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 1, 2) = 1.0f;
+    //RVLMXEL(manipulator.pose_F_S.R, 3, 2, 1) = -1.0f;
+    //RVLSET3VECTOR(manipulator.pose_F_S.t, 0.6f, 0.2f, 0.546f);
+
+    // Update static pose (for furniture poses 1, 2 and 3).
+
+    //manipulator.UpdateStaticPose();
+
+    // Set door pose. (Furniture pose is computed from the door pose.)
+
+    Pose3D pose_A_S;
+    RVLUNITMX3(pose_A_S.R);
+    RVLSET3VECTOR(pose_A_S.t, -0.5f, 0.15f, 0.278f);
+    manipulator.SetDoorPose(pose_A_S);
+
+    ///
+
+    // Path planning.
+
+    //manipulator.Path(&pose_G_S_init);
+    Array<Pose3D> poses_G_0;
     //manipulator.SetVisualizeVNEnvironmentModel();
-    if (manipulator.Path2(&pose_G_S_init, poses_G_0))
+    Array2D<float> robotJoints;
+    if (manipulator.Path2(&pose_G_S_init, poses_G_0, robotJoints))
         printf("Path is successfully generated.\n");
     else
         printf("Path is not found.\n");
@@ -523,6 +555,7 @@ int main(int argc, char** argv)
     delete[] toolModelDir;
     delete[] resultsFolder;
     RVL_DELETE_ARRAY(poses_G_0.Element);
+    RVL_DELETE_ARRAY(robotJoints.Element);
 
     return 0;
 } 

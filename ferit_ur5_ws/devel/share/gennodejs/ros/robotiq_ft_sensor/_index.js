@@ -1,7 +1,1 @@
-
-"use strict";
-
-module.exports = {
-  msg: require('./msg/_index.js'),
-  srv: require('./srv/_index.js')
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/gennodejs/ros/robotiq_ft_sensor/_index.js

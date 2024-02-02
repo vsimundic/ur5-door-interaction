@@ -1,8 +1,1 @@
-
-"use strict";
-
-let ft_sensor = require('./ft_sensor.js');
-
-module.exports = {
-  ft_sensor: ft_sensor,
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/gennodejs/ros/robotiq_ft_sensor/msg/_index.js

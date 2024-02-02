@@ -22,8 +22,8 @@ echo_and_run mkdir -p "$DESTDIR/home/RVLuser/ferit_ur5_ws/install/lib/python3/di
 # into one location when some dependencies were installed in another
 # location, #123.
 echo_and_run /usr/bin/env \
-    PYTHONPATH="/home/RVLuser/ferit_ur5_ws/install/lib/python3/dist-packages:/home/RVLuser/ferit_ur5_ws/build/lib/python3/dist-packages:$PYTHONPATH" \
-    CATKIN_BINARY_DIR="/home/RVLuser/ferit_ur5_ws/build" \
+    PYTHONPATH="/home/RVLuser/ferit_ur5_ws/install/lib/python3/dist-packages:/home/RVLuser/ferit_ur5_ws/build/core/lib/python3/dist-packages:$PYTHONPATH" \
+    CATKIN_BINARY_DIR="/home/RVLuser/ferit_ur5_ws/build/core" \
     "/usr/bin/python3" \
     "/home/RVLuser/ferit_ur5_ws/src/core/setup.py" \
      \

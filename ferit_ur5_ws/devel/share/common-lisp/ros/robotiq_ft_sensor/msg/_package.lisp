@@ -1,7 +1,1 @@
-(cl:defpackage robotiq_ft_sensor-msg
-  (:use )
-  (:export
-   "<FT_SENSOR>"
-   "FT_SENSOR"
-  ))
-
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/common-lisp/ros/robotiq_ft_sensor/msg/_package.lisp

@@ -318,7 +318,9 @@ class Cabinet():
             rospy.loginfo('URDF model spawned successfully')
         except rospy.ServiceException as e:
             rospy.logerr('Failed to spawn URDF model: %s' % e)
-
+    
+    
+    # TEST METHOD
     def spawn_model_gazebo_sphere(self):
 
         # TEST SPHERE 
@@ -363,7 +365,8 @@ class Cabinet():
             rospy.loginfo('URDF deleted successfully')
         except rospy.ServiceException as e:
             rospy.logerr('Failed to delete model: %s' % e)
-        
+    
+    # TEST METHOD
     def delete_model_gazebo_sphere(self):
         rospy.wait_for_service('/gazebo/delete_model')
         try:
@@ -422,55 +425,55 @@ class Cabinet():
 
 
     def create_mesh(self):
-        dd_static_top_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
+        self.dd_static_top_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
                                                                   height=self.w_door + 2*(self.moving_to_static_part_distance + self.d_door), 
                                                                   depth=self.d_door)
-        dd_static_top_mesh.translate((-self.static_d/2., 
+        self.dd_static_top_mesh.translate((-self.static_d/2., 
                                          -(self.w_door/2. + self.moving_to_static_part_distance + self.d_door), 
                                          (self.h_door/2. + self.moving_to_static_part_distance)))
         
 
-        dd_static_bottom_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
+        self.dd_static_bottom_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
                                                                      height=self.w_door + 2*(self.moving_to_static_part_distance + self.d_door), 
                                                                      depth=self.d_door)
-        dd_static_bottom_mesh.translate((-self.static_d/2., 
+        self.dd_static_bottom_mesh.translate((-self.static_d/2., 
                                          -(self.w_door/2. + self.moving_to_static_part_distance + self.d_door), 
                                          -(self.h_door/2. + self.moving_to_static_part_distance + self.d_door)))
         
         
-        dd_static_left_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
+        self.dd_static_left_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
                                                                    height=self.d_door, 
                                                                    depth=(self.h_door + 2*self.moving_to_static_part_distance + 2*self.d_door))
-        dd_static_left_mesh.translate((-self.static_d/2., 
+        self.dd_static_left_mesh.translate((-self.static_d/2., 
                                        -(self.w_door/2. + self.moving_to_static_part_distance + self.d_door), 
                                        -(self.h_door/2. + self.moving_to_static_part_distance + self.d_door)))
         
         
-        dd_static_right_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
+        self.dd_static_right_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
                                                                    height=self.d_door, 
                                                                    depth=(self.h_door + 2*self.moving_to_static_part_distance + 2*self.d_door))
-        dd_static_right_mesh.translate((-self.static_d/2., 
+        self.dd_static_right_mesh.translate((-self.static_d/2., 
                                        (self.w_door/2. + self.moving_to_static_part_distance), 
                                        -(self.h_door/2. + self.moving_to_static_part_distance + self.d_door)))
 
-        dd_static_mesh = dd_static_top_mesh + dd_static_bottom_mesh + dd_static_left_mesh + dd_static_right_mesh
-        dd_static_mesh.paint_uniform_color([0.4, 0.4, 0.4])
-        dd_static_mesh.compute_vertex_normals()
+        self.dd_static_mesh = self.dd_static_top_mesh + self.dd_static_bottom_mesh + self.dd_static_left_mesh + self.dd_static_right_mesh
+        self.dd_static_mesh.paint_uniform_color([0.4, 0.4, 0.4])
+        self.dd_static_mesh.compute_vertex_normals()
         
-        dd_plate_mesh = o3d.geometry.TriangleMesh.create_box(width=self.w_door, 
+        self.dd_plate_mesh = o3d.geometry.TriangleMesh.create_box(width=self.w_door, 
                                                              height=self.h_door, 
                                                              depth=self.d_door)
         
         if self.axis_pos == 1:
-            dd_plate_mesh.translate((0.0, 0.0, -self.d_door))
+            self.dd_plate_mesh.translate((0.0, 0.0, -self.d_door))
         else:
-            dd_plate_mesh.translate((-self.w_door, 0.0, -self.d_door))
+            self.dd_plate_mesh.translate((-self.w_door, 0.0, -self.d_door))
 
-        dd_plate_mesh.transform(self.T_A_O @ self.T_D_A)
-        dd_plate_mesh.paint_uniform_color([0.7, 0.7, 0.7])
-        dd_plate_mesh.compute_vertex_normals()
+        self.dd_plate_mesh.transform(self.T_A_O @ self.T_D_A)
+        self.dd_plate_mesh.paint_uniform_color([0.7, 0.7, 0.7])
+        self.dd_plate_mesh.compute_vertex_normals()
 
-        dd_mesh = dd_static_mesh + dd_plate_mesh
+        dd_mesh = self.dd_static_mesh + self.dd_plate_mesh
         
         return dd_mesh
 
@@ -484,6 +487,8 @@ class Cabinet():
         self.T_A_O = T_A_O
         self.update_mesh()
         
+    def save_mesh_without_doors(self, filename):
+        o3d.io.write_triangle_mesh(filename, self.dd_static_mesh)
 
     def update_mesh(self):
         self.mesh = self.create_mesh()

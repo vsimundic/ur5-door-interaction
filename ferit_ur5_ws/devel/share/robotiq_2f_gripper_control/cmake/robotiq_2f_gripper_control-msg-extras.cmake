@@ -1,2 +1,1 @@
-set(robotiq_2f_gripper_control_MESSAGE_FILES "/home/RVLuser/ferit_ur5_ws/src/ur5_configs/robotiq-noetic-devel/robotiq_2f_gripper_control/msg/Robotiq2FGripper_robot_input.msg;/home/RVLuser/ferit_ur5_ws/src/ur5_configs/robotiq-noetic-devel/robotiq_2f_gripper_control/msg/Robotiq2FGripper_robot_output.msg")
-set(robotiq_2f_gripper_control_SERVICE_FILES "")
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_2f_gripper_control/share/robotiq_2f_gripper_control/cmake/robotiq_2f_gripper_control-msg-extras.cmake

@@ -1,1 +1,1 @@
-from ._sensor_accessor import *
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/lib/python3/dist-packages/robotiq_ft_sensor/srv/__init__.py

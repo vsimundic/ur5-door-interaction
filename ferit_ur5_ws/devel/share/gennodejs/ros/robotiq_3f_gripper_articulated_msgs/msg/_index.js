@@ -1,10 +1,1 @@
-
-"use strict";
-
-let Robotiq3FGripperRobotInput = require('./Robotiq3FGripperRobotInput.js');
-let Robotiq3FGripperRobotOutput = require('./Robotiq3FGripperRobotOutput.js');
-
-module.exports = {
-  Robotiq3FGripperRobotInput: Robotiq3FGripperRobotInput,
-  Robotiq3FGripperRobotOutput: Robotiq3FGripperRobotOutput,
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_3f_gripper_articulated_msgs/share/gennodejs/ros/robotiq_3f_gripper_articulated_msgs/msg/_index.js

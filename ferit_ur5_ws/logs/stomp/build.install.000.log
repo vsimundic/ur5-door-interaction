@@ -1,0 +1,20 @@
+[ 60%] Built target stomp
+[100%] Built target stomp_example
+[36mInstall the project...[0m
+-- Install configuration: ""
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/package.xml
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/lib/libstomp.so
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/bin/stomp_example
+-- Set runtime path of "/home/RVLuser/ferit_ur5_ws/devel/bin/stomp_example" to ""
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/lib/cmake/stomp/stomp-targets.cmake
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/lib/cmake/stomp/stomp-targets-noconfig.cmake
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/lib/cmake/stomp/stomp-config.cmake
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/lib/cmake/stomp/stomp-config-version.cmake
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/ament_index/resource_index/packages/stomp
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/hook/ament_prefix_path.dsv
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/hook/ros_package_path.dsv
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/hook/python_path.dsv
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/task.h
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/stomp.h
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/utils.h

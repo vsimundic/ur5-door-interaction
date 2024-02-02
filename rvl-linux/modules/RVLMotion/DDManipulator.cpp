@@ -1133,7 +1133,8 @@ void DDManipulator::Path(Pose3D* pPose_G_S_init)
 
 bool DDManipulator::Path2(
     Pose3D* pPose_G_S_init,
-    Array<Pose3D> &poses_G_0)
+    Array<Pose3D> &poses_G_0,
+    Array2D<float> &robotJoints)
 {
 #ifdef RVLDDMANIPULATOR_TIME_MESUREMENT
     if (pTimer)
@@ -1161,6 +1162,35 @@ bool DDManipulator::Path2(
     std::vector<Pose3D> allFeasibleTCPs;
     Box<float> TCPSpace;
     TileFeasibleToolContactPoses(&allFeasibleTCPs, TCPSpace);
+
+    // Only for debugging purpose!!!
+
+    // RVLNULLMX3X3(pNode->pose.pose.R);
+    // RVLMXEL(pNode->pose.pose.R, 3, 0, 2) = 1.0f;
+    // RVLMXEL(pNode->pose.pose.R, 3, 1, 1) = -1.0f;
+    // RVLMXEL(pNode->pose.pose.R, 3, 2, 0) = 1.0f;
+    // float RTmp1[9];
+    // RVLNULLMX3X3(RTmp1);
+    // RVLMXEL(RTmp1, 3, 0, 1) = 1.0f;
+    // RVLMXEL(RTmp1, 3, 1, 2) = 1.0f;
+    // RVLMXEL(RTmp1, 3, 2, 0) = 1.0f;
+    // float RTmp2[9];
+    // float phi = 0.5f;
+    // RVLROTY(cos(phi), sin(phi), RTmp2);
+    // Pose3D *pPose_G_DD = (Pose3D *)(allFeasibleTCPs.data());
+    // RVLMXMUL3X3(RTmp1, RTmp2, pPose_G_DD->R);
+    // float PRTCP_DD[3];
+    // RVLSET3VECTOR(PRTCP_DD, 0.0f, 0.012f, 0.015f);
+    // float V3TmpDebug[3];
+    // RVLMULMX3X3VECT(pPose_G_DD->R, PRTCP_G, V3TmpDebug);
+    // RVLDIF3VECTORS(PRTCP_DD, V3TmpDebug, pPose_G_DD->t);
+    // float T_G_DD[16];
+    // RVLHTRANSFMX(pPose_G_DD->R, pPose_G_DD->t, T_G_DD);
+    // FILE *fp = fopen("T_G_DD.txt", "w");
+    // PrintMatrix<float>(fp, T_G_DD, 4, 4);
+    // fclose(fp);
+
+    //
 
     // SE3 grid.
 
@@ -1193,6 +1223,8 @@ bool DDManipulator::Path2(
         //    int debug = 0;
         iSE3Point = rndIdx.Element[i];
         pose_G_DD = allFeasibleTCPs[iSE3Point];
+        // if(iSE3Point == 0)
+        //     int debug = 0;
         //if (pose_G_DD.t[0] < -0.05f)
         //    int debug = 0;
         iSE3Point = grid.Fetch(pose_G_DD, iPosCell, iZ, iRoll);
@@ -1215,15 +1247,68 @@ bool DDManipulator::Path2(
             break;
         grid.Add(pose_G_DD, true, pGNode->idx, iPosCell, iZ, iRoll);
     }
-    delete[] rndIdx.Element;
+    delete[] rndIdx.Element;    
     int iNode, iNode_;
+    // Only for debugging purpose!!!
+    // Array<Point> pts;
+    // pts.Element = new Point[2 * nodes.n];
+    // Array<Pair<int, int>> lines;
+    // lines.n = nodes.n;
+    // lines.Element = new Pair<int, int>[nodes.n];
+    // float *P1, *P2;
+    // for(iNode = 0; iNode < nodes.n; iNode++)
+    // {
+    //     pNode = nodes.Element + iNode;
+    //     P1 = pts.Element[iNode].P;
+    //     RVLCOPY3VECTOR(pNode->pose.pose.t, P1);
+    //     P2 = pts.Element[nodes.n + iNode].P;
+    //     RVLTRANSF3(PRTCP_G, pNode->pose.pose.R, pNode->pose.pose.t, P2);
+    //     lines.Element[iNode].a = iNode;
+    //     lines.Element[iNode].b = nodes.n + iNode;
+    // }
+    // pts.n = 2 * nodes.n;
+    // uchar green[] = {0, 255, 0};
+    // pVisualizationData->pVisualizer->DisplayLines(pts, lines, green);
+    // uchar blue[] = {0, 0, 255};
+    // pts.n = nodes.n;
+    // pVisualizationData->pVisualizer->DisplayPointSet<float, Point>(pts, blue, 6);
+    // pVisualizationData->pVisualizer->Run();    
+    // pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
+    // delete[] pts.Element;
+    // delete[] lines.Element;
+    //
     Array<int> TCPNeighbors;
     MOTION::Edge* pEdge;
-    MOTION::Node* pNode_;
+    MOTION::Node* pNode_;    
     //int debug = 0;
     for(iNode = 0; iNode < nodes.n; iNode++)
     {
         pNode = nodes.Element + iNode;
+        // Only for debugging purpose!!!
+        // if(iNode == 29679)
+        // {
+        //     float csRotDiff;
+        //     float maxcsRotDiff = -2.0f;
+        //     int debug = 0;
+        //     for(iNode_ = 0; iNode_ < nodes.n; iNode_++)
+        //     {
+        //         if(iNode_ == iNode)
+        //             continue;
+        //         pNode_ = nodes.Element + iNode_;
+        //         RVLDIF3VECTORS(pNode->pose.pose.t, pNode_->pose.pose.t, V3TmpDebug);
+        //         // if(RVLDOTPRODUCT3(V3TmpDebug, V3TmpDebug) > rPos * rPos)
+        //         //     continue;
+        //         debug++;
+        //         float dR[9];
+        //         RVLMXMUL3X3T1(pNode->pose.pose.R, pNode_->pose.pose.R, dR);
+        //         csRotDiff = RVLROTDIFF(dR);
+        //         if(csRotDiff >= maxcsRotDiff)
+        //             maxcsRotDiff = csRotDiff;
+        //     }
+        //     float maxRotDiff = acos(maxcsRotDiff);
+        //     debug = 0;
+        // }
+        //
         pGNode = pNode->pGNode;
         grid.Neighbors(pNode->pose.pose, rPos, rOrient, TCPNeighbors);
         //debug += TCPNeighbors.n;
@@ -1268,30 +1353,6 @@ bool DDManipulator::Path2(
         RVLMULMX3X3VECT(pose_DD_S.R, freeSpacePlanes_DD[i].N, N_S);
         freeSpacePlanes_S[i].d = RVLDOTPRODUCT3(N_S, P_S);
     }
-
-    //
-
-    // Only for debugging purpose!!!
-
-    //pNode = nodes.Element;
-    //RVLNULLMX3X3(pNode->pose.pose.R);
-    //RVLMXEL(pNode->pose.pose.R, 3, 0, 2) = 1.0f;
-    //RVLMXEL(pNode->pose.pose.R, 3, 1, 1) = -1.0f;
-    //RVLMXEL(pNode->pose.pose.R, 3, 2, 0) = 1.0f;
-    ////float RTmp1[9];
-    ////RVLNULLMX3X3(RTmp1);
-    ////RVLMXEL(RTmp1, 3, 0, 1) = 1.0f;
-    ////RVLMXEL(RTmp1, 3, 1, 2) = 1.0f;
-    ////RVLMXEL(RTmp1, 3, 2, 0) = 1.0f;
-    ////float RTmp2[9];
-    ////float phi = 0.2f;
-    ////RVLROTY(cos(phi), sin(phi), RTmp2);
-    ////RVLMXMUL3X3(RTmp1, RTmp2, pNode->pose.pose.R);
-    //float PRTCP_DD[3];
-    //RVLSET3VECTOR(PRTCP_DD, 0.01f, 0.01f, 0.01f);
-    //float V3TmpDebug[3];
-    //RVLMULMX3X3VECT(pNode->pose.pose.R, PRTCP_G, V3TmpDebug);
-    //RVLDIF3VECTORS(PRTCP_DD, V3TmpDebug, pNode->pose.pose.t);
 
     //
 
@@ -1365,11 +1426,34 @@ bool DDManipulator::Path2(
         feasibleNodes.n = 0;
         for (iNode = 0; iNode < nodes.n; iNode++, pNode++, pData++)
         {
-            //if (iNode == 36358)
+            //if (iNode == 35387)
             //    int debug = 0;
             pData->bFeasible = false;
             pGNode = graph.NodeArray.Element + iNode;
             RVLCOMPTRANSF3D(pose_DD_0.R, pose_DD_0.t, pNode->pose.pose.R, pNode->pose.pose.t, pose_G_0.R, pose_G_0.t);
+
+            // Only for debugging purpose!!!
+
+            // if (iNode == 0)
+            // {
+            //     robot.InvKinematics(pose_G_0);
+            //     robot.FwdKinematics();
+            //     std::vector<Node> debugNodes;
+            //     Node debugNode;
+            //     debugNode.pose.pose = pose_G_0;
+            //     debugNodes.push_back(debugNode);
+            //     std::vector<int> debugPath;
+            //     debugPath.push_back(0);
+            //     Array2D<float> debugRobotJoints;
+            //     debugRobotJoints.w = robot.n;
+            //     debugRobotJoints.h = 1;
+            //     debugRobotJoints.Element = robot.q;
+            //     doorStates.n = 1;
+            //     Visualize(&debugNodes, &debugPath, doorStates, true, false, -1, &debugRobotJoints);
+            // }
+
+            //
+
             if (!robot.InvKinematics(pose_G_0, pData->q))
                 continue;
             RVLCOMPTRANSF3D(robot.pose_0_W.R, robot.pose_0_W.t, pose_G_0.R, pose_G_0.t, pose_G_S.R, pose_G_S.t);
@@ -1385,28 +1469,10 @@ bool DDManipulator::Path2(
                     continue;
             }
             if (iState == 0)
-                if (!ApproachPath(&pose_G_S, poses_G_0_via))
+                if (!ApproachPath(&pose_G_S, poses_G_0_via, SDF))
                     continue;
             pData->bFeasible = true;
             feasibleNodes.Element[feasibleNodes.n++] = iNode;
-
-            // Only for debugging purpose!!!
-
-            //robot.InvKinematics(pose_G_0);
-            //robot.FwdKinematics();
-            //std::vector<Node> debugNodes;
-            //Node debugNode;
-            //debugNode.pose.pose = pose_G_0;
-            //debugNodes.push_back(debugNode);
-            //std::vector<int> debugPath;
-            //debugPath.push_back(0);
-            //Array2D<float> debugRobotJoints;
-            //debugRobotJoints.w = robot.n;
-            //debugRobotJoints.h = 1;
-            //debugRobotJoints.Element = robot.q;
-            //doorStates.n = 1;
-            //Visualize(&debugNodes, &debugPath, doorStates, true, false, -1, &debugRobotJoints);
-            //pVisualizationData->pVisualizer->Run();
         }
 
         if (feasibleNodes.n == 0)
@@ -1512,7 +1578,6 @@ bool DDManipulator::Path2(
         Array<float> doorStates_;
         doorStates_.n = nStates + 3;
         doorStates_.Element = new float[doorStates_.n];
-        Array2D<float> robotJoints;
         robotJoints.w = robot.n;
         robotJoints.h = doorStates_.n;
         robotJoints.Element = new float[robotJoints.w * robotJoints.h];
@@ -1535,7 +1600,7 @@ bool DDManipulator::Path2(
         SetEnvironmentState(startDoorState);
         RVLCOMPTRANSF3DWITHINV(robot.pose_0_W.R, robot.pose_0_W.t, pose_DD_S.R, pose_DD_S.t, pose_DD_0.R, pose_DD_0.t, V3Tmp);
         RVLCOMPTRANSF3D(pose_DD_0.R, pose_DD_0.t, pNode->pose.pose.R, pNode->pose.pose.t, pose_G_0.R, pose_G_0.t);
-        ApproachPath(&pose_G_0, poses_G_0_via);
+        ApproachPath(&pose_G_0, poses_G_0_via, SDF);
         //poses_G_0_via.n = 0;    // Only for debugging purpose!!!
         int iState_;
         for (i = 0; i < poses_G_0_via.n; i++)
@@ -1617,7 +1682,11 @@ bool DDManipulator::Path2(
         }
 
         delete[] doorStates_.Element;
-        delete[] robotJoints.Element;
+    }
+    else
+    {
+        poses_G_0.Element = NULL;
+        robotJoints.Element = NULL;
     }
 
     //
@@ -1670,18 +1739,18 @@ void DDManipulator::TileFeasibleToolContactPoses(
     RVLNULL3VECTOR(origin);
     InitBoundingBox<float>(&TCPSpace, origin);
     float maxsx = dd_panel_params[0] - minDistanceToAxis;
-    int debug = 0;
-    int debug_nx = 0;
-    int debug_ny = 0;
-    int debug_nxy = 0;
+    // int debug = 0;
+    // int debug_nx = 0;
+    // int debug_ny = 0;
+    // int debug_nxy = 0;
     for (iTemplatePose = 0; iTemplatePose < feasibleTCPs.n; iTemplatePose++)
     {
         pPose_G_DD = feasibleTCPs.Element + iTemplatePose;
         //if (pPose_G_DD->R[6] > -csMaxSurfaceContactAngle)
         //    continue;
         RVLTRANSF3(PRTCP_G, pPose_G_DD->R, pPose_G_DD->t, PRTCP_DD);
-        if (PRTCP_DD[0] < visionTol || PRTCP_DD[1] < visionTol)
-            continue;
+        // if (PRTCP_DD[0] < visionTol || PRTCP_DD[1] < visionTol)
+        //     continue;
         pose_G_DD = *pPose_G_DD;
         pAllFeasibleTCPs->push_back(pose_G_DD);
         UpdateBoundingBox<float>(&TCPSpace, pose_G_DD.t);
@@ -1691,13 +1760,13 @@ void DDManipulator::TileFeasibleToolContactPoses(
             bTileAxis[iAxis] = (PRTCP_DD[iAxis] >= templateEnd[iAxis]);
             pose_G_DD.t[iAxis] = pose_G_DD_template.t[iAxis];
         }
-        debug++;
-        if (bTileAxis[0])
-            debug_nx++;
-        if (bTileAxis[1])
-            debug_ny++;
-        if (bTileAxis[0] && bTileAxis[1])
-            debug_nxy++;
+        // debug++;
+        // if (bTileAxis[0])
+        //     debug_nx++;
+        // if (bTileAxis[1])
+        //     debug_ny++;
+        // if (bTileAxis[0] && bTileAxis[1])
+        //     debug_nxy++;
         iShift[1] = 0;
         s = PRTCP_DD[1];
         while (s <= dd_panel_params[1])
@@ -1730,7 +1799,8 @@ void DDManipulator::TileFeasibleToolContactPoses(
 
 bool DDManipulator::ApproachPath(
     Pose3D* pPose_G_S_contact,
-    Array<Pose3D> &poses_G_0_via)
+    Array<Pose3D> &poses_G_0_via,
+    float *SDF)
 {
     // Second via point.
 
@@ -1782,6 +1852,7 @@ bool DDManipulator::ApproachPath(
     Pose3D* pPose_G_0 = poses_G_0_via.Element;
     float V3Tmp[3];
     RVLCOMPTRANSF3DWITHINV(robot.pose_0_W.R, robot.pose_0_W.t, pPose_G_S_contact->R, pPose_G_S_contact->t, pPose_G_0->R, pPose_G_0->t, V3Tmp);
+    Pose3D pose_G_S;
     if (mins < -1e-3)
     {
         float Z_G_0[3];
@@ -1789,6 +1860,9 @@ bool DDManipulator::ApproachPath(
         RVLSCALE3VECTOR(Z_G_0, mins, V3Tmp);
         RVLSUM3VECTORS(pPose_G_0->t, V3Tmp, pPose_G_0->t);        
         if (!robot.InvKinematics(*pPose_G_0))
+            return false;
+        RVLCOMPTRANSF3D(robot.pose_0_W.R, robot.pose_0_W.t, pPose_G_0->R, pPose_G_0->t, pose_G_S.R, pose_G_S.t);
+        if(!Free(pPose_G_0, SDF))
             return false;
         poses_G_0_via.n++;
     }
@@ -1816,7 +1890,6 @@ bool DDManipulator::ApproachPath(
 }
 
 void DDManipulator::SetDoorModelParams(
-    Pose3D pose_A_S,
     float sx,
     float sy,
     float sz,
@@ -1838,17 +1911,22 @@ void DDManipulator::SetDoorModelParams(
     RVLSET3VECTOR(pose_A_F.t, dd_static_side_width + dd_moving_to_static_part_distance + 0.5f * dd_panel_params[0] - dd_ry,
         dd_static_side_width + dd_moving_to_static_part_distance + 0.5f * dd_panel_params[1],
         0.5f * dd_panel_params[2]);
+    RVLSET3VECTOR(pose_DD_A.t, dd_rx-0.5f*dd_sx, dd_ry-0.5f*dd_sy, 0.5f*dd_sz);
+}
+
+void DDManipulator::SetDoorPose(Pose3D pose_A_S)
+{
     Pose3D pose_F_A;
     RVLINVTRANSF3D(pose_A_F.R, pose_A_F.t, pose_F_A.R, pose_F_A.t);
     RVLCOMPTRANSF3D(pose_A_S.R, pose_A_S.t, pose_F_A.R, pose_F_A.t, pose_F_S.R, pose_F_S.t);
     // printf("manipulator.pose_F_S:\n");
-	// for(int i = 0; i < 3; i++)
-	// {
-	// 	for(int j = 0; j < 3; j++)
-	// 		printf("%f ", pose_F_S.R[j+3*i]);
-	// 	printf("%f\n", pose_F_S.t[i]);
-	// }
-    RVLSET3VECTOR(pose_DD_A.t, dd_rx-0.5f*dd_sx, dd_ry-0.5f*dd_sy, 0.5f*dd_sz);
+    // for(int i = 0; i < 3; i++)
+    // {
+    // 	for(int j = 0; j < 3; j++)
+    // 		printf("%f ", pose_F_S.R[j+3*i]);
+    // 	printf("%f\n", pose_F_S.t[i]);
+    // }
+    UpdateStaticPose();
 }
 
 void DDManipulator::UpdateStaticPose()
@@ -2250,6 +2328,10 @@ void Robot::Create(char* cfgFileNameIn)
 
     //
 
+    float rotz_TCP_6_rad = DEG2RAD * rotz_TCP_6;
+    float cs = cos(rotz_TCP_6_rad);
+    float sn = sin(rotz_TCP_6_rad);
+    RVLROTZ(cs, sn, pose_TCP_6.R);
     maxr = 0.8f;
     minr = 0.1f;
     minz = 0.3f;
@@ -2277,6 +2359,7 @@ void Robot::CreateParamList()
     pParamData = paramList.AddParam("Robot.t_TCP_6.x", RVLPARAM_TYPE_FLOAT, pose_TCP_6.t);
     pParamData = paramList.AddParam("Robot.t_TCP_6.y", RVLPARAM_TYPE_FLOAT, pose_TCP_6.t + 1);
     pParamData = paramList.AddParam("Robot.t_TCP_6.z", RVLPARAM_TYPE_FLOAT, pose_TCP_6.t + 2);
+    pParamData = paramList.AddParam("Robot.rotz_TCP_6", RVLPARAM_TYPE_FLOAT, &rotz_TCP_6);
 }
 
 void Robot::Clear()

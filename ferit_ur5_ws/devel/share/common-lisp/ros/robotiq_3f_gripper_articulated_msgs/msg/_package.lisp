@@ -1,9 +1,1 @@
-(cl:defpackage robotiq_3f_gripper_articulated_msgs-msg
-  (:use )
-  (:export
-   "<ROBOTIQ3FGRIPPERROBOTINPUT>"
-   "ROBOTIQ3FGRIPPERROBOTINPUT"
-   "<ROBOTIQ3FGRIPPERROBOTOUTPUT>"
-   "ROBOTIQ3FGRIPPERROBOTOUTPUT"
-  ))
-
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_3f_gripper_articulated_msgs/share/common-lisp/ros/robotiq_3f_gripper_articulated_msgs/msg/_package.lisp

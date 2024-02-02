@@ -1,10 +1,1 @@
-(cl:in-package ur_dashboard_msgs-srv)
-(cl:export '(STATE-VAL
-          STATE
-          PROGRAM_NAME-VAL
-          PROGRAM_NAME
-          ANSWER-VAL
-          ANSWER
-          SUCCESS-VAL
-          SUCCESS
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/common-lisp/ros/ur_dashboard_msgs/srv/_package_GetProgramState.lisp

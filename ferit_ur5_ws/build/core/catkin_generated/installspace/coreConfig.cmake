@@ -68,7 +68,7 @@ set(core_CONFIG_INCLUDED TRUE)
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
   set(core_SOURCE_PREFIX /home/RVLuser/ferit_ur5_ws/src/core)
-  set(core_DEVEL_PREFIX /home/RVLuser/ferit_ur5_ws/devel)
+  set(core_DEVEL_PREFIX /home/RVLuser/ferit_ur5_ws/devel/.private/core)
   set(core_INSTALL_PREFIX "")
   set(core_PREFIX ${core_DEVEL_PREFIX})
 else()
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/RVLuser/ferit_ur5_ws/install/lib;/opt/ros/noetic/lib)
+    foreach(path /home/RVLuser/ferit_ur5_ws/install/lib;/home/RVLuser/ferit_ur5_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

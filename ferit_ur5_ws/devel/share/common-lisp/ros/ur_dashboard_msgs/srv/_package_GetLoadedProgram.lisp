@@ -1,8 +1,1 @@
-(cl:in-package ur_dashboard_msgs-srv)
-(cl:export '(ANSWER-VAL
-          ANSWER
-          PROGRAM_NAME-VAL
-          PROGRAM_NAME
-          SUCCESS-VAL
-          SUCCESS
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/common-lisp/ros/ur_dashboard_msgs/srv/_package_GetLoadedProgram.lisp

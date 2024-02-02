@@ -1,10 +1,1 @@
-(cl:in-package robotiq_ft_sensor-srv)
-(cl:export '(COMMAND_ID-VAL
-          COMMAND_ID
-          COMMAND-VAL
-          COMMAND
-          SUCCESS-VAL
-          SUCCESS
-          RES-VAL
-          RES
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/common-lisp/ros/robotiq_ft_sensor/srv/_package_sensor_accessor.lisp

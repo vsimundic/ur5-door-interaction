@@ -1,6 +1,1 @@
-(cl:in-package ur_dashboard_msgs-msg)
-(cl:export '(SUCCESS-VAL
-          SUCCESS
-          MESSAGE-VAL
-          MESSAGE
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/common-lisp/ros/ur_dashboard_msgs/msg/_package_SetModeResult.lisp

@@ -1,14 +1,1 @@
-(cl:in-package robotiq_ft_sensor-msg)
-(cl:export '(FX-VAL
-          FX
-          FY-VAL
-          FY
-          FZ-VAL
-          FZ
-          MX-VAL
-          MX
-          MY-VAL
-          MY
-          MZ-VAL
-          MZ
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/common-lisp/ros/robotiq_ft_sensor/msg/_package_ft_sensor.lisp

@@ -16,6 +16,7 @@
   <!-- Set the robot urdf on the parameter server -->
   <param name="robot_description" textfile="$(find ur5_robotiq3f_moveit_config)/config/gazebo_ur5.urdf" />
   <!-- <param name="robot_description" textfile="$(find ur5_robotiq3f_moveit_config)/config/gazebo_ur5_simplified.urdf" /> -->
+  <!-- <param name="robot_description" textfile="$(find ur5_robotiq3f_moveit_config)/config/gazebo_ur5_spheres.urdf" /> -->
   
   <!-- <param name="robot_description" textfile="$(find ur5_description)/urdf/ur5_robotiq3f_gripper.urdf.xacro" /> -->
 

@@ -35,7 +35,8 @@
         <inertial>
             <mass value="4.0" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.00443333156" ixy="0.0" ixz="0.0" iyy="0.00443333156" iyz="0.0" izz="0.0072" />
+            <inertia ixx="0.00443333156" ixy="0.0" ixz="0.0" iyy="0.00443333156" iyz="0.0"
+                izz="0.0072" />
         </inertial>
     </link>
     <joint name="shoulder_pan_joint" type="revolute">
@@ -63,7 +64,8 @@
         <inertial>
             <mass value="3.7" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.010267495893" ixy="0.0" ixz="0.0" iyy="0.010267495893" iyz="0.0" izz="0.00666" />
+            <inertia ixx="0.010267495893" ixy="0.0" ixz="0.0" iyy="0.010267495893" iyz="0.0"
+                izz="0.00666" />
         </inertial>
     </link>
     <joint name="shoulder_lift_joint" type="revolute">
@@ -91,7 +93,8 @@
         <inertial>
             <mass value="8.393" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.28" />
-            <inertia ixx="0.22689067591036005" ixy="0.0" ixz="0.0" iyy="0.22689067591036005" iyz="0.0" izz="0.0151074" />
+            <inertia ixx="0.22689067591036005" ixy="0.0" ixz="0.0" iyy="0.22689067591036005"
+                iyz="0.0" izz="0.0151074" />
         </inertial>
     </link>
     <joint name="elbow_joint" type="revolute">
@@ -119,7 +122,8 @@
         <inertial>
             <mass value="2.275" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.25" />
-            <inertia ixx="0.04944331355599999" ixy="0.0" ixz="0.0" iyy="0.04944331355599999" iyz="0.0" izz="0.004095" />
+            <inertia ixx="0.04944331355599999" ixy="0.0" ixz="0.0" iyy="0.04944331355599999"
+                iyz="0.0" izz="0.004095" />
         </inertial>
     </link>
     <joint name="wrist_1_joint" type="revolute">
@@ -147,7 +151,8 @@
         <inertial>
             <mass value="1.219" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.11117275553087999" ixy="0.0" ixz="0.0" iyy="0.11117275553087999" iyz="0.0" izz="0.21942" />
+            <inertia ixx="0.11117275553087999" ixy="0.0" ixz="0.0" iyy="0.11117275553087999"
+                iyz="0.0" izz="0.21942" />
         </inertial>
     </link>
     <joint name="wrist_2_joint" type="revolute">
@@ -175,7 +180,8 @@
         <inertial>
             <mass value="1.219" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.11117275553087999" ixy="0.0" ixz="0.0" iyy="0.11117275553087999" iyz="0.0" izz="0.21942" />
+            <inertia ixx="0.11117275553087999" ixy="0.0" ixz="0.0" iyy="0.11117275553087999"
+                iyz="0.0" izz="0.21942" />
         </inertial>
     </link>
     <joint name="wrist_3_joint" type="revolute">
@@ -203,7 +209,8 @@
         <inertial>
             <mass value="0.1879" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.017136473145408" ixy="0.0" ixz="0.0" iyy="0.017136473145408" iyz="0.0" izz="0.033822" />
+            <inertia ixx="0.017136473145408" ixy="0.0" ixz="0.0" iyy="0.017136473145408" iyz="0.0"
+                izz="0.033822" />
         </inertial>
     </link>
     <joint name="ee_fixed_joint" type="fixed">
@@ -358,10 +365,10 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0" />
     </joint>
 
-    <link name="camera_link"/>
+    <link name="camera_link" />
     <joint name="camera_joint" type="fixed">
-        <parent link="tool0"/>
-        <child link="camera_link"/>
+        <parent link="tool0" />
+        <child link="camera_link" />
         <origin rpy="0.0 0.0 -1.570796" xyz="-0.1 0.0 0.0" />
     </joint>
 
@@ -369,7 +376,8 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.020 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
             </geometry>
             <material name="green">
                 <color rgba="0 1 0 1" />
@@ -378,7 +386,8 @@
         <collision>
             <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
             </geometry>
             <material name="yellow">
                 <color rgba="0 1 1 1" />
@@ -394,21 +403,24 @@
         <visual>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_1_link_2">
@@ -420,49 +432,55 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_1_link_3">
         <visual>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.05" />
-            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632" />
+            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0"
+                izz="0.001632" />
         </inertial>
     </link>
     <joint name="finger_1_joint_1" type="fixed">
         <parent link="finger_1_link_0" />
         <child link="finger_1_link_1" />
         <axis xyz="0 0 1" />
-        <origin rpy="0 -0.2 0" xyz="0.020 0 0" />
+        <origin rpy="0 -0.2 0.065" xyz="0.020 0 0" />
         <limit effort="100" lower="0" upper="3.1416" velocity="100" />
     </joint>
     <joint name="finger_1_joint_2" type="fixed">
@@ -483,7 +501,8 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.020 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
             </geometry>
             <material name="green">
                 <color rgba="0 1 0 1" />
@@ -492,7 +511,8 @@
         <collision>
             <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
             </geometry>
             <material name="yellow">
                 <color rgba="0 1 1 1" />
@@ -508,21 +528,24 @@
         <visual>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_2_link_2">
@@ -534,49 +557,55 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_2_link_3">
         <visual>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.05" />
-            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632" />
+            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0"
+                izz="0.001632" />
         </inertial>
     </link>
     <joint name="finger_2_joint_1" type="fixed">
         <parent link="finger_2_link_0" />
         <child link="finger_2_link_1" />
         <axis xyz="0 0 1" />
-        <origin rpy="0 0.2 0" xyz="0.020 0 0" />
+        <origin rpy="0 0.2 0.065" xyz="0.020 0 0" />
         <limit effort="100" lower="0" upper="3.1416" velocity="100" />
     </joint>
     <joint name="finger_2_joint_2" type="fixed">
@@ -597,7 +626,8 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.020 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_0.dae" />
             </geometry>
             <material name="green">
                 <color rgba="0 1 0 1" />
@@ -606,7 +636,8 @@
         <collision>
             <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_0.STL" />
             </geometry>
             <material name="yellow">
                 <color rgba="0 1 1 1" />
@@ -622,21 +653,24 @@
         <visual>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_1.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 -0.52" xyz="0.050 -.028 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_1.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_middle_link_2">
@@ -648,49 +682,55 @@
         <visual>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_2.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0" xyz="0.039 0 0.0075" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_2.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.15" />
-            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024" />
+            <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0"
+                izz="0.0024" />
         </inertial>
     </link>
     <link name="finger_middle_link_3">
         <visual>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/link_3.dae" />
             </geometry>
             <material name="green" />
         </visual>
         <collision>
             <origin rpy="0 0 0.52" xyz="0 0 0" />
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/link_3.STL" />
             </geometry>
             <material name="yellow" />
         </collision>
         <inertial>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <mass value="0.05" />
-            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632" />
+            <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0"
+                izz="0.001632" />
         </inertial>
     </link>
     <joint name="finger_middle_joint_1" type="fixed">
         <parent link="finger_middle_link_0" />
         <child link="finger_middle_link_1" />
         <axis xyz="0 0 1" />
-        <origin rpy="0 0 0" xyz="0.020 0 0" />
+        <origin rpy="0 0 0.065" xyz="0.020 0 0" />
         <limit effort="100" lower="0" upper="3.1416" velocity="100" />
     </joint>
     <joint name="finger_middle_joint_2" type="fixed">
@@ -710,7 +750,8 @@
     <link name="palm">
         <visual>
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/palm.dae" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/visual/palm.dae" />
             </geometry>
             <material name="green">
                 <color rgba="0 1 0 1" />
@@ -718,7 +759,8 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/palm.STL" />
+                <mesh
+                    filename="package://robotiq_3f_gripper_visualization/meshes/robotiq-3f-gripper_articulated/collision/palm.STL" />
             </geometry>
             <material name="yellow">
                 <color rgba="0 1 1 1" />
@@ -764,6 +806,12 @@
         <origin rpy="-1.5707963267948966 -3.141592653589793 -1.5707963267948966" xyz="0 0 0.0535" />
         <parent link="tool0" />
         <child link="palm" />
+    </joint>
+    <link name="gripper_link" />
+    <joint name="gripper_joint" type="fixed">
+        <origin rpy="-1.5707963267948966 -3.141592653589793 -1.5707963267948966" xyz="0 0 0.0535" />
+        <parent link="tool0" />
+        <child link="gripper_link" />
     </joint>
     <gazebo>
         <plugin filename="libgazebo_ros_control.so" name="ros_control" />

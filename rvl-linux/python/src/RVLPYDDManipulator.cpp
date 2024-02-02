@@ -50,7 +50,7 @@ public:
 		int mem0Size,
 		int memSize);
 	void clear();
-	py::array path2(py::array T_G_S_init);
+	py::tuple path2(py::array T_G_S_init);
 	py::array approach_path(py::array T_G_S_contact);
 	void load_tool_model(std::string toolModelDir);
 	void set_environment_state(double state);
@@ -58,7 +58,6 @@ public:
 	void set_furniture_pose(py::array T_F_S);
 	void set_robot_pose(py::array T_0_S);
 	void set_door_model_params(
-		py::array T_A_S,
 		float sx,
 		float sy,
 		float sz,
@@ -67,8 +66,12 @@ public:
 		float opening_direction,
 		float static_side_width,
 		float moving_to_static_part_distance);
+	void set_door_pose(py::array T_A_S);
 	py::array get_T_DD_S();
 	py::array get_T_F_S();
+	py::array get_T_DD_A();
+	py::array fwd_kinematics(py::array q);
+	py::tuple inv_kinematics(py::array T_G_0);
 
 public:
 	DDManipulator manipulator;
@@ -116,7 +119,7 @@ void PYDDManipulator::clear()
 	delete manipulator.pMem;
 }
 
-py::array PYDDManipulator::path2(py::array T_G_S_init)
+py::tuple PYDDManipulator::path2(py::array T_G_S_init)
 {
 	double *T_G_S_init_ = (double *)T_G_S_init.request().ptr;	
 	Pose3D pose_G_S_init;
@@ -127,7 +130,9 @@ py::array PYDDManipulator::path2(py::array T_G_S_init)
     PrintMatrix(fpDebug, T_G_S_init__, 4, 4);
     fclose(fpDebug);
 	Array<Pose3D> poses_G_0;
-	manipulator.Path2(&pose_G_S_init, poses_G_0);
+	Array2D<float> robotJoints;	
+	if(!manipulator.Path2(&pose_G_S_init, poses_G_0, robotJoints))
+		poses_G_0.n = 1;
 	auto T_G_0 = py::array(py::buffer_info(
 		nullptr,
 		sizeof(float),
@@ -137,13 +142,36 @@ py::array PYDDManipulator::path2(py::array T_G_S_init)
 		{4 * 4 * sizeof(float), 4 * sizeof(float), sizeof(float)}
 		));
 	float *T_G_0_ = (float *)T_G_0.request().ptr;
-	int iPose;
-	Pose3D *pPose_G_0 = poses_G_0.Element;
-	for(iPose = 0; iPose < poses_G_0.n; iPose++, T_G_0_ += 16, pPose_G_0++)
-		RVLHTRANSFMX(pPose_G_0->R, pPose_G_0->t, T_G_0_);
-	delete[] poses_G_0.Element;
+	auto q = py::array(py::buffer_info(
+		nullptr,
+		sizeof(float),
+		py::format_descriptor<float>::value,
+		2,
+		{poses_G_0.n, manipulator.robot.n},
+		{manipulator.robot.n * sizeof(float), sizeof(float)}
+		));
+	float *q_ = (float *)q.request().ptr;
+	if(poses_G_0.n > 1)
+	{
+		int iPose;
+		Pose3D *pPose_G_0 = poses_G_0.Element;
+		for(iPose = 0; iPose < poses_G_0.n; iPose++, T_G_0_ += 16, pPose_G_0++)
+			RVLHTRANSFMX(pPose_G_0->R, pPose_G_0->t, T_G_0_);
+		delete[] poses_G_0.Element;
+		memcpy(q_, robotJoints.Element, poses_G_0.n * manipulator.robot.n * sizeof(float));
+	}
+	else
+	{
+		Pose3D null_pose;
+		RVLUNITMX3(null_pose.R);
+		RVLNULL3VECTOR(null_pose.t);
+		RVLHTRANSFMX(null_pose.R, null_pose.t, T_G_0_);
+		memset(q_, 0, manipulator.robot.n * sizeof(float));
+	}
 
-	return T_G_0;
+	py::tuple result_tuple = py::make_tuple(T_G_0, q);
+
+	return result_tuple;	
 }
 
 py::array PYDDManipulator::approach_path(py::array T_G_S_contact)
@@ -153,8 +181,9 @@ py::array PYDDManipulator::approach_path(py::array T_G_S_contact)
 	RVLHTRANSFMXDECOMP(T_G_S_contact_, pose_G_S_contact.R, pose_G_S_contact.t);
 	Array<Pose3D> poses_G_0_via;
 	Pose3D viaPtPosesMem[2];
-    poses_G_0_via.Element = viaPtPosesMem;	
-	manipulator.ApproachPath(&pose_G_S_contact, poses_G_0_via);
+    poses_G_0_via.Element = viaPtPosesMem;
+	float* SDF = new float[manipulator.pVNEnv->NodeArray.n];
+	manipulator.ApproachPath(&pose_G_S_contact, poses_G_0_via, SDF);
 	auto T_G_0_via = py::array(py::buffer_info(
 		nullptr,
 		sizeof(float),
@@ -208,7 +237,6 @@ void PYDDManipulator::set_robot_pose(py::array T_0_S)
 }
 
 void PYDDManipulator::set_door_model_params(
-	py::array T_A_S,
 	float sx,
 	float sy,
 	float sz,
@@ -218,10 +246,15 @@ void PYDDManipulator::set_door_model_params(
 	float static_side_width,
 	float moving_to_static_part_distance)
 {
+	manipulator.SetDoorModelParams(sx, sy, sz, rx, ry, opening_direction, static_side_width, moving_to_static_part_distance);
+}
+
+void PYDDManipulator::set_door_pose(py::array T_A_S)
+{
 	double *T_A_S_ = (double *)T_A_S.request().ptr;
 	Pose3D pose_A_S;
 	RVLHTRANSFMXDECOMP(T_A_S_, pose_A_S.R, pose_A_S.t);
-	manipulator.SetDoorModelParams(pose_A_S, sx, sy, sz, rx, ry, opening_direction, static_side_width, moving_to_static_part_distance);
+	manipulator.SetDoorPose(pose_A_S);
 }
 
 py::array PYDDManipulator::get_T_DD_S()
@@ -256,13 +289,82 @@ py::array PYDDManipulator::get_T_F_S()
 	return T_F_S;
 }
 
+py::array PYDDManipulator::get_T_DD_A()
+{
+	auto T_DD_A = py::array(py::buffer_info(
+		nullptr,
+		sizeof(float),
+		py::format_descriptor<float>::value,
+		2,
+		{4, 4},
+		{4 * sizeof(float), sizeof(float)}
+		));
+	float *T_DD_A_ = (float *)T_DD_A.request().ptr;
+	RVLHTRANSFMX(manipulator.pose_DD_A.R, manipulator.pose_DD_A.t, T_DD_A_);
+
+	return T_DD_A;
+}
+
+py::array PYDDManipulator::fwd_kinematics(py::array q)
+{
+	double *q_ = (double *)q.request().ptr;
+	int n = manipulator.robot.n;
+	for(int i = 0; i < n; i++)
+		manipulator.robot.q[i] = q_[i];
+	manipulator.robot.FwdKinematics();	
+	Pose3D *pPose_n_0 = manipulator.robot.link_pose + n - 1;
+	Pose3D pose_G_0;
+	RVLCOMPTRANSF3D(pPose_n_0->R, pPose_n_0->t, manipulator.robot.pose_TCP_6.R, manipulator.robot.pose_TCP_6.t, 
+		pose_G_0.R, pose_G_0.t);
+	auto T_G_0 = py::array(py::buffer_info(
+		nullptr,
+		sizeof(float),
+		py::format_descriptor<float>::value,
+		2,
+		{4, 4},
+		{4 * sizeof(float), sizeof(float)}
+		));
+	float *T_G_0_ = (float *)T_G_0.request().ptr;
+	RVLHTRANSFMX(pose_G_0.R, pose_G_0.t, T_G_0_);
+
+	return T_G_0;
+}
+
+py::tuple PYDDManipulator::inv_kinematics(py::array T_G_0)
+{
+	double *T_G_0_ = (double *)T_G_0.request().ptr;
+	Pose3D pose_G_0;
+	RVLHTRANSFMXDECOMP(T_G_0_, pose_G_0.R, pose_G_0.t);
+	// printf("pose_G_0:\n");
+	// for(int i = 0; i < 3; i++)
+	// {
+	// 	for(int j = 0; j < 3; j++)
+	// 		printf("%f ", pose_G_0.R[j+3*i]);
+	// 	printf("%f\n", pose_G_0.t[i]);
+	// }
+	auto q = py::array(py::buffer_info(
+		nullptr,
+		sizeof(float),
+		py::format_descriptor<float>::value,
+		1,
+		{manipulator.robot.n},
+		{sizeof(float)}
+		));
+	float *q_ = (float *)q.request().ptr;
+	bool bSuccess = manipulator.robot.InvKinematics(pose_G_0, q_);
+
+	py::tuple result_tuple = py::make_tuple(q, bSuccess);
+
+	return result_tuple;	
+}
+
 ////////////////////////////////////////////////////////////////////
 //
 //     RVL PYDDManipulator Wrapper
 //
 ////////////////////////////////////////////////////////////////////
 
-PYBIND11_MODULE(RVLPYDDManipulator, m) 
+PYBIND11_MODULE(RVLPYDDManipulator, m)
 {
 	m.doc() = "RVL PYDDManipulator wrapper";
 	
@@ -280,5 +382,9 @@ PYBIND11_MODULE(RVLPYDDManipulator, m)
 		.def("set_robot_pose", &PYDDManipulator::set_robot_pose)
 		.def("set_door_model_params", &PYDDManipulator::set_door_model_params)
 		.def("get_T_DD_S", &PYDDManipulator::get_T_DD_S)
-		.def("get_T_F_S", &PYDDManipulator::get_T_F_S);
+		.def("get_T_F_S", &PYDDManipulator::get_T_F_S)
+		.def("get_T_DD_A", &PYDDManipulator::get_T_DD_A)
+		.def("set_door_pose", &PYDDManipulator::set_door_pose)
+		.def("fwd_kinematics", &PYDDManipulator::fwd_kinematics)
+		.def("inv_kinematics", &PYDDManipulator::inv_kinematics);
 }

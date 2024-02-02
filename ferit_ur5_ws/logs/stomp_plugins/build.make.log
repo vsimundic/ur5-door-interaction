@@ -1,0 +1,12 @@
+[35m[1mScanning dependencies of target stomp_plugins_noise_generators[0m
+[35m[1mScanning dependencies of target stomp_plugins_update_filters[0m
+[35m[1mScanning dependencies of target stomp_plugins_cost_functions[0m
+[ 16%] [32mBuilding CXX object CMakeFiles/stomp_plugins_noise_generators.dir/src/noise_generators/goal_guided_multivariate_gaussian.cpp.o[0m
+[ 33%] [32mBuilding CXX object CMakeFiles/stomp_plugins_update_filters.dir/src/update_filters/constrained_cartesian_goal.cpp.o[0m
+[ 50%] [32mBuilding CXX object CMakeFiles/stomp_plugins_cost_functions.dir/src/cost_functions/tool_goal_pose.cpp.o[0m
+[ 66%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_plugins/lib/libstomp_plugins_update_filters.so[0m
+[ 66%] Built target stomp_plugins_update_filters
+[ 83%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_plugins/lib/libstomp_plugins_cost_functions.so[0m
+[ 83%] Built target stomp_plugins_cost_functions
+[100%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_plugins/lib/libstomp_plugins_noise_generators.so[0m
+[100%] Built target stomp_plugins_noise_generators

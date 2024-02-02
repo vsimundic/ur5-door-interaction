@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: robotiq_3f_rviz
-Description: Description of robotiq_3f_rviz
-Version: 1.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_3f_rviz/lib/pkgconfig/robotiq_3f_rviz.pc

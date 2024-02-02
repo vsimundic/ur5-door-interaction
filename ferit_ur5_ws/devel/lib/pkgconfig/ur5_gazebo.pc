@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: ur5_gazebo
-Description: Description of ur5_gazebo
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_gazebo/lib/pkgconfig/ur5_gazebo.pc

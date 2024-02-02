@@ -1,8 +1,1 @@
-(cl:in-package ur_dashboard_msgs-msg)
-(cl:export '(ACTION_GOAL-VAL
-          ACTION_GOAL
-          ACTION_RESULT-VAL
-          ACTION_RESULT
-          ACTION_FEEDBACK-VAL
-          ACTION_FEEDBACK
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/common-lisp/ros/ur_dashboard_msgs/msg/_package_SetModeAction.lisp

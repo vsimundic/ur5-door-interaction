@@ -5,6 +5,11 @@ from tf.transformations import quaternion_from_matrix, quaternion_matrix
 import numpy as np
 import os
 from core.paths_packages import get_package_path_from_name
+from trac_ik_python.trac_ik import IK
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
+from actionlib import SimpleActionClient
+from core.transforms import get_frame_transform
 
 class UR5Commander():
     def __init__(self):
@@ -12,14 +17,29 @@ class UR5Commander():
         self.__group_name = 'arm'
         self.__group = moveit_commander.MoveGroupCommander(self.__group_name)
         self.__scene = moveit_commander.PlanningSceneInterface()
+        self.ik = IK('base_link', 'tool0', timeout=0.05, solve_type="Distance")
 
         self.T_B_S = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_B_S.npy')))
         self.T_G_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_G_T.npy')))
+        self.joint_values_init = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'joint_values_init.npy')))
         # self.T_G_T[2, 3] -= 0.005
-        self.T_G_T[2, 3] = 0.102
+        self.T_G_T[2, 3] = 0.115
         self.T_T_B_home = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_T_B_home.npy')))
 
+        self.__follow_joint_trajectory_client = SimpleActionClient('/trajectory_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
+        
         self.__create_init_scene()
+
+        # test
+        # T_3f_T = get_frame_transform('tool0', 'gripper_link')
+
+        # T_3f_G = np.linalg.inv(self.T_G_T) @ T_3f_T
+        # if T_3f_G is not None:
+        #     np.save(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_3f_G.npy'), T_3f_G)
+
+
+
+        
 
 
     def __create_init_scene(self):
@@ -86,8 +106,10 @@ class UR5Commander():
                     plan, _ = self.__group.compute_cartesian_path(poses_, 0.01, 0.0)
                     self.__group.execute(plan, wait=wait)
             else:
-                    self.__group.set_pose_target(poses_)
-                    plan = self.__group.go(wait=wait)
+                    self.__group.set_pose_targets(poses_)
+                    plan = self.__group.plan()
+                    self.__group.execute(plan[1], wait=wait)
+                    # plan = self.__group.go(wait=wait)
         else:
             len_poses = len(poses_) - 1
             for idx, pose_goal in enumerate(poses_):
@@ -112,12 +134,41 @@ class UR5Commander():
 
 
     def send_joint_values_to_robot(self, joint_values,  wait: bool=True):
-        self.__group.go(joint_values, wait=wait)
+        self.__group.set_joint_value_target(joint_values)
+        self.__group.go(wait=wait)
         self.__group.stop()
 
 
-    def get_tool_pose_from_gripper_pose(self, T_G_S: np.ndarray):
-        return np.linalg.inv(self.T_B_S) @ T_G_S @ np.linalg.inv(self.T_G_T)
+    def send_multiple_joint_space_poses_to_robot(self, joint_values_list: list, wait: bool=True):
+        # for joints in joint_values_list:
+        #     self.__group.set_joint_value_target(joints)
+        
+        # traj = self.__group.plan()
+        # self.__group.execute(traj[1], wait=wait)
+
+        self.__follow_joint_trajectory_client.wait_for_server()
+
+        time_increments = np.linspace(0, 25, len(joint_values_list) + 1)
+
+        joint_trajectory = JointTrajectory()
+        joint_trajectory.joint_names = self.__robot.get_joint_names(self.__group_name)[:6]
+        
+        for i, joint_values in enumerate(joint_values_list):
+            point = JointTrajectoryPoint()
+            point.positions = joint_values
+            # point.velocities = [0.1]*6
+            point.time_from_start = rospy.Duration(time_increments[i+1])
+            joint_trajectory.points.append(point)
+        
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory = joint_trajectory
+
+        self.__follow_joint_trajectory_client.send_goal(goal)
+        self.__follow_joint_trajectory_client.wait_for_result()
+
+
+    def get_tool_pose_from_gripper_pose(self, T_G_B: np.ndarray):
+        return T_G_B @ np.linalg.inv(self.T_G_T)
 
 
     def get_current_tool_pose(self):

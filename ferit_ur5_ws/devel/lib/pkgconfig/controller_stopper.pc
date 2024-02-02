@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: controller_stopper
-Description: Description of controller_stopper
-Version: 2.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: controller_manager_msgs roscpp std_msgs
+/home/RVLuser/ferit_ur5_ws/devel/.private/controller_stopper/lib/pkgconfig/controller_stopper.pc

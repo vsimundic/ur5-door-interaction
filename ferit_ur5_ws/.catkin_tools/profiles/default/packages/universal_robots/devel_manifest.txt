@@ -1,0 +1,2 @@
+ur5_configs/fmauch_universal_robot/universal_robots
+/home/RVLuser/ferit_ur5_ws/devel/.private/universal_robots/cmake.lock /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock

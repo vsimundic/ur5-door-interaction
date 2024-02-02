@@ -395,7 +395,7 @@
 
     <joint name="gripper_tool0_joint" type="fixed">
         <!-- <origin rpy="-1.5707963267948966 -3.141592653589793 -1.5707963267948966" xyz="0 0 0.0535" /> -->
-        <origin rpy="0 0 -1.5707963267948966" xyz="0 0 0.1" />
+        <origin rpy="0 0 -1.5707963267948966" xyz="0 0 0.115" />
         <parent link="tool0" />
         <child link="simplified_3f_gripper" />
     </joint>

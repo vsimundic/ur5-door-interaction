@@ -1,11 +1,1 @@
-from ._AddToLog import *
-from ._GetLoadedProgram import *
-from ._GetProgramState import *
-from ._GetRobotMode import *
-from ._GetSafetyMode import *
-from ._IsInRemoteControl import *
-from ._IsProgramRunning import *
-from ._IsProgramSaved import *
-from ._Load import *
-from ._Popup import *
-from ._RawRequest import *
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/lib/python3/dist-packages/ur_dashboard_msgs/srv/__init__.py

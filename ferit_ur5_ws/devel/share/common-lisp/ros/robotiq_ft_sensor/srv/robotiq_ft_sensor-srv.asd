@@ -1,9 +1,1 @@
-
-(cl:in-package :asdf)
-
-(defsystem "robotiq_ft_sensor-srv"
-  :depends-on (:roslisp-msg-protocol :roslisp-utils )
-  :components ((:file "_package")
-    (:file "sensor_accessor" :depends-on ("_package_sensor_accessor"))
-    (:file "_package_sensor_accessor" :depends-on ("_package"))
-  ))
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/common-lisp/ros/robotiq_ft_sensor/srv/robotiq_ft_sensor-srv.asd

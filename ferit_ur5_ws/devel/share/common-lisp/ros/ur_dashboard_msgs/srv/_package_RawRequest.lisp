@@ -1,6 +1,1 @@
-(cl:in-package ur_dashboard_msgs-srv)
-(cl:export '(QUERY-VAL
-          QUERY
-          ANSWER-VAL
-          ANSWER
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/common-lisp/ros/ur_dashboard_msgs/srv/_package_RawRequest.lisp

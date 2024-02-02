@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: ur5_description
-Description: Description of ur5_description
-Version: 0.1.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_description/lib/pkgconfig/ur5_description.pc

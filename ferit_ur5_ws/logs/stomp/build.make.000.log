@@ -1,0 +1,9 @@
+[35m[1mScanning dependencies of target stomp[0m
+[ 20%] [32mBuilding CXX object CMakeFiles/stomp.dir/src/stomp.cpp.o[0m
+[ 40%] [32mBuilding CXX object CMakeFiles/stomp.dir/src/utils.cpp.o[0m
+[ 60%] [32m[1mLinking CXX shared library libstomp.so[0m
+[ 60%] Built target stomp
+[35m[1mScanning dependencies of target stomp_example[0m
+[ 80%] [32mBuilding CXX object CMakeFiles/stomp_example.dir/examples/stomp_example.cpp.o[0m
+[100%] [32m[1mLinking CXX executable stomp_example[0m
+[100%] Built target stomp_example

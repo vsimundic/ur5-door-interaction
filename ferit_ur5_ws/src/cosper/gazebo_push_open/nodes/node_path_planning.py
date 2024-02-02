@@ -10,8 +10,9 @@ from DDMan import push
 from gazebo_push_open.cabinet_model import Cabinet
 # from cabinet_model import generate_cabinet_urdf_from_door_panel, get_cabinet_world_pose
 import numpy as np
-from core.transforms import rot_z
+from core.transforms import rot_z, matrix_to_pose
 import RVLPYDDManipulator as rvlpy_dd_man
+from trac_ik_python.trac_ik import IK
 
 if __name__ == '__main__':
     rospy.init_node('node_path_planning')
@@ -52,7 +53,7 @@ if __name__ == '__main__':
                             save_path=config['cabinet_urdf_save_path'])
     
     # Save cabinet mesh to a file
-    cabinet_model.save_mesh(config['cabinet_mesh_save_path'])
+    cabinet_model.save_mesh_without_doors(config['cabinet_mesh_save_path'])
 
     # Spawning model in Gazebo
     cabinet_model.delete_model_gazebo()
@@ -65,9 +66,9 @@ if __name__ == '__main__':
     cabinet_model.change_door_angle(theta_deg)
     cabinet_model.update_mesh()
 
-    # TEST SPHERES
-    cabinet_model.delete_model_gazebo_sphere()
-    cabinet_model.spawn_model_gazebo_sphere()
+    # # TEST SPHERES
+    # cabinet_model.delete_model_gazebo_sphere()
+    # cabinet_model.spawn_model_gazebo_sphere()
 
     #### FEASIBLE POSES ####
     # Get feasible poses
@@ -86,7 +87,8 @@ if __name__ == '__main__':
     path_planner.set_robot_pose(robot.T_B_S)
     T_A_S = cabinet_model.T_O_S @ cabinet_model.T_A_O_init
     np.save('/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/config/T_A_S_temp.npy', T_A_S)
-    path_planner.set_door_model_params(T_A_S,
+    path_planner.set_door_model_params(
+                                       # T_A_S,
                                        cabinet_model.d_door,
                                        cabinet_model.w_door,
                                        cabinet_model.h_door,
@@ -96,39 +98,129 @@ if __name__ == '__main__':
                                        1.0, # opening direction
                                        cabinet_model.static_side_width,
                                        cabinet_model.moving_to_static_part_distance) 
-    
+    path_planner.set_door_pose(T_A_S)
     T_G_S_init = robot.T_B_S @ robot.T_T_B_home @ robot.T_G_T
     np.save('/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/config/T_G_S_init_temp.npy', T_G_S_init)
     
     
     # Get points for the whole path
     T_D_S_gazebo = cabinet_model.get_door_panel_RF_wrt_world()
-    T_G_0 = path_planner.path2(T_G_S_init)
+    T_G_0, joint_values_list = path_planner.path2(T_G_S_init)
 
-    path_planner.set_environment_state(config['feasible_poses']['dd_state_deg'])
-    T_D_S_rvl = path_planner.get_T_DD_S()
+    # path_planner.set_environment_state(config['feasible_poses']['dd_state_deg'])
+    # T_D_S_rvl = path_planner.get_T_DD_S()
+    # T_F_S_gazebo = cabinet_model.T_O_S @ cabinet_model.T_F_O
+    # T_F_S_rvl = path_planner.get_T_F_S()
+    # path_planner.set_environment_state(0.)
+    # T_D_S__rvl0 = path_planner.get_T_DD_S()
 
 
-    T_F_S_gazebo = cabinet_model.T_O_S @ cabinet_model.T_F_O
-    T_F_S_rvl = path_planner.get_T_F_S()
-
-    path_planner.set_environment_state(0.)
-    T_D_S__rvl0 = path_planner.get_T_DD_S()
     # # Add cabinet mesh to rviz
     # robot.add_mesh_to_scene(config['cabinet_mesh_save_path'], 'cabinet', np.linalg.inv(robot.T_B_S) @ cabinet_model.T_O_S)
+    
+    # Go to home pose
+    # robot.send_pose_to_robot(robot.T_T_B_home)
+    # robot.send_joint_values_to_robot(robot.joint_values_init)
 
-    for i in range(T_G_0.shape[0]):
-        rospy.loginfo('Pose %s' %i)
-        T_G_S_ = T_G_0[i]
-        T_T_B_ = robot.get_tool_pose_from_gripper_pose(T_G_S_)
-        robot.send_pose_to_robot(T_T_B_)
+    # robot.send_named_pose('up')
 
-        T_T_B_curr = robot.get_current_tool_pose()
-        T_G_S_curr = robot.T_B_S @ T_T_B_curr @ robot.T_G_T
+    # for i in range(T_G_0.shape[0]):
+    #     rospy.loginfo('Pose %s' %i)
+    #     T_G_S_ = T_G_0[i]
+    #     T_T_B_ = robot.get_tool_pose_from_gripper_pose(T_G_S_)
+    #     robot.send_pose_to_robot(T_T_B_)
+
+    #     T_T_B_curr = robot.get_current_tool_pose()
+    #     T_G_S_curr = robot.T_B_S @ T_T_B_curr @ robot.T_G_T
+
+    # T_T_B_arr = []
+    # for i in range(T_G_0.shape[0]):
+    # # for i in range(3):
+    #     rospy.loginfo('Pose %s' %i)
+    #     T_G_S_ = T_G_0[i]
+    #     T_T_B_ = robot.get_tool_pose_from_gripper_pose(T_G_S_)
+
+    #     T_T_B_arr.append(T_T_B_)
+    #     # robot.send_pose_to_robot(T_T_B_)
+
+    #     # T_T_B_curr = robot.get_current_tool_pose()
+    #     # T_G_S_curr = robot.T_B_S @ T_T_B_curr @ robot.T_G_T
+
+    # robot.send_multiple_poses_to_robot(T_T_B_arr, at_once=True)
 
 
+    # ik = IK('base_link', 'tool0', timeout=0.05, solve_type="Distance")
+    # for i in range(T_G_0.shape[0]):
+    #     T_G_S_ = T_G_0[i]
+    #     T_T_B_ = robot.get_tool_pose_from_gripper_pose(T_G_S_)
+
+    #     pose_ = matrix_to_pose(T_T_B_)
+    #     t = pose_.position
+    #     q = pose_.orientation
+    #     # joints = np.array(robot.get_current_joint_values())
+    #     joints = robot.get_current_joint_values()
+        
+    #     # goal_joints = IK.get_ik(qinit=joints, x=t.x, y=t.y, z=t.z, rx=q.x, ry=q.y, rz=q.z, rw=q.w)
+    #     goal_joints = ik.get_ik(joints, t.x.item(), t.y.item(), t.z.item(), q.x.item(), q.y.item(), q.z.item(), q.w.item())
+
+    #     robot.send_joint_values_to_robot(goal_joints)
+
+    # joints_list = []
+    # temp_joints = robot.get_current_joint_values()
+    # for i in range(T_G_0.shape[0]):
+    #     T_G_B_ = T_G_0[i]
+    #     T_T_B_ = T_G_B_ @ np.linalg.inv(robot.T_G_T)
+    #     # T_T_B_ = robot.get_tool_pose_from_gripper_pose(T_G_B_)
+    #     pose_ = matrix_to_pose(T_T_B_)
+    #     t = pose_.position
+    #     q = pose_.orientation
+    #     # joints = np.array(robot.get_current_joint_values())
+    #     # joints = robot.get_current_joint_values()
+        
+    #     goal_joints = robot.ik.get_ik(temp_joints, t.x.item(), t.y.item(), t.z.item(), q.x.item(), q.y.item(), q.z.item(), q.w.item())
+    #     joints_list.append(list(goal_joints))
+    #     temp_joints = goal_joints
+
+    # robot.send_multiple_joint_space_poses_to_robot(joints_list, wait=True)
+
+    # RVL joints
+    # joint_values_list[:, 0] %= 2*np.pi
+    # joint_values_list[:, 0] = (joint_values_list[:, 0] + 2*np.pi) % 2*np.pi
+    # joint_values_list = list(joint_values_list)
+
+    # joint_values_list[joint_values_list[:,0]<-np.pi,0]+=(2.0*np.pi)
+    # joint_values_list[joint_values_list[:,0]>np.pi,0]-=(2.0*np.pi)
+
+    # joint_values_list[joint_values_list[:,5]<-np.pi,0]+=(2.0*np.pi)
+    # joint_values_list[joint_values_list[:,5]>np.pi,0]-=(2.0*np.pi)
+
+    joint_values_list[:, 0] += np.pi
+    joint_values_list[:, 5] += np.pi
+    joint_values_list[joint_values_list>np.pi]-=(2.0*np.pi)     
+    joint_values_list[joint_values_list<-np.pi]+=(2.0*np.pi)
+    joint_values_list[0, :] = robot.joint_values_init
+
+    for i in range(joint_values_list.shape[0]):
+        joints = list(joint_values_list[i])
+        joints = [float(joint) for joint in joints]
+        robot.send_joint_values_to_robot(joints)
+        
+        T_T_B = robot.get_current_tool_pose()
+        T_G_B = T_T_B @ robot.T_G_T
+        T_G_B_rvl = T_G_0[i]
         pass
+
+
+    # robot.send_multiple_joint_space_poses_to_robot(joint_values_list, wait=True)
+    
+
+
+    # TEST
+    # robot.send_multiple_joint_space_poses_to_robot([])
+
 
     # # Passing poses 
     # robot.send_multiple_poses_to_robot(T_T_B_arr, wait=True, cartesian=True)
 
+    rospy.sleep(1.5)
+    robot.send_named_pose('up')

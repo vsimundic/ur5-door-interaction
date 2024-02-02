@@ -1,4 +1,8 @@
 import numpy as np
+from geometry_msgs.msg import Pose, PoseStamped
+from tf.transformations import quaternion_from_matrix, quaternion_matrix
+import rospy
+import tf
 
 def rot_x(angle_rad):
     s = np.sin(angle_rad)
@@ -27,3 +31,59 @@ def rot_z(angle_rad):
     
     return R
 
+def matrix_to_pose(T: np.ndarray):
+    q = quaternion_from_matrix(T) # xyzw
+
+    pose = Pose()
+    pose.orientation.x = q[0]
+    pose.orientation.y = q[1]
+    pose.orientation.z = q[2]
+    pose.orientation.w = q[3]
+    pose.position.x = T[0, 3]
+    pose.position.y = T[1, 3]
+    pose.position.z = T[2, 3]
+    return pose
+
+
+def matrix_to_pose_stamped(T: np.ndarray, frame_id: str):
+    q = quaternion_from_matrix(T) # xyzw
+
+    pose_s = PoseStamped()
+    pose_ = Pose()
+    pose_s.header.frame_id = frame_id
+    pose_s.header.stamp = rospy.Time.now()
+
+    pose_.orientation.x = q[0]
+    pose_.orientation.y = q[1]
+    pose_.orientation.z = q[2]
+    pose_.orientation.w = q[3]
+    pose_.position.x = T[0, 3]
+    pose_.position.y = T[1, 3]
+    pose_.position.z = T[2, 3]
+    pose_s.pose = pose_
+    return pose_s
+
+
+def pose_stamped_to_matrix(pose: PoseStamped):
+    pose_ = pose.pose
+    q_ = [pose_.orientation.x, pose_.orientation.y, pose_.orientation.z, pose_.orientation.w]
+    t_ = np.array([pose_.position.x, pose_.position.y, pose_.position.z])
+    T = quaternion_matrix(q_)
+    T[:3, 3] = np.array(t_)
+    return T
+
+def get_frame_transform(parent_frame: str, child_frame: str):
+    listener = tf.TransformListener()
+    rate = rospy.Rate(1)
+    while not rospy.is_shutdown():
+        try:
+            trans, rot = listener.lookupTransform(parent_frame, child_frame, rospy.Time(0))
+            break   
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            # return None
+            continue
+    
+    T = quaternion_matrix(rot)
+    T[:3, 3] = trans.copy()
+
+    return T

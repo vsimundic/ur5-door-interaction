@@ -1,7 +1,1 @@
-
-"use strict";
-
-module.exports = {
-  msg: require('./msg/_index.js'),
-  srv: require('./srv/_index.js')
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/share/gennodejs/ros/ur_dashboard_msgs/_index.js

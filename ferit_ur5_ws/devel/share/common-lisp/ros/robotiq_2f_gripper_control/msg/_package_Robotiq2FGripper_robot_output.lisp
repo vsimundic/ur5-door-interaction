@@ -1,14 +1,1 @@
-(cl:in-package robotiq_2f_gripper_control-msg)
-(cl:export '(RACT-VAL
-          RACT
-          RGTO-VAL
-          RGTO
-          RATR-VAL
-          RATR
-          RPR-VAL
-          RPR
-          RSP-VAL
-          RSP
-          RFR-VAL
-          RFR
-))
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_2f_gripper_control/share/common-lisp/ros/robotiq_2f_gripper_control/msg/_package_Robotiq2FGripper_robot_output.lisp

@@ -132,6 +132,8 @@ ENV FVCORE_CACHE="/tmp"
 # RUN pip3 install -e /home/RVLuser/detectron2/projects/TensorMask
 WORKDIR /home/RVLuser/detectron2/projects/TensorMask
 RUN python3 setup.py build develop
+
+
 ###### ROS-UR5 ######
 
 RUN apt-get update
@@ -145,7 +147,7 @@ RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt
 RUN apt update
 RUN apt install -y ros-noetic-desktop-full
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
-RUN  apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
+RUN apt install -y python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential python3-catkin-tools
 
 RUN apt install python3-rosdep
 RUN apt-get install -y ros-noetic-realsense2-camera
@@ -156,6 +158,7 @@ RUN apt-get install -y ros-noetic-ros-control
 RUN apt-get install -y ros-noetic-soem
 RUN apt-get install -y ros-noetic-moveit
 RUN apt-get install -y ros-noetic-trac-ik
+RUN apt-get install -y ros-noetic-industrial-core ros-noetic-ros-industrial-cmake-boilerplate
 
 RUN pip3 install pymodbus --upgrade
 RUN pip3 install ur-rtde

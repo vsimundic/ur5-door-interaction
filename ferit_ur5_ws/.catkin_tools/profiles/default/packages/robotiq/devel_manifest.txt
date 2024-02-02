@@ -1,0 +1,2 @@
+ur5_configs/robotiq-noetic-devel/robotiq
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq/cmake.lock /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock

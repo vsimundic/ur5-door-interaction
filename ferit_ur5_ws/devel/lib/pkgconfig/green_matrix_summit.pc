@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: green_matrix_summit
-Description: Description of green_matrix_summit
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
+/home/RVLuser/ferit_ur5_ws/devel/.private/green_matrix_summit/lib/pkgconfig/green_matrix_summit.pc

@@ -1,0 +1,48 @@
+[35m[1mScanning dependencies of target stomp_moveit_cost_functions[0m
+[35m[1mScanning dependencies of target stomp_moveit_noisy_filters[0m
+[35m[1mScanning dependencies of target stomp_moveit[0m
+[35m[1mScanning dependencies of target stomp_moveit_noise_generators[0m
+[35m[1mScanning dependencies of target stomp_moveit_update_filters[0m
+[  4%] [32mBuilding CXX object CMakeFiles/stomp_moveit_noise_generators.dir/src/noise_generators/normal_distribution_sampling.cpp.o[0m
+[  8%] [32mBuilding CXX object CMakeFiles/stomp_moveit_noisy_filters.dir/src/noisy_filters/multi_trajectory_visualization.cpp.o[0m
+[ 13%] [32mBuilding CXX object CMakeFiles/stomp_moveit_noisy_filters.dir/src/noisy_filters/joint_limits.cpp.o[0m
+[ 21%] [32mBuilding CXX object CMakeFiles/stomp_moveit.dir/src/stomp_optimization_task.cpp.o[0m
+[ 21%] [32mBuilding CXX object CMakeFiles/stomp_moveit.dir/src/stomp_planner.cpp.o[0m
+[ 26%] [32mBuilding CXX object CMakeFiles/stomp_moveit.dir/src/utils/kinematics.cpp.o[0m
+[ 34%] [32mBuilding CXX object CMakeFiles/stomp_moveit.dir/src/utils/polynomial.cpp.o[0m
+[ 34%] [32mBuilding CXX object CMakeFiles/stomp_moveit_update_filters.dir/src/update_filters/control_cost_projection.cpp.o[0m
+[ 39%] [32mBuilding CXX object CMakeFiles/stomp_moveit_cost_functions.dir/src/cost_functions/collision_check.cpp.o[0m
+[ 43%] [32mBuilding CXX object CMakeFiles/stomp_moveit_cost_functions.dir/src/cost_functions/obstacle_distance_gradient.cpp.o[0m
+[ 47%] [32mBuilding CXX object CMakeFiles/stomp_moveit_update_filters.dir/src/update_filters/polynomial_smoother.cpp.o[0m
+In file included from [01m[K/opt/ros/noetic/include/trac_ik/trac_ik.hpp:35[m[K,
+                 from [01m[K/home/RVLuser/ferit_ur5_ws/src/ur5_configs/stomp_ros/stomp_moveit/include/stomp_moveit/utils/kinematics.h:40[m[K,
+                 from [01m[K/home/RVLuser/ferit_ur5_ws/src/ur5_configs/stomp_ros/stomp_moveit/src/utils/kinematics.cpp:27[m[K:
+[01m[K/opt/ros/noetic/include/trac_ik/nlopt_ik.hpp:35:10:[m[K [01;31m[Kfatal error: [m[Knlopt.hpp: No such file or directory
+   35 | #include [01;31m[K<nlopt.hpp>[m[K
+      |          [01;31m[K^~~~~~~~~~~[m[K
+compilation terminated.
+make[2]: *** [CMakeFiles/stomp_moveit.dir/build.make:89: CMakeFiles/stomp_moveit.dir/src/utils/kinematics.cpp.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+[ 52%] [32mBuilding CXX object CMakeFiles/stomp_moveit_update_filters.dir/src/update_filters/trajectory_visualization.cpp.o[0m
+[ 56%] [32mBuilding CXX object CMakeFiles/stomp_moveit_update_filters.dir/src/update_filters/update_logger.cpp.o[0m
+In file included from [01m[K/opt/ros/noetic/include/trac_ik/trac_ik.hpp:35[m[K,
+                 from [01m[K/home/RVLuser/ferit_ur5_ws/src/ur5_configs/stomp_ros/stomp_moveit/include/stomp_moveit/utils/kinematics.h:40[m[K,
+                 from [01m[K/home/RVLuser/ferit_ur5_ws/src/ur5_configs/stomp_ros/stomp_moveit/include/stomp_moveit/stomp_planner.h:32[m[K,
+                 from [01m[K/home/RVLuser/ferit_ur5_ws/src/ur5_configs/stomp_ros/stomp_moveit/src/stomp_planner.cpp:28[m[K:
+[01m[K/opt/ros/noetic/include/trac_ik/nlopt_ik.hpp:35:10:[m[K [01;31m[Kfatal error: [m[Knlopt.hpp: No such file or directory
+   35 | #include [01;31m[K<nlopt.hpp>[m[K
+      |          [01;31m[K^~~~~~~~~~~[m[K
+compilation terminated.
+make[2]: *** [CMakeFiles/stomp_moveit.dir/build.make:76: CMakeFiles/stomp_moveit.dir/src/stomp_planner.cpp.o] Error 1
+[ 60%] [32mBuilding CXX object CMakeFiles/stomp_moveit_update_filters.dir/src/utils/polynomial.cpp.o[0m
+[ 65%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_moveit/lib/libstomp_moveit_noisy_filters.so[0m
+[ 65%] Built target stomp_moveit_noisy_filters
+[ 69%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_moveit/lib/libstomp_moveit_cost_functions.so[0m
+[ 69%] Built target stomp_moveit_cost_functions
+make[1]: *** [CMakeFiles/Makefile2:288: CMakeFiles/stomp_moveit.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 73%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_moveit/lib/libstomp_moveit_update_filters.so[0m
+[ 73%] Built target stomp_moveit_update_filters
+[ 78%] [32m[1mLinking CXX shared library /home/RVLuser/ferit_ur5_ws/devel/.private/stomp_moveit/lib/libstomp_moveit_noise_generators.so[0m
+[ 78%] Built target stomp_moveit_noise_generators
+make: *** [Makefile:141: all] Error 2

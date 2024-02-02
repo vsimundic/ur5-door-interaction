@@ -1,6 +1,1 @@
-
-"use strict";
-
-module.exports = {
-  msg: require('./msg/_index.js'),
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_2f_gripper_control/share/gennodejs/ros/robotiq_2f_gripper_control/_index.js

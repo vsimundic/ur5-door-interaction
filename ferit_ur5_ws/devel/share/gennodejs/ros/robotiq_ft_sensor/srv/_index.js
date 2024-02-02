@@ -1,8 +1,1 @@
-
-"use strict";
-
-let sensor_accessor = require('./sensor_accessor.js')
-
-module.exports = {
-  sensor_accessor: sensor_accessor,
-};
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ft_sensor/share/gennodejs/ros/robotiq_ft_sensor/srv/_index.js

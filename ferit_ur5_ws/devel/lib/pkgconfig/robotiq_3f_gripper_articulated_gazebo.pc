@@ -1,8 +1,1 @@
-prefix=/home/RVLuser/ferit_ur5_ws/devel
-
-Name: robotiq_3f_gripper_articulated_gazebo
-Description: Description of robotiq_3f_gripper_articulated_gazebo
-Version: 1.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_3f_gripper_articulated_gazebo/lib/pkgconfig/robotiq_3f_gripper_articulated_gazebo.pc

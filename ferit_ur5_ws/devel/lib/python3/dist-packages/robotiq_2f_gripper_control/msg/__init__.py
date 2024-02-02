@@ -1,2 +1,1 @@
-from ._Robotiq2FGripper_robot_input import *
-from ._Robotiq2FGripper_robot_output import *
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_2f_gripper_control/lib/python3/dist-packages/robotiq_2f_gripper_control/msg/__init__.py
