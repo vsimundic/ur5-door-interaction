@@ -1,4 +1,4 @@
-prefix=/home/RVLuser/ferit_ur5_ws/install
+prefix=/usr/local
 
 Name: core
 Description: Description of core

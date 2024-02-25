@@ -868,10 +868,25 @@
     </joint>
     <!-- Load gazebo_ros_control -->
     <!-- <xacro:include filename="$(find ur5_description)/urdf/common.gazebo.xacro" /> -->
-    <gazebo>
+    <!-- <gazebo>
         <plugin name="gazebo_ros_control">
             <robotNamespace>/</robotNamespace>
         </plugin>
+    </gazebo> -->
+    <gazebo>
+        <plugin filename="libgazebo_ros_control.so" name="ros_control" />
+    </gazebo>
+
+
+    <!-- Gazebo colors -->
+    <gazebo reference="ft300_sensor">
+        <material>Gazebo/Black</material>
+    </gazebo>
+    <gazebo reference="ft300_mounting_plate">
+        <material>Gazebo/Black</material>
+    </gazebo>
+    <gazebo reference="gripper_coupler">
+        <material>Gazebo/Grey</material>
     </gazebo>
 </robot>
 

@@ -1,3 +1,10 @@
-Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/share/a_demo/cmake/a_demoConfig.cmake, /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig.cmake)
-Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/share/a_demo/cmake/a_demoConfig-version.cmake, /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig-version.cmake)
-Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/lib/pkgconfig/a_demo.pc, /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/a_demo.pc)
+Cleaning: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/cmake.lock, /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock)
+Cleaning: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/share/a_demo/cmake/a_demoConfig.cmake, /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig.cmake)
+Cleaning: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/share/a_demo/cmake/a_demoConfig-version.cmake, /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig-version.cmake)
+Cleaning: (/home/RVLuser/ferit_ur5_ws/devel/.private/a_demo/lib/pkgconfig/a_demo.pc, /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/a_demo.pc)
+Unlinking: /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig.cmake
+Already unlinked: {}
+Unlinking: /home/RVLuser/ferit_ur5_ws/devel/share/a_demo/cmake/a_demoConfig-version.cmake
+Already unlinked: {}
+Unlinking: /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/a_demo.pc
+Already unlinked: {}

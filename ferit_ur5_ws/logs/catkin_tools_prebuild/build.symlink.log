@@ -1,12 +1,12 @@
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./local_setup.zsh
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./setup.zsh
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./setup.bash
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./local_setup.bash
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./local_setup.sh
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./_setup_util.py
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./setup.sh
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./env.sh
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/setup.bash, /home/RVLuser/ferit_ur5_ws/devel/./setup.bash)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/env.sh, /home/RVLuser/ferit_ur5_ws/devel/./env.sh)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/setup.zsh, /home/RVLuser/ferit_ur5_ws/devel/./setup.zsh)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/_setup_util.py, /home/RVLuser/ferit_ur5_ws/devel/./_setup_util.py)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/local_setup.bash, /home/RVLuser/ferit_ur5_ws/devel/./local_setup.bash)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/local_setup.zsh, /home/RVLuser/ferit_ur5_ws/devel/./local_setup.zsh)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/cmake.lock, /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/setup.sh, /home/RVLuser/ferit_ur5_ws/devel/./setup.sh)
+Linked: (/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/local_setup.sh, /home/RVLuser/ferit_ur5_ws/devel/./local_setup.sh)
+Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/catkin_tools_prebuild.pc
 Symlinking /home/RVLuser/ferit_ur5_ws/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake
 Symlinking /home/RVLuser/ferit_ur5_ws/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake
-Symlinking /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/catkin_tools_prebuild.pc
