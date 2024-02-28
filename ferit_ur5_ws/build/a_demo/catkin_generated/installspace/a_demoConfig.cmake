@@ -68,13 +68,13 @@ set(a_demo_CONFIG_INCLUDED TRUE)
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
   set(a_demo_SOURCE_PREFIX /home/RVLuser/ferit_ur5_ws/src/a_demo)
-  set(a_demo_DEVEL_PREFIX /home/RVLuser/ferit_ur5_ws/build/a_demo/devel)
+  set(a_demo_DEVEL_PREFIX /home/RVLuser/ferit_ur5_ws/devel/.private/a_demo)
   set(a_demo_INSTALL_PREFIX "")
   set(a_demo_PREFIX ${a_demo_DEVEL_PREFIX})
 else()
   set(a_demo_SOURCE_PREFIX "")
   set(a_demo_DEVEL_PREFIX "")
-  set(a_demo_INSTALL_PREFIX /usr/local)
+  set(a_demo_INSTALL_PREFIX /home/RVLuser/ferit_ur5_ws/install)
   set(a_demo_PREFIX ${a_demo_INSTALL_PREFIX})
 endif()
 
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /usr/local/lib;/home/RVLuser/ferit_ur5_ws/devel/lib;/opt/ros/noetic/lib)
+    foreach(path /home/RVLuser/ferit_ur5_ws/install/lib;/home/RVLuser/ferit_ur5_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

@@ -28,11 +28,33 @@ if __name__ == '__main__':
 
 	# Robot handler
 	robot = UR5Commander()
-	# robot = 1
 
 	T_G_0_vertices = np.zeros((2, 4, 4), dtype=np.float32)
 	T_G_T = np.load('/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/config/T_G_T_pen.npy')
 	T_G_T[:3, 3] = np.array([0., 0., 0.310])
+
+	T_RP_TCP = np.eye(4)
+	T_RP_TCP[:3, 3] = np.array([0.0775, 0., 0.097])
+	T_TCP_T = np.eye(4)
+	T_TCP_T[:3, :3] = rot_z(np.deg2rad(-45.0))
+	T_TCP_T[2, 3] = 0.175
+	T_RP_T = T_TCP_T @ T_RP_TCP
+
+
+	T_T_0_new = robot.get_current_tool_pose()
+	T_RP_0 = T_T_0_new @ T_RP_T
+
+	T_T_0_ = robot.get_current_tool_pose()
+
+	T_G_0 = T_T_0_ @ T_G_T
+
+
+	T_T_0_new = T_G_0 @ np.linalg.inv(T_G_T)
+
+	robot.send_pose_to_robot(T_T_0_new)
+
+	print(T_T_0_[:3,3] - T_T_0_new[:3,3])
+
 
 	# i = 0
 	# while i < 2:

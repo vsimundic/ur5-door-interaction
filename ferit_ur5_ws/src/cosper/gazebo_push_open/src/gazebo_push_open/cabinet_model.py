@@ -160,6 +160,7 @@ class Cabinet():
             pl_visual_geom_box.set('size', '{} {} {}'.format(panel_dims[i, 0], panel_dims[i, 1], panel_dims[i, 2]))
 
             panel_collision = gfg.SubElement(base_door_link, 'collision')
+            panel_collision.set('name', base_link_name+'_collision_%d' % i)
             pl_collision_origin = gfg.SubElement(panel_collision, 'origin')
             pl_collision_origin.set('xyz', '{} {} {}'.format(panel_positions[i, 0], panel_positions[i, 1], panel_positions[i, 2]))
             pl_collision_origin.set('rpy', '0.0 0.0 0.0')
@@ -257,12 +258,46 @@ class Cabinet():
         j0_dynamics = gfg.SubElement(door_joint, 'dynamics')
         j0_dynamics.set('friction', '1.0')
 
-        gazebo_ = gfg.SubElement(root, 'gazebo')
-        gazebo_.set('reference', 'my_cabinet')
-        gazebo_material = gfg.SubElement(gazebo_, 'material')
-        gazebo_material.text = 'Gazebo/Blue'
+        # gazebo_ = gfg.SubElement(root, 'gazebo')
+        # gazebo_.set('reference', base_link_name)
+        # gazebo_material = gfg.SubElement(gazebo_, 'material')
+        # gazebo_material.text = 'Gazebo/Blue'
 
-
+        # Contact sensor
+        gazebo_sensor_ = gfg.SubElement(root, 'gazebo')
+        gazebo_sensor_.set('reference', base_link_name)
+        gazebo_sensor_sensor = gfg.SubElement(gazebo_sensor_, 'sensor')
+        gazebo_sensor_sensor.set('name', 'main_sensor')
+        gazebo_sensor_sensor.set('type', 'contact')
+        gazebo_sensor_sensor_selfCollide = gfg.SubElement(gazebo_sensor_sensor, 'selfCollide')
+        gazebo_sensor_sensor_selfCollide.text = 'true'
+        gazebo_sensor_sensor_alwaysOn = gfg.SubElement(gazebo_sensor_sensor, 'alwaysOn')
+        gazebo_sensor_sensor_alwaysOn.text = 'true'
+        gazebo_sensor_sensor_updateRate = gfg.SubElement(gazebo_sensor_sensor, 'updateRate')
+        gazebo_sensor_sensor_updateRate.text = '5.0'
+        gazebo_sensor_sensor_material = gfg.SubElement(gazebo_sensor_sensor, 'material')
+        gazebo_sensor_sensor_material.text = 'Gazebo/Red'
+        gazebo_sensor_sensor_contact = gfg.SubElement(gazebo_sensor_sensor, 'contact')
+        
+        gazebo_sensor_sensor_contact_0 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
+        gazebo_sensor_sensor_contact_0.text = base_link_name + '_collision_%d' % 0 + '_collision' 
+        gazebo_sensor_sensor_contact_1 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
+        gazebo_sensor_sensor_contact_1.text = base_link_name + '_collision_%d' % 1 + '_collision' 
+        gazebo_sensor_sensor_contact_2 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
+        gazebo_sensor_sensor_contact_2.text = base_link_name + '_collision_%d' % 2 + '_collision' 
+        gazebo_sensor_sensor_contact_3 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
+        gazebo_sensor_sensor_contact_3.text = base_link_name + '_collision_%d' % 3 + '_collision' 
+        gazebo_sensor_sensor_contact_4 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
+        gazebo_sensor_sensor_contact_4.text = base_link_name + '_collision_%d' % 4 + '_collision' 
+        
+        gazebo_sensor_sensor_plugin = gfg.SubElement(gazebo_sensor_sensor, 'plugin')
+        gazebo_sensor_sensor_plugin.set('name', 'gazebo_ros_bumper_controller')
+        gazebo_sensor_sensor_plugin.set('filename', 'libgazebo_ros_bumper.so')
+        gazebo_sensor_sensor_plugin_bumperTopicName = gfg.SubElement(gazebo_sensor_sensor_plugin, 'bumperTopicName')
+        gazebo_sensor_sensor_plugin_bumperTopicName.text = '/contact'
+        gazebo_sensor_sensor_plugin_frameName = gfg.SubElement(gazebo_sensor_sensor_plugin, 'frameName')
+        gazebo_sensor_sensor_plugin_frameName.text = 'world'
+            
         # Prettify for writing in a file
         xmlstr = minidom.parseString(gfg.tostring(root)).toprettyxml(indent='\t')
 

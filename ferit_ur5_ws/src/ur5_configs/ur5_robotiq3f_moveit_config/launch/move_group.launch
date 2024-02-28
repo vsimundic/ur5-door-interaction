@@ -73,7 +73,7 @@
     <arg name="moveit_manage_controllers" value="true" />
     <arg name="moveit_controller_manager" value="$(arg moveit_controller_manager)" />
     <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
-    <arg name="sim" default="$(arg sim)" />
+    <arg name="sim" value="$(arg sim)" />
   </include>
 
   <!-- Sensors Functionality -->

@@ -222,8 +222,8 @@ bool SE3Grid::Add(
 			int* pTmp = zMem;
 			int newZMemSize = 2 * zMemSize;
 			zMem = new int[nZCells * newZMemSize];
-			memset(grid.Element, 0xff, nZCells * newZMemSize * sizeof(int));
 			memcpy(zMem, pTmp, nZCells * zMemSize * sizeof(int));
+			memset(zMem + nZCells * zMemSize, 0xff, nZCells * zMemSize * sizeof(int));
 			zMemSize = newZMemSize;
 			delete[] pTmp;
 		}
@@ -244,8 +244,8 @@ bool SE3Grid::Add(
 			int* pTmp = rollMem;
 			int newRollMemSize = 2 * rollMemSize;
 			rollMem = new int[nRollCells * newRollMemSize];
-			memset(grid.Element, 0xff, nRollCells * newRollMemSize * sizeof(int));
 			memcpy(rollMem, pTmp, nRollCells * rollMemSize * sizeof(int));
+			memset(rollMem + nRollCells * rollMemSize, 0xff, nRollCells * rollMemSize * sizeof(int));
 			rollMemSize = newRollMemSize;
 			delete[] pTmp;
 		}

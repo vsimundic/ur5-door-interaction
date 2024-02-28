@@ -15,6 +15,7 @@ from actionlib import SimpleActionClient
 from core.transforms import get_frame_transform, matrix_to_pose
 import socket
 import time
+from actionlib import GoalStatus
 
 
 class UR5Commander():
@@ -153,16 +154,14 @@ class UR5Commander():
         self.__group.stop()
 
 
-    def send_multiple_joint_space_poses_to_robot(self, joint_values_list: list, wait: bool=True):
-        # for joints in joint_values_list:
-        #     self.__group.set_joint_value_target(joints)
-        
-        # traj = self.__group.plan()
-        # self.__group.execute(traj[1], wait=wait)
+    def send_multiple_joint_space_poses_to_robot(self, joint_values_list: list, execute_time: float, wait: bool=True):
+        def trajectory_result_callback(status, result):
+            print("Trajectory execution completed.")
+
 
         self.__follow_joint_trajectory_client.wait_for_server()
 
-        time_increments = np.linspace(0, 25, len(joint_values_list) + 1)
+        time_increments = np.linspace(0, execute_time, len(joint_values_list) + 1)
 
         joint_trajectory = JointTrajectory()
         joint_trajectory.joint_names = self.__robot.get_joint_names(self.__group_name)[:6]
@@ -178,8 +177,13 @@ class UR5Commander():
         goal = FollowJointTrajectoryGoal()
         goal.trajectory = joint_trajectory
 
-        self.__follow_joint_trajectory_client.send_goal(goal)
-        self.__follow_joint_trajectory_client.wait_for_result()
+        state = self.__follow_joint_trajectory_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(execute_time), preempt_timeout=rospy.Duration(5.0))
+        print("Done waiting for trajectory execution.")
+
+        print(state)
+        if state == GoalStatus.SUCCEEDED or state == GoalStatus.PREEMPTED:
+            return True
+        return False
 
 
     def get_tool_pose_from_gripper_pose(self, T_G_B: np.ndarray):

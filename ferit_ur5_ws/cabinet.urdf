@@ -13,7 +13,7 @@
 				<box size="0.3 0.442 0.018"/>
 			</geometry>
 		</visual>
-		<collision>
+		<collision name="base_cabinet_link_collision_0">
 			<origin xyz="0.0 0.0 -0.262" rpy="0.0 0.0 0.0"/>
 			<geometry>
 				<box size="0.3 0.442 0.018"/>
@@ -25,7 +25,7 @@
 				<box size="0.3 0.018 0.542"/>
 			</geometry>
 		</visual>
-		<collision>
+		<collision name="base_cabinet_link_collision_1">
 			<origin xyz="0.0 0.212 0.0" rpy="0.0 0.0 0.0"/>
 			<geometry>
 				<box size="0.3 0.018 0.542"/>
@@ -37,7 +37,7 @@
 				<box size="0.3 0.018 0.542"/>
 			</geometry>
 		</visual>
-		<collision>
+		<collision name="base_cabinet_link_collision_2">
 			<origin xyz="0.0 -0.212 0.0" rpy="0.0 0.0 0.0"/>
 			<geometry>
 				<box size="0.3 0.018 0.542"/>
@@ -49,7 +49,7 @@
 				<box size="0.3 0.442 0.018"/>
 			</geometry>
 		</visual>
-		<collision>
+		<collision name="base_cabinet_link_collision_3">
 			<origin xyz="0.0 0.0 0.262" rpy="0.0 0.0 0.0"/>
 			<geometry>
 				<box size="0.3 0.442 0.018"/>
@@ -61,7 +61,7 @@
 				<box size="0.018 0.442 0.542"/>
 			</geometry>
 		</visual>
-		<collision>
+		<collision name="base_cabinet_link_collision_4">
 			<origin xyz="-0.141 0.0 0.0" rpy="0.0 0.0 0.0"/>
 			<geometry>
 				<box size="0.018 0.442 0.542"/>
@@ -98,7 +98,23 @@
 		<limit effort="50" lower="0" upper="-1.5707963267948966" velocity="10"/>
 		<dynamics friction="1.0"/>
 	</joint>
-	<gazebo reference="my_cabinet">
-		<material>Gazebo/Blue</material>
+	<gazebo reference="base_cabinet_link">
+		<sensor name="main_sensor" type="contact">
+			<selfCollide>true</selfCollide>
+			<alwaysOn>true</alwaysOn>
+			<updateRate>5.0</updateRate>
+			<material>Gazebo/Red</material>
+			<contact>
+				<collision>base_cabinet_link_collision_0_collision</collision>
+				<collision>base_cabinet_link_collision_1_collision</collision>
+				<collision>base_cabinet_link_collision_2_collision</collision>
+				<collision>base_cabinet_link_collision_3_collision</collision>
+				<collision>base_cabinet_link_collision_4_collision</collision>
+			</contact>
+			<plugin name="gazebo_ros_bumper_controller" filename="libgazebo_ros_bumper.so">
+				<bumperTopicName>/contact</bumperTopicName>
+				<frameName>world</frameName>
+			</plugin>
+		</sensor>
 	</gazebo>
 </robot>

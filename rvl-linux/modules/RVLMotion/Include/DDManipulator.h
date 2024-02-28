@@ -54,6 +54,12 @@ namespace RVL
 			float d;
 		};
 
+		struct ContactPose
+		{
+			Pose3D pose_G_DD;
+			float PRTCP_DD[3];
+		};
+
 		class Robot
 		{
 		public:
@@ -150,8 +156,10 @@ namespace RVL
 			float* qInit,
 			Array<Pose3D> &poses_G_0,
 			Array2D<float> &robotJoints);
+		void CreateContactPoseGraph(std::string contactPoseGraphFileName);
 		void TileFeasibleToolContactPoses(
-			std::vector<Pose3D>* pAllFeasibleTCPs,
+			std::vector<MOTION::ContactPose>* pAllFeasibleTCPs,
+			float * max_dd_size,
 			Box<float> &TCPSpace);
 		bool ApproachPath(
 			Pose3D *pPose_G_S_contact,
@@ -169,7 +177,8 @@ namespace RVL
 		void UpdateStaticParams();
 		void SetDoorPose(Pose3D pose_A_S);
 		void UpdateStaticPose();
-		void LoadFeasibleToolContactPoses(std::string contactPosesFileName);
+		bool LoadFeasibleToolContactPoses(std::string contactPosesFileName);
+		bool LoadContactPoseGraph(std::string contactPoseGraphFileName);
 		void LoadToolModel(std::string toolModelDir);
 		void InitVisualizer(Visualizer* pVisualizerIn);
 		void Visualize(
@@ -214,6 +223,7 @@ namespace RVL
 		float dd_contact_surface_sampling_resolution;
 		float dd_state_angle;
 		float dd_opening_direction;
+		bool bVNPanel;	// If this variable is true, then the door panel is included in the VN model of the environment.
 
 		// Door model constants.
 
@@ -269,6 +279,11 @@ namespace RVL
 		float rLocalConstraints;
 
 	private:
+		char *feasibleToolContactPosesFileName;
+		char *contactPoseGraphFileName;
+		char *toolModelDir;
+		Array<MOTION::Node> nodes;
+		Graph<GRAPH::Node_<GRAPH::EdgePtr<MOTION::Edge>>, MOTION::Edge, GRAPH::EdgePtr<MOTION::Edge>> graph;
 		MOTION::DisplayCallbackData* pVisualizationData;
 		Array<RECOG::VN_::ModelCluster *> VNMClusters;
 		Box<float> dd_panel_box;
@@ -283,6 +298,7 @@ namespace RVL
 		Pose3D pose_DD_0;
 		float default_tool_P1_G[3];
 		float default_tool_P2_G[3];
+		Array<int> rndIdx;
 	};
 }
 

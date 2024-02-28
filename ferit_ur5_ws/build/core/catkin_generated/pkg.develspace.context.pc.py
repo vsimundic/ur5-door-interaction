@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "".split(';') if "" != "" else []
 PROJECT_NAME = "core"
-PROJECT_SPACE_DIR = "/home/RVLuser/ferit_ur5_ws/build/core/devel"
+PROJECT_SPACE_DIR = "/home/RVLuser/ferit_ur5_ws/devel/.private/core"
 PROJECT_VERSION = "0.0.0"

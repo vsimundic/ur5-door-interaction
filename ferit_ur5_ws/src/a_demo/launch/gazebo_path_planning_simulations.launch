@@ -1,0 +1,4 @@
+<launch>
+        <param name="config_file" type="string" value="gazebo_push_open.yaml"/>
+        <node name="node_path_planning_simulations" pkg="gazebo_push_open" type="node_path_planning_simulations.py" output="screen"/>
+</launch>

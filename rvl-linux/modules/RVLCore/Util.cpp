@@ -2036,6 +2036,35 @@ namespace RVL
 		}
 	}
 
+	void Permute(
+		Array<int> rnd,
+		int iRnd,
+		Array<int> A)
+	{
+		int iTmp;
+		int i, i_;
+		for (i = 0; i < A.n; i++)
+		{
+			i_ = rnd.Element[iRnd] % A.n;
+			iRnd = (iRnd + 1) % rnd.n;
+			iTmp = A.Element[i];
+			A.Element[i] = A.Element[i_];
+			A.Element[i_] = iTmp;
+		}
+	}
+
+	void RandomIndices(
+		Array<int> rnd,
+		int iRnd,
+		Array<int>& A)
+	{
+		A.Element = new int[A.n];
+		int i;
+		for (i = 0; i < A.n; i++)
+			A.Element[i] = i;
+		Permute(rnd, iRnd, A);
+	}
+
 	// Remove the identical function from PlanarSurfelDetector class.
 
 	void RandomIndices(Array<int> &A)

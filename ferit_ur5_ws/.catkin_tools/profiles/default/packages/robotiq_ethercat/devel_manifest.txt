@@ -1,6 +1,6 @@
 ur5_configs/robotiq-noetic-devel/robotiq_ethercat
 /home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/cmake.lock /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock
-/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/lib/librobotiq_ethercat.so /home/RVLuser/ferit_ur5_ws/devel/lib/librobotiq_ethercat.so
-/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/lib/pkgconfig/robotiq_ethercat.pc /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/robotiq_ethercat.pc
 /home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/share/robotiq_ethercat/cmake/robotiq_ethercatConfig-version.cmake /home/RVLuser/ferit_ur5_ws/devel/share/robotiq_ethercat/cmake/robotiq_ethercatConfig-version.cmake
 /home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/share/robotiq_ethercat/cmake/robotiq_ethercatConfig.cmake /home/RVLuser/ferit_ur5_ws/devel/share/robotiq_ethercat/cmake/robotiq_ethercatConfig.cmake
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/lib/librobotiq_ethercat.so /home/RVLuser/ferit_ur5_ws/devel/lib/librobotiq_ethercat.so
+/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_ethercat/lib/pkgconfig/robotiq_ethercat.pc /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/robotiq_ethercat.pc

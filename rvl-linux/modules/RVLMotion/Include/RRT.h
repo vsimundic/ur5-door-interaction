@@ -97,6 +97,7 @@ namespace RVL
 		struct Node
 		{
 			SE3Point pose;
+			float PRTCP[2];
 			float cost;
 			uchar flags;
 			int iSE3Point;

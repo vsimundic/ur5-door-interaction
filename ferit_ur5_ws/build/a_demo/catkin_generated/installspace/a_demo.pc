@@ -1,4 +1,4 @@
-prefix=/usr/local
+prefix=/home/RVLuser/ferit_ur5_ws/install
 
 Name: a_demo
 Description: Description of a_demo

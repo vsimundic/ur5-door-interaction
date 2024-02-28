@@ -254,6 +254,14 @@ namespace RVL
 		unsigned char *&colorArray,
 		int n);
 	void RandomIndices(Array<int> &A);
+	void RandomIndices(
+		Array<int> rnd,
+		int iRnd,
+		Array<int>& A);
+	void Permute(
+		Array<int> rnd,
+		int iRnd,
+		Array<int> A);
 	void DistributionFromCovMx(
 		float *C,
 		float *R,
