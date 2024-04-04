@@ -50,7 +50,11 @@ public:
 		int mem0Size,
 		int memSize);
 	void clear();
-	py::tuple path2(py::array q_init);
+	py::tuple path2(
+		py::array q_init, 
+		double endState,
+		int nStates,
+		bool bReturnAllFeasiblePaths = false);
 	py::array approach_path(py::array T_G_S_contact);
 	void load_tool_model(std::string toolModelDir);
 	void set_environment_state(double state);
@@ -119,7 +123,11 @@ void PYDDManipulator::clear()
 	delete manipulator.pMem;
 }
 
-py::tuple PYDDManipulator::path2(py::array q_init)
+py::tuple PYDDManipulator::path2(
+	py::array q_init,
+	double endState,
+	int nStates,
+	bool bReturnAllFeasiblePaths)
 {
 	double *q_init_ = (double *)q_init.request().ptr;
 	float q_init__[6];
@@ -134,7 +142,21 @@ py::tuple PYDDManipulator::path2(py::array q_init)
     // fclose(fpDebug);
 	Array<Pose3D> poses_G_0;
 	Array2D<float> robotJoints;	
-	if(!manipulator.Path2(q_init__, poses_G_0, robotJoints))
+	Array<Array<Pose3D>> allFeasiblePaths;
+	Array<Array2D<float>> allFeasiblePathsJoints;
+	Array<Array<Pose3D>> *pAllFeasiblePaths;
+	Array<Array2D<float>> *pAllFeasiblePathsJoints;
+	if(bReturnAllFeasiblePaths)
+	{
+		pAllFeasiblePaths = &allFeasiblePaths;
+		pAllFeasiblePathsJoints = &allFeasiblePathsJoints;
+	}
+	else
+	{
+		pAllFeasiblePaths = NULL;
+		pAllFeasiblePathsJoints = NULL;
+	}
+	if(!manipulator.Path2(q_init__, endState, nStates, poses_G_0, robotJoints, pAllFeasiblePaths, pAllFeasiblePathsJoints))
 		poses_G_0.n = 1;
 	auto T_G_0 = py::array(py::buffer_info(
 		nullptr,
@@ -171,8 +193,45 @@ py::tuple PYDDManipulator::path2(py::array q_init)
 		RVLHTRANSFMX(null_pose.R, null_pose.t, T_G_0_);
 		memset(q_, 0, manipulator.robot.n * sizeof(float));
 	}
-
-	py::tuple result_tuple = py::make_tuple(T_G_0, q);
+	py::tuple result_tuple;
+	if(bReturnAllFeasiblePaths)
+	{
+		int maxnPathPoints = nStates + 3;
+		auto allFeasiblePathsPy = py::array(py::buffer_info(
+			nullptr,
+			sizeof(float),
+			py::format_descriptor<float>::value,
+			4,
+			{allFeasiblePaths.n, maxnPathPoints, 4, 4},
+			{maxnPathPoints * 4 * 4 * sizeof(float), 4 * 4 * sizeof(float), 4 * sizeof(float), sizeof(float)}
+			));
+		float *allFeasiblePathsPy_ = (float *)allFeasiblePathsPy.request().ptr;
+		auto allFeasiblePathsJointsPy = py::array(py::buffer_info(
+			nullptr,
+			sizeof(float),
+			py::format_descriptor<float>::value,
+			3,
+			{allFeasiblePathsJoints.n, maxnPathPoints, manipulator.robot.n},
+			{maxnPathPoints * manipulator.robot.n * sizeof(float), manipulator.robot.n * sizeof(float), sizeof(float)}
+			));
+		float *allFeasiblePathsJointsPy_ = (float *)allFeasiblePathsJointsPy.request().ptr;
+		float *T_G_0__ = allFeasiblePathsPy_;
+		float *q__ = allFeasiblePathsJointsPy_;
+		memset(allFeasiblePathsPy_, 0, allFeasiblePaths.n * maxnPathPoints * 4 * 4 * sizeof(float));
+		memset(allFeasiblePathsJointsPy_, 0, allFeasiblePathsJoints.n * maxnPathPoints * manipulator.robot.n * sizeof(float));
+		for(int iPath = 0; iPath < allFeasiblePaths.n; iPath++, q__ += (maxnPathPoints * manipulator.robot.n))
+		{
+			Array<Pose3D> *pPath = allFeasiblePaths.Element + iPath;
+			Pose3D *pPose_G_0 = pPath->Element;
+			for(int iPose = 0; iPose < pPath->n; iPose++, pPose_G_0++, T_G_0__ += 16)
+				RVLHTRANSFMX(pPose_G_0->R, pPose_G_0->t, T_G_0__);
+			Array2D<float> *pPathJoints = allFeasiblePathsJoints.Element + iPath;
+			memcpy(q__, pPathJoints->Element, pPathJoints->h * pPathJoints->w * sizeof(float));
+		}
+		result_tuple = py::make_tuple(T_G_0, q, allFeasiblePathsPy, allFeasiblePathsJointsPy);
+	}
+	else
+		result_tuple = py::make_tuple(T_G_0, q);
 
 	return result_tuple;	
 }

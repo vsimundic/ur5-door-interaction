@@ -1,4 +1,5 @@
 <launch>
+  <arg name="rviz_gui" default="false"/>
 
   <!-- specify the planning pipeline -->
   <arg name="pipeline" default="ompl" />
@@ -21,7 +22,7 @@
 
   <!-- By default, hide joint_state_publisher's GUI in 'fake' controller_manager mode -->
   <arg name="use_gui" default="false" />
-  <arg name="use_rviz" default="true" />
+  <arg name="use_rviz" default="$(arg rviz_gui)" />
 
   <!-- If needed, broadcast static tf for robot root -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 base_link world" />
@@ -39,7 +40,7 @@
     </node>
 
     <!-- Given the published joint states, publish tf for the robot links -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="log" />
   </group>
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->

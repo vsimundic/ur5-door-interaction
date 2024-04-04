@@ -2,7 +2,7 @@
 
 import rospy
 from core.rvl import RVLRGBD2PLY
-from core.read_config import read_config
+from core.util import read_config
 
 if __name__ == '__main__':
     rospy.init_node('node_test_real_cabinet')

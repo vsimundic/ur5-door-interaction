@@ -1,0 +1,3 @@
+<launch>
+    <node name="node_generate_door_configurations" pkg="path_planning" type="node_generate_door_configurations.py" output="screen"/>
+</launch>

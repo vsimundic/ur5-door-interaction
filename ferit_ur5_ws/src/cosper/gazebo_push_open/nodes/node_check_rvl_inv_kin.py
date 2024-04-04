@@ -3,7 +3,7 @@
 import rospy
 import os
 import rospkg
-from core.read_config import read_config
+from core.util import read_config
 from core.paths_packages import get_package_name_from_node, get_package_path_from_name
 from core.ur5_commander import UR5Commander
 from DDMan import push

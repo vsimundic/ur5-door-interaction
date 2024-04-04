@@ -759,6 +759,7 @@
     <!-- mount the fts to the robot -->
     <joint name="ft300_fix" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 -0.004" />
+        <!-- <origin rpy="0 0 0" xyz="0 0 0.007" /> -->
         <parent link="tool0" />
         <child link="ft300_mounting_plate" />
     </joint>
@@ -830,7 +831,7 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <geometry>
-                <cylinder length="0.013" radius="0.04" />
+                <cylinder length="0.028" radius="0.04" />
             </geometry>
             <material name="Robotiq-Grey">
                 <color rgba="0.4 0.4 0.4 1.0" />
@@ -839,7 +840,7 @@
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <geometry>
-                <cylinder length="0.013" radius="0.04" />
+                <cylinder length="0.028" radius="0.04" />
             </geometry>
         </collision>
         <inertial>
@@ -851,12 +852,14 @@
     <joint name="ft_sensor_gripper_coupler_joint" type="fixed">
         <!-- <origin xyz="0 0 0.0535" rpy="${-pi/2.0} ${-pi} ${-pi/4.0}" /> -->
         <!-- <origin xyz="0 0 0.0065" rpy="0 0 0" /> -->
-        <origin rpy="3.141592653589793 0 0" xyz="0 0 -0.0065" />
+        <!-- <origin rpy="3.141592653589793 0 0" xyz="0 0 -0.0065" /> -->
+        <origin rpy="3.141592653589793 0 0" xyz="0 0 -0.014" />
         <parent link="ft300_sensor" />
         <child link="gripper_coupler" />
     </joint>
     <joint name="gripper_coupler_robotiq_3f_joint" type="fixed">
-        <origin rpy="1.5707963267948966 0 -0.7853981633974483" xyz="0 0 0.06" />
+        <!-- <origin rpy="1.5707963267948966 0 -0.7853981633974483" xyz="0 0 0.0605" /> -->
+        <origin rpy="1.5707963267948966 0 -0.7853981633974483" xyz="0 0 0.068" />
         <parent link="gripper_coupler" />
         <child link="palm" />
     </joint>

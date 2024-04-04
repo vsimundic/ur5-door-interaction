@@ -7,7 +7,7 @@ import RVLPYDDManipulator as rvl
 print('Starting...')
 
 manipulator = rvl.PYDDManipulator()
-manipulator.create('/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec.cfg')
+manipulator.create('/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_exp1.cfg')
 # manipulator.load_tool_model('/home/RVLuser/rvl-linux/modules/RVLMotionDemo/Robotiq3Finger')
 # manipulator.load_feasible_tool_contact_poses('/home/RVLuser/rvl-linux/data/DDMan/3finger_gripper/feasible_poses_axis_left.npy')
 T_0_S = np.eye(4)
@@ -16,8 +16,15 @@ manipulator.set_robot_pose(T_0_S)
 # T_F_S = np.array([[0.0, 0.0, 1.0, 0.6], [-1.0, 0.0, 0.0, 0.0], [0.0, -1.0, 0.0, 0.546], [0, 0, 0, 1]])
 # manipulator.set_furniture_pose(T_F_S)
 # manipulator.set_door_model_params(0.018, 0.3, 0.5, 0.0, -0.14, -1.0, 0.018, 0.005)
-manipulator.set_door_model_params(0.018, 0.396, 0.496, 0.0, -0.5 * 0.396, -1.0, 0.018, 0.005)
-T_A_S = np.array([[-1.0, 0.0, 0.0, -0.5], [0.0, -1.0, 0.0, -0.6], [0.0, 0.0, 1.0, 0.278], [0, 0, 0, 1]])
+manipulator.set_door_model_params(0.018, 0.3184996646689734, 0.6854406294039961, 0.0, -0.5 * 0.3184996646689734, -1.0, 0.018, 0.005)
+# T_A_S = np.array([[-1.0, 0.0, 0.0, -0.5], [0.0, -1.0, 0.0, -0.6], [0.0, 0.0, 1.0, 0.278], [0, 0, 0, 1]])
+# T_A_S = np.array([[0.0, -1.0, 0.0, -0.8], [1.0, 0.0, 0.0, 0.5], [0.0, 0.0, 1.0, 0.278], [0, 0, 0, 1]])
+T_A_S = np.array([[ 0.92662295, -0.3759919 ,  0.        , -0.22462121],
+       [ 0.3759919 ,  0.92662295,  0.        ,  0.59205694],
+       [ 0.        ,  0.        ,  1.        ,  0.35672031],
+       [ 0.        ,  0.        ,  0.        ,  1.        ]])
+
+
 manipulator.set_door_pose(T_A_S)
 # R_G_S_Y = rvlutil.roty(0.75 * np.pi)
 # R_G_S_Z = rvlutil.rotz(np.pi)
@@ -25,10 +32,11 @@ manipulator.set_door_pose(T_A_S)
 # T_G_S_init = R_G_S_Y @ R_G_S_Z
 # T_G_S_init[:3,3] = t_0_S_home
 # print(T_G_S_init)
-q_init = np.deg2rad(np.array([166.999724, -62.99970028, -58.00079828, -95.99618458, 110.00280307, 65.99985772]))
-manipulator.set_environment_state(-10.0)
+q_init = np.deg2rad(np.array([0., -90., 0., -90., 0., 0.]))
+manipulator.set_environment_state(-9.797476753437662)
 print('Path planning...')
-T_G_0, q = manipulator.path2(q_init)
+T_G_0, q, all_feasible_paths, all_feasible_paths_q = manipulator.path2(q_init, -90.0, 1, True)
+# T_G_0, q = manipulator.path2(q_init, -90.0, 1, False)
 print('completed.')
 if T_G_0.shape[0] == 1:
     print('Path is not found!')

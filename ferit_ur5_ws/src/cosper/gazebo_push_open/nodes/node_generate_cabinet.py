@@ -3,7 +3,7 @@
 import rospy
 import os
 import rospkg
-from core.read_config import read_config
+from core.util import read_config
 from core.paths_packages import get_package_name_from_node, get_package_path_from_name
 from core.ur5_commander import UR5Commander
 from DDMan import push
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     # Open doors in Gazebo
     theta_deg = config['feasible_poses']['dd_state_deg']
-    cabinet_model.open_door_gazebo(theta_deg)
+    cabinet_model.set_door_state_gazebo(theta_deg)
     cabinet_model.change_door_angle(theta_deg)
     cabinet_model.update_mesh()
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     # Calculate poses
     T_T_B_fp_prev = robot.get_tool_pose_from_gripper_pose(T_G_S_prev) # approaching pose
     T_T_B_fp = robot.get_tool_pose_from_gripper_pose(T_G_S) # feasible pose
-    T_G_S_arr = cabinet_model.generate_opening_passing_poses(T_G_D, max_angle_deg=70., num_poses=10) # passing poses
+    T_G_S_arr = cabinet_model.generate_opening_poses(T_G_D, max_angle_deg=70., num_poses=10) # passing poses
     T_T_B_arr = [robot.get_tool_pose_from_gripper_pose(T_G_S_) for T_G_S_ in T_G_S_arr]
 
     q_temp = list(q_init.copy())

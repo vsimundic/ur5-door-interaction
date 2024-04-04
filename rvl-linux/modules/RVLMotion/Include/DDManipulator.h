@@ -154,8 +154,12 @@ namespace RVL
 		void Path(Pose3D * pPose_G_S_init);
 		bool Path2(
 			float* qInit,
+			float endDoorState,
+			int nStates,
 			Array<Pose3D> &poses_G_0,
-			Array2D<float> &robotJoints);
+			Array2D<float> &robotJoints,
+			Array<Array<Pose3D>> *pFeasiblePaths = NULL,
+			Array<Array2D<float>> *pFeasiblePathsJoints = NULL);
 		void CreateContactPoseGraph(std::string contactPoseGraphFileName);
 		void TileFeasibleToolContactPoses(
 			std::vector<MOTION::ContactPose>* pAllFeasibleTCPs,
@@ -268,7 +272,8 @@ namespace RVL
 		float visionTol;    // m
 		float minDistanceToAxis;	// m
 		bool bLock_T_G_DD;
-		float posCostMaxDist = 0.03f;
+		float posCostMaxDist;
+		float wPos;
 
 		// Feasible tool contact poses.
 
@@ -299,6 +304,10 @@ namespace RVL
 		float default_tool_P1_G[3];
 		float default_tool_P2_G[3];
 		Array<int> rndIdx;
+		Pose3D* pathPosesMem;
+		Array<Pose3D>* pathMem;
+		float* pathJointsMem;
+		Array2D<float>* pathMemJoints;
 	};
 }
 

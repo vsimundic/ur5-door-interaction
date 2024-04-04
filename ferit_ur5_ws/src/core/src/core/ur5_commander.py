@@ -164,7 +164,8 @@ class UR5Commander():
         time_increments = np.linspace(0, execute_time, len(joint_values_list) + 1)
 
         joint_trajectory = JointTrajectory()
-        joint_trajectory.joint_names = self.__robot.get_joint_names(self.__group_name)[:6]
+        print(self.__robot.get_joint_names(group=self.__group_name))
+        joint_trajectory.joint_names = self.__robot.get_joint_names(self.__group_name)[1:7]
         
         for i, joint_values in enumerate(joint_values_list):
             print(joint_values)
@@ -177,6 +178,8 @@ class UR5Commander():
         goal = FollowJointTrajectoryGoal()
         goal.trajectory = joint_trajectory
 
+        # state = self.__follow_joint_trajectory_client.send_goal_and_wait(goal)
+        # state = self.__follow_joint_trajectory_client.send_goal(goal)
         state = self.__follow_joint_trajectory_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(execute_time), preempt_timeout=rospy.Duration(5.0))
         print("Done waiting for trajectory execution.")
 
@@ -184,6 +187,41 @@ class UR5Commander():
         if state == GoalStatus.SUCCEEDED or state == GoalStatus.PREEMPTED:
             return True
         return False
+
+
+    def send_multiple_joint_space_poses_to_robot2(self, joint_values_list: list, velocitites: list, execute_time: float, wait: bool=True):
+        def trajectory_result_callback(status, result):
+            print("Trajectory execution completed.")
+
+
+        self.__follow_joint_trajectory_client.wait_for_server()
+
+        joint_trajectory = JointTrajectory()
+        print(self.__robot.get_joint_names(group=self.__group_name))
+        joint_trajectory.joint_names = self.__robot.get_joint_names(self.__group_name)[1:7]
+        
+        for i, joint_values in enumerate(joint_values_list):
+            print(joint_values)
+            point = JointTrajectoryPoint()
+            point.positions = joint_values
+            # point.velocities = [0.1]*6
+            point.time_from_start = rospy.Duration(velocitites[i])
+            joint_trajectory.points.append(point)
+        
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory = joint_trajectory
+
+        # state = self.__follow_joint_trajectory_client.send_goal_and_wait(goal)
+        # state = self.__follow_joint_trajectory_client.send_goal(goal)
+        state = self.__follow_joint_trajectory_client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(execute_time), preempt_timeout=rospy.Duration(15.0))
+        print("Done waiting for trajectory execution.")
+
+        print(state)
+        if state == GoalStatus.SUCCEEDED or state == GoalStatus.PREEMPTED:
+            return True
+        return False
+
+
 
 
     def get_tool_pose_from_gripper_pose(self, T_G_B: np.ndarray):

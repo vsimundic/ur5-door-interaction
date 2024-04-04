@@ -1,0 +1,4 @@
+<launch>
+        
+    <node name="node_generate_poses" pkg="push_simulation" type="generate_poses.py" output="screen"/>
+</launch>

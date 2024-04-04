@@ -6,7 +6,7 @@ import xml.etree.ElementTree as gfg
 import os
 from math import pi
 import numpy as np
-from gazebo_msgs.srv import SpawnModel, SetModelConfiguration, SetModelConfigurationRequest, DeleteModel
+from gazebo_msgs.srv import SpawnModel, SetModelConfiguration, SetModelConfigurationRequest, DeleteModel, GetModelState, GetJointProperties, GetJointPropertiesRequest
 from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_matrix
 import open3d as o3d
@@ -19,6 +19,15 @@ def rot_z(angle_rad):
                   [s, c, 0],
                   [0, 0, 1]])
     return R
+
+def rot_y(angle_rad):
+    s = np.sin(angle_rad)
+    c = np.cos(angle_rad)
+    R = np.array([[c, 0, s],
+                  [0, 1, 0],
+                  [-s, 0, c]])
+    return R
+
 
 class Cabinet():
     # def __init__(self, w_door: float, h_door: float, d_door: float=0.018, static_d: float=0.3, axis_pos: int=1, position: np.array=np.array([0, 0, 0]), angle_deg:float=0, save_path:str=None):
@@ -86,24 +95,27 @@ class Cabinet():
 
         # Panel point to axis
         self.T_D_A = np.eye(4)
-        self.T_D_A[:3, :3] = np.array([[0, 0, -1],
-                                      [1, 0, 0],
-                                      [0, -1, 0]])
-        self.T_D_A[:3, 3] = np.array([self.axis_pos*(self.d_door/2.),
+        # self.T_D_A[:3, :3] = np.array([[0, 0, -1],
+        #                               [1, 0, 0],
+        #                               [0, -1, 0]])
+        self.T_D_A[:3, :3] = rot_y(np.radians(-self.axis_pos*90.)) @ rot_z(np.radians(self.axis_pos*90.))
+
+        self.T_D_A[:3, 3] = np.array([-self.axis_pos*(self.d_door/2.),
                                      -(self.w_door - self.axis_distance),
                                      self.h_door/2.])
 
-        # Door panel centroid to axis
-        self.T_D_A_init = np.eye(4)
-        self.T_D_A_init[:3, 3] = np.array([self.axis_pos*(self.d_door/2.), -(self.w_door/2. - self.axis_distance), self.h_door/2.])
+        # # Door panel centroid to axis
+        # self.T_D_A_init = np.eye(4)
+        # self.T_D_A_init[:3, 3] = np.array([self.axis_pos*(self.d_door/2.), -(self.w_door/2. - self.axis_distance), self.h_door/2.])
 
     def generate_cabinet_urdf_from_door_panel(self):
         static_d = self.static_d
         moving_to_static_part_distance = self.moving_to_static_part_distance
         axis_distance = self.axis_distance
         static_side_width = self.static_side_width
+        bottom_panel_height = 0.004
         w = self.w_door + 2*(moving_to_static_part_distance + static_side_width)
-        h = self.h_door + 2*(moving_to_static_part_distance + static_side_width)
+        h = self.h_door + 2*moving_to_static_part_distance + static_side_width + bottom_panel_height
         d = self.d_door
         base_link_name = self.base_link_name
         door_panel_link_name = self.door_panel_link_name
@@ -112,18 +124,18 @@ class Cabinet():
         save_path = self.save_path
 
         # final visual is a union of panels (no need make some panels shorter)
-        panel_dims = np.array([[static_d, w, d], # panel bottom
+        panel_dims = np.array([[static_d, w, bottom_panel_height], # panel bottom
                             [static_d, d, h], # side
                             [static_d, d, h], # side
                             [static_d, w, d], # top
                             [d, w, h]]) # back
 
         # with respect to the center of the cuboid
-        panel_positions = np.array([[0., 0., -(h/2. - d/2.)], # bottom panel
-                        [0., w/2. - d/2., 0.], # side panel
-                        [0., -(w/2. - d/2.), 0.], # side panel
-                        [0., 0., h/2. - d/2.], # top
-                        [-(static_d/2.-d/2.), 0., 0.]]) # back panel
+        panel_positions = np.array([[0., 0., -self.h_door*0.5 - 0.005 - bottom_panel_height*0.5], # bottom panel
+                        [0., w/2. - d/2., bottom_panel_height*0.5+moving_to_static_part_distance], # side panel
+                        [0., -(w/2. - d/2.), bottom_panel_height*0.5+moving_to_static_part_distance], # side panel
+                        [0., 0., self.h_door*0.5+moving_to_static_part_distance+d*0.5], # top
+                        [-(static_d/2.-d/2.), 0., bottom_panel_height*0.5+moving_to_static_part_distance]]) # back panel
 
 
         root = gfg.Element('robot')
@@ -204,6 +216,7 @@ class Cabinet():
         dpl_visual_geom_box.set('size', '{} {} {}'.format(door_panel_dims[0], door_panel_dims[1], door_panel_dims[2]))
 
         door_panel_collision = gfg.SubElement(door_panel_link, 'collision')
+        door_panel_collision.set('name', self.door_panel_link_name+'_collision')
         dpl_collision_origin = gfg.SubElement(door_panel_collision, 'origin')
         dpl_collision_origin.set('xyz', '0.0 {} 0.0'.format(-axis_pos*(door_panel_dims[1]/2. - axis_distance)))
         # dpl_collision_origin.set('xyz', '0.0 {} 0.0'.format(axis_pos*(door_panel_dims[1]/2. - axis_distance)))
@@ -278,18 +291,18 @@ class Cabinet():
         gazebo_sensor_sensor_material = gfg.SubElement(gazebo_sensor_sensor, 'material')
         gazebo_sensor_sensor_material.text = 'Gazebo/Red'
         gazebo_sensor_sensor_contact = gfg.SubElement(gazebo_sensor_sensor, 'contact')
-        
+
         gazebo_sensor_sensor_contact_0 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
-        gazebo_sensor_sensor_contact_0.text = base_link_name + '_collision_%d' % 0 + '_collision' 
+        gazebo_sensor_sensor_contact_0.text = base_link_name + '_collision_%d' % 0 + '_collision'
         gazebo_sensor_sensor_contact_1 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
-        gazebo_sensor_sensor_contact_1.text = base_link_name + '_collision_%d' % 1 + '_collision' 
+        gazebo_sensor_sensor_contact_1.text = base_link_name + '_collision_%d' % 1 + '_collision'
         gazebo_sensor_sensor_contact_2 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
-        gazebo_sensor_sensor_contact_2.text = base_link_name + '_collision_%d' % 2 + '_collision' 
+        gazebo_sensor_sensor_contact_2.text = base_link_name + '_collision_%d' % 2 + '_collision'
         gazebo_sensor_sensor_contact_3 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
-        gazebo_sensor_sensor_contact_3.text = base_link_name + '_collision_%d' % 3 + '_collision' 
+        gazebo_sensor_sensor_contact_3.text = base_link_name + '_collision_%d' % 3 + '_collision'
         gazebo_sensor_sensor_contact_4 = gfg.SubElement(gazebo_sensor_sensor_contact, 'collision')
-        gazebo_sensor_sensor_contact_4.text = base_link_name + '_collision_%d' % 4 + '_collision' 
-        
+        gazebo_sensor_sensor_contact_4.text = base_link_name + '_collision_%d' % 4 + '_collision'
+
         gazebo_sensor_sensor_plugin = gfg.SubElement(gazebo_sensor_sensor, 'plugin')
         gazebo_sensor_sensor_plugin.set('name', 'gazebo_ros_bumper_controller')
         gazebo_sensor_sensor_plugin.set('filename', 'libgazebo_ros_bumper.so')
@@ -297,7 +310,35 @@ class Cabinet():
         gazebo_sensor_sensor_plugin_bumperTopicName.text = '/contact'
         gazebo_sensor_sensor_plugin_frameName = gfg.SubElement(gazebo_sensor_sensor_plugin, 'frameName')
         gazebo_sensor_sensor_plugin_frameName.text = 'world'
-            
+
+
+        # Door contact sensor
+        gazebo_sensor_door = gfg.SubElement(root, 'gazebo')
+        gazebo_sensor_door.set('reference', door_panel_link_name)
+        gazebo_sensor_doorsensor = gfg.SubElement(gazebo_sensor_door, 'sensor')
+        gazebo_sensor_doorsensor.set('name', 'main_sensor')
+        gazebo_sensor_doorsensor.set('type', 'contact')
+        gazebo_sensor_doorsensor_selfCollide = gfg.SubElement(gazebo_sensor_doorsensor, 'selfCollide')
+        gazebo_sensor_doorsensor_selfCollide.text = 'true'
+        gazebo_sensor_doorsensor_alwaysOn = gfg.SubElement(gazebo_sensor_doorsensor, 'alwaysOn')
+        gazebo_sensor_doorsensor_alwaysOn.text = 'true'
+        gazebo_sensor_doorsensor_updateRate = gfg.SubElement(gazebo_sensor_doorsensor, 'updateRate')
+        gazebo_sensor_doorsensor_updateRate.text = '5.0'
+        gazebo_sensor_doorsensor_material = gfg.SubElement(gazebo_sensor_doorsensor, 'material')
+        gazebo_sensor_doorsensor_material.text = 'Gazebo/Red'
+        gazebo_sensor_doorsensor_contact = gfg.SubElement(gazebo_sensor_doorsensor, 'contact')
+
+        gazebo_sensor_doorsensor_contact_0 = gfg.SubElement(gazebo_sensor_doorsensor_contact, 'collision')
+        gazebo_sensor_doorsensor_contact_0.text = self.door_panel_link_name + '_collision' + '_collision'
+        
+        gazebo_sensor_doorsensor_plugin = gfg.SubElement(gazebo_sensor_doorsensor, 'plugin')
+        gazebo_sensor_doorsensor_plugin.set('name', 'gazebo_ros_bumper_controller')
+        gazebo_sensor_doorsensor_plugin.set('filename', 'libgazebo_ros_bumper.so')
+        gazebo_sensor_doorsensor_plugin_bumperTopicName = gfg.SubElement(gazebo_sensor_doorsensor_plugin, 'bumperTopicName')
+        gazebo_sensor_doorsensor_plugin_bumperTopicName.text = '/contact_door'
+        gazebo_sensor_doorsensor_plugin_frameName = gfg.SubElement(gazebo_sensor_doorsensor_plugin, 'frameName')
+        gazebo_sensor_doorsensor_plugin_frameName.text = 'contact_door'
+
         # Prettify for writing in a file
         xmlstr = minidom.parseString(gfg.tostring(root)).toprettyxml(indent='\t')
 
@@ -328,6 +369,7 @@ class Cabinet():
         Tz = np.eye(4)
         Tz[:3, :3] = rot_z(angle_rad)
         self.T_A_O = self.T_A_O_init @ Tz
+        return self.T_A_O
 
 
     def spawn_model_gazebo(self):
@@ -361,6 +403,74 @@ class Cabinet():
             rospy.loginfo('URDF model spawned successfully')
         except rospy.ServiceException as e:
             rospy.logerr('Failed to spawn URDF model: %s' % e)
+
+        rospy.sleep(1)
+        success, _ = self.get_model_state_gazebo()
+
+        if not success:
+            self.spawn_model_gazebo()
+
+    def get_model_state_gazebo(self):
+        rospy.wait_for_service('/gazebo/get_model_state')
+
+        try:
+            get_model_state_proxy = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+            # _, pose, _, success, status_msg = get_model_state_proxy(self.cabinet_name, 'world')
+            res = get_model_state_proxy(self.cabinet_name, 'world')
+            # print(status_msg)
+        except rospy.ServiceException as e:
+            rospy.logerr('Failed to get URDF model: %s' % e)
+            return False, None
+
+        # return success, pose
+        return res.success, res.pose
+
+
+    def delete_model_gazebo(self):
+        rospy.wait_for_service('/gazebo/delete_model')
+        try:
+            delete_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
+            _ = delete_model_proxy(self.cabinet_name)
+            rospy.loginfo('URDF deleted successfully')
+        except rospy.ServiceException as e:
+            rospy.logerr('Failed to delete model: %s' % e)
+
+
+    def set_door_state_gazebo(self, joint_value_deg):
+
+        joint_value_rad = np.radians(joint_value_deg)
+
+        rospy.wait_for_service('/gazebo/set_model_configuration')
+
+        try:
+            set_model_configuration = rospy.ServiceProxy('/gazebo/set_model_configuration', SetModelConfiguration)
+
+            req = SetModelConfigurationRequest()
+            req.model_name = self.cabinet_name
+            req.urdf_param_name = 'robot_description'  # Assuming URDF is loaded with the parameter name 'robot_description'
+            req.joint_names = [self.door_joint_name]
+            req.joint_positions = [joint_value_rad]
+
+            _ = set_model_configuration(req)
+            rospy.loginfo(f'Joint {self.door_joint_name} set to {joint_value_rad} for model {self.cabinet_name}')
+        except rospy.ServiceException as e:
+            rospy.logerr(f'Failed to set joint configuration: {e}')
+
+
+    def get_door_state_gazebo(self):
+        rospy.wait_for_service('/gazebo/get_joint_properties')
+
+        try:
+            get_door_state = rospy.ServiceProxy('/gazebo/get_joint_properties', GetJointProperties)
+            # type, damping, position, rate, success, status_msg = get_door_state(self.cabinet_name, 'world')
+            res = get_door_state(self.door_joint_name)
+            print(res.status_message)
+        except rospy.ServiceException as e:
+            rospy.logerr('Failed to get URDF model: %s' % e)
+            return False, None
+
+        return res.success, res.position[0]
+
 
 
     # TEST METHOD
@@ -399,16 +509,6 @@ class Cabinet():
             rospy.loginfo('URDF model spawned successfully')
         except rospy.ServiceException as e:
             rospy.logerr('Failed to spawn URDF model: %s' % e)
-
-    def delete_model_gazebo(self):
-        rospy.wait_for_service('/gazebo/delete_model')
-        try:
-            spawn_urdf_model_proxy = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
-            _ = spawn_urdf_model_proxy(self.cabinet_name)
-            rospy.loginfo('URDF deleted successfully')
-        except rospy.ServiceException as e:
-            rospy.logerr('Failed to delete model: %s' % e)
-
     # TEST METHOD
     def delete_model_gazebo_sphere(self):
         rospy.wait_for_service('/gazebo/delete_model')
@@ -427,35 +527,6 @@ class Cabinet():
         except rospy.ServiceException as e:
             rospy.logerr('Failed to delete model: %s' % e)
 
-    def open_door_gazebo(self, joint_value_deg):
-
-        if self.axis_pos < 0:
-            if joint_value_deg < -90.:
-                joint_value_deg = -90.
-            elif joint_value_deg > 0.:
-                joint_value_deg = -0.
-        else:
-            if joint_value_deg < 0.:
-                joint_value_deg = 0.
-            elif joint_value_deg > 90.:
-                joint_value_deg = 90.
-        joint_value_rad = np.radians(joint_value_deg)
-
-        rospy.wait_for_service('/gazebo/set_model_configuration')
-
-        try:
-            set_model_configuration = rospy.ServiceProxy('/gazebo/set_model_configuration', SetModelConfiguration)
-
-            req = SetModelConfigurationRequest()
-            req.model_name = self.cabinet_name
-            req.urdf_param_name = 'robot_description'  # Assuming URDF is loaded with the parameter name 'robot_description'
-            req.joint_names = [self.door_joint_name]
-            req.joint_positions = [joint_value_rad]
-
-            _ = set_model_configuration(req)
-            rospy.loginfo(f'Joint {self.door_joint_name} set to {joint_value_rad} for model {self.cabinet_name}')
-        except rospy.ServiceException as e:
-            rospy.logerr(f'Failed to set joint configuration: {e}')
 
 
     # def get_gripper_pose_from_feasible_pose(self, T_F_D: np.ndarray, TX0: np.ndarray, TB0: np.ndarray):
@@ -507,16 +578,17 @@ class Cabinet():
                                                              height=self.h_door,
                                                              depth=self.d_door)
 
-        # if self.axis_pos == 1:
-        self.dd_plate_mesh.translate((0.0, 0.0, -self.d_door))
-        # else:
-        #     self.dd_plate_mesh.translate((-self.w_door, 0.0, -self.d_door))
+        if self.axis_pos == 1:
+            self.dd_plate_mesh.translate((0.0, 0.0, -self.d_door))
+        else:
+            self.dd_plate_mesh.translate((-self.w_door, 0.0, -self.d_door))
 
         self.dd_plate_mesh.transform(self.T_A_O @ self.T_D_A)
         self.dd_plate_mesh.paint_uniform_color([0.7, 0.7, 0.7])
         self.dd_plate_mesh.compute_vertex_normals()
 
         dd_mesh = self.dd_static_mesh + self.dd_plate_mesh
+        # dd_mesh = self.dd_static_mesh
 
         return dd_mesh
 
@@ -540,7 +612,7 @@ class Cabinet():
     def visualize(self, T_G_S: np.ndarray=None):
 
         geometries = [self.mesh]
-        
+
         self.mesh.transform(self.T_O_S)
 
         origin_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
@@ -576,13 +648,18 @@ class Cabinet():
             geometries.append(gripper_pose_mesh)
 
 
+        A_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
+        A_frame.transform(self.T_A_S)
+        geometries.append(A_frame)
+
         # o3d.visualization.draw_geometries([origin_frame, self.mesh, axis_mesh, point_panel_mesh, topleft_mesh])
         o3d.visualization.draw_geometries(geometries)
 
         pass
 
 
-    def generate_opening_passing_poses(self, T_G0_D0: np.ndarray, max_angle_deg: float=70., num_poses: int=10):
+    def generate_opening_poses(self, T_G0_D0: np.ndarray, max_angle_deg: float=70., num_poses: int=10) -> list: 
+        
         current_angle_deg = self.current_angle_state_deg
 
         opening_angles = np.linspace(current_angle_deg, max_angle_deg, num=num_poses)
@@ -613,12 +690,19 @@ class Cabinet():
         return pose
 
 if __name__ == '__main__':
-    door_params = np.array([0.3, 0.5, 0.018, 0.4])
-    cabinet_model = Cabinet(door_params, axis_pos=-1, position=np.array([-0.5, 0.15, door_params[1]/2 + 0.018 + 0.01]), rotz_deg=0, save_path=None)
-    cabinet_model.change_door_angle(12)
+    door_params = np.array([0.396, 0.496, 0.018, 0.4])
+
+    T_A_S = np.eye(4)
+    T_A_S[:3, 3] = np.array([-0.2, -0.6, door_params[1]*0.5+0.009])
+
+    cabinet_model = Cabinet(door_params, axis_pos=-1, T_A_S=T_A_S, save_path=None)
+    cabinet_model.change_door_angle(0)
     cabinet_model.update_mesh()
     # cabinet_model.get_gripper_pose_from_feasible_pose(np.eye(4))
 
     cabinet_model.visualize(None)
+
+
+
 
     print('Done')

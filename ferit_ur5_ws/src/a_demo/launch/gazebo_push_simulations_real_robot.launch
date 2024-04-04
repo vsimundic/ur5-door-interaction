@@ -1,0 +1,4 @@
+<launch>
+        
+    <node name="node_push_simulation_real_robot" pkg="push_simulation" type="push_simulations_real_robot.py" output="screen"/>
+</launch>

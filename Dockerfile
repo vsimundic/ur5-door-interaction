@@ -142,7 +142,7 @@ RUN apt-get update
 RUN apt-get update
 RUN apt-get install -y lsb-release
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-RUN apt install curl
+RUN apt install -y curl
 RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
 RUN apt update
 RUN apt install -y ros-noetic-desktop-full
@@ -194,3 +194,4 @@ RUN pip3 install pytransform3d
 
 ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/modules/RVLPY"
 ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/python"
+ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/ferit_ur5_ws/src/core/src"

@@ -104,6 +104,12 @@ DDManipulator::DDManipulator()
     nodes.Element = NULL;
     graph.NodeMem = NULL;
     rndIdx.Element = NULL;
+    posCostMaxDist = 0.03f;
+    wPos = 1000.0f;
+    pathPosesMem = NULL;
+    pathJointsMem = NULL;
+    pathMem = NULL;
+    pathMemJoints = NULL;
 
     // Constants.
 
@@ -292,6 +298,7 @@ void DDManipulator::CreateParamList()
     pParamData = paramList.AddParam("DDM.tool.PRTCP.y", RVLPARAM_TYPE_FLOAT, PRTCP_G + 1);
     pParamData = paramList.AddParam("DDM.tool.PRTCP.z", RVLPARAM_TYPE_FLOAT, PRTCP_G + 2);
     pParamData = paramList.AddParam("DDM.dd.openingDirection", RVLPARAM_TYPE_FLOAT, &dd_opening_direction);
+    pParamData = paramList.AddParam("DDM.wPos", RVLPARAM_TYPE_FLOAT, &wPos);
     pParamData = paramList.AddParam("DDM.lock_T_G_DD", RVLPARAM_TYPE_BOOL, &bLock_T_G_DD);
     pParamData = paramList.AddParam("DDM.log", RVLPARAM_TYPE_BOOL, &bLog);
 }
@@ -321,6 +328,10 @@ void DDManipulator::Clear()
     RVL_DELETE_ARRAY(feasibleToolContactPosesFileName);
     RVL_DELETE_ARRAY(contactPoseGraphFileName);
     RVL_DELETE_ARRAY(toolModelDir);
+    RVL_DELETE_ARRAY(pathPosesMem);
+    RVL_DELETE_ARRAY(pathJointsMem);
+    RVL_DELETE_ARRAY(pathMem);
+    RVL_DELETE_ARRAY(pathMemJoints);
 }
 
 void DDManipulator::SetEnvironmentState(float state)
@@ -1126,8 +1137,12 @@ void DDManipulator::Path(Pose3D* pPose_G_S_init)
 
 bool DDManipulator::Path2(
     float* qInit,
+    float endDoorState,
+    int nStates,
     Array<Pose3D> &poses_G_0,
-    Array2D<float> &robotJoints)
+    Array2D<float> &robotJoints,
+    Array<Array<Pose3D>>* pFeasiblePaths,
+    Array<Array2D<float>>* pFeasiblePathsJoints)
 {
 #ifdef RVLDDMANIPULATOR_TIME_MESUREMENT
     if (pTimer)
@@ -1137,10 +1152,7 @@ bool DDManipulator::Path2(
     // Parameters.
 
     float startDoorState = RAD2DEG * dd_state_angle;    // deg
-    float endDoorState = dd_opening_direction * 90.0f;     // deg
-    int nStates = 17;
     int maxnNodes = 10000;
-    float wPos = 100.0f;
     //float endDoorState = 10.0f;     // deg
     //int nStates = 1;
 
@@ -1234,20 +1246,19 @@ bool DDManipulator::Path2(
     float cost;
     float minCost = 0.0f;
     int iMinCostNeighbor;
-    int* pathMem = new int[2 * nodes.n * nStates];
+    int* pathMem_ = new int[2 * nodes.n * nStates];
     int iSelectedNode;
     for (iSelectedNode = 0; iSelectedNode < selectedNodes.n; iSelectedNode++)
     {
         iNode = selectedNodes.Element[iSelectedNode];
         pData = pNodeData + iNode;
-        pData->path = pathMem + nStates * iNode;
+        pData->path = pathMem_ + nStates * iNode;
         pData->bFeasible = false;
         pData_ = pPrevNodeData + iNode;
-        pData_->path = pathMem + nStates * (nodes.n + iNode);        
+        pData_->path = pathMem_ + nStates * (nodes.n + iNode);        
         pData_->bFeasible = false;
     }
     int iState;
-    int iPath;
     Array<float> doorStates;
     doorStates.n = nStates;
     doorStates.Element = new float[nStates];    // For visualization prupose.    
@@ -1280,6 +1291,7 @@ bool DDManipulator::Path2(
     candidateNodes.Element = new int[selectedNodes.n];
     bool* bCandidate = new bool[nodes.n];
     int iCandidateNode;
+    int iFeasibleNode_;
     for(iState = 0; iState < nStates; iState++)
     {
         printf(".");
@@ -1494,6 +1506,8 @@ bool DDManipulator::Path2(
                             pData_ = pPrevNodeData + iNode_;
                             if (pData_->bFeasible)
                             {
+                                //if (iNode_ == 6544)
+                                //    int debug = 0;
                                 RVLMOTION_JOINT_SPACE_DIST(pData->q, pData_->q, dq, dCost, i);
                                 cost = dCost + pData_->cost;
                                 if (cost < minCost || iMinCostNeighbor < 0)
@@ -1523,6 +1537,15 @@ bool DDManipulator::Path2(
         }
         if (!bPath)
             break;
+        iFeasibleNode_ = 0;
+        for (iFeasibleNode = 0; iFeasibleNode < feasibleNodes.n; iFeasibleNode++)
+        {
+            iNode = feasibleNodes.Element[iFeasibleNode];
+            pData = pNodeData + iNode;
+            if (pData->bFeasible)
+                feasibleNodes.Element[iFeasibleNode_++] = iNode;
+        }
+        feasibleNodes.n = iFeasibleNode_;
         for (iFeasibleNode = 0; iFeasibleNode < feasibleNodesPrev.n; iFeasibleNode++)
         {
             iNode = feasibleNodesPrev.Element[iFeasibleNode];
@@ -1573,116 +1596,177 @@ bool DDManipulator::Path2(
     {
         /// Copy the resulting path to the output format.
 
-        pData = pPrevNodeData + iBestEndNode;
+        int maxnPathPoints = nStates + 3;
+        int maxnPathPointsTotal = feasibleNodes.n * maxnPathPoints;
+        if (pFeasiblePaths)
+        {
+            RVL_DELETE_ARRAY(pathPosesMem);
+            pathPosesMem = new Pose3D[maxnPathPointsTotal];
+            RVL_DELETE_ARRAY(pathMem);
+            pathMem = new Array<Pose3D>[feasibleNodes.n];
+            pFeasiblePaths->n = feasibleNodes.n;
+            pFeasiblePaths->Element = pathMem;
+        }
+        if (pFeasiblePathsJoints)
+        {
+            RVL_DELETE_ARRAY(pathJointsMem);
+            pathJointsMem = new float[robot.n * maxnPathPointsTotal];
+            RVL_DELETE_ARRAY(pathMemJoints);
+            pathMemJoints = new Array2D<float>[feasibleNodes.n];
+            pFeasiblePathsJoints->n = feasibleNodes.n;
+            pFeasiblePathsJoints->Element = pathMemJoints;
+        }
+
         std::vector<Node> pathNodes;
         std::vector<int> path_;
         Array<float> doorStates_;
-        doorStates_.Element = new float[nStates + 3];
+        doorStates_.Element = new float[maxnPathPoints];
         robotJoints.w = robot.n;
-        robotJoints.Element = new float[robotJoints.w * (nStates + 3)];
+        robotJoints.Element = new float[robotJoints.w * maxnPathPoints];
         Node node;
         float* q = robotJoints.Element;
+        Array<Pose3D>* pPath;
+        Array2D<float>* pPathJoints;
+        int iLastNode;
 
-        // Home pose.
-
-        memcpy(robotJoints.Element, qInit, robot.n * sizeof(float));
-        memcpy(robot.q, qInit, robot.n * sizeof(float));
-        robot.FwdKinematics();
-        Pose3D* pPose_n_0 = robot.link_pose + robot.n - 1;
-        RVLCOMPTRANSF3D(pPose_n_0->R, pPose_n_0->t, robot.pose_TCP_6.R, robot.pose_TCP_6.t, pose_G_0.R, pose_G_0.t);
-        node.pose.pose = pose_G_0;
-        pathNodes.push_back(node);
-        path_.push_back(0);
-        doorStates_.Element[0] = startDoorState;
-
-        // Approach path.
-
-        iNode = pData->path[0];
-        pNode = nodes.Element + iNode;
-        SetEnvironmentState(startDoorState);
-        RVLCOMPTRANSF3DWITHINV(robot.pose_0_W.R, robot.pose_0_W.t, pose_DD_S.R, pose_DD_S.t, pose_DD_0.R, pose_DD_0.t, V3Tmp);
-        RVLCOMPTRANSF3D(pose_DD_0.R, pose_DD_0.t, pNode->pose.pose.R, pNode->pose.pose.t, pose_G_0.R, pose_G_0.t);
-        ApproachPath(&pose_G_0, poses_G_0_via, SDF);
-        //poses_G_0_via.n = 0;    // Only for debugging purpose!!!
-        int iState_;
-        for (i = 0; i < poses_G_0_via.n; i++)
+        for (int iPath = 0; iPath < feasibleNodes.n; iPath++)
         {
-            iState_ = i + 1;
-            pose_G_0 = poses_G_0_via.Element[poses_G_0_via.n - i - 1];
-            q = robotJoints.Element + robotJoints.w * iState_;
-            robot.InvKinematics(pose_G_0, q);
+            iLastNode = feasibleNodes.Element[iPath];
+            if (pFeasiblePaths == NULL && pFeasiblePathsJoints == NULL && iLastNode != iBestEndNode)
+                continue;
+            pData = pPrevNodeData + iLastNode;
+
+            // Home pose.
+
+            memcpy(robotJoints.Element, qInit, robot.n * sizeof(float));
+            memcpy(robot.q, qInit, robot.n * sizeof(float));
+            robot.FwdKinematics();
+            Pose3D* pPose_n_0 = robot.link_pose + robot.n - 1;
+            RVLCOMPTRANSF3D(pPose_n_0->R, pPose_n_0->t, robot.pose_TCP_6.R, robot.pose_TCP_6.t, pose_G_0.R, pose_G_0.t);
             node.pose.pose = pose_G_0;
+            node.PRTCP[0] = node.PRTCP[1] = 0.0f;      // Only for debugging purpose.
             pathNodes.push_back(node);
-            path_.push_back(iState_);
-            doorStates_.Element[iState_] = startDoorState;
-        }
-        doorStates_.n = nStates + poses_G_0_via.n + 1;
-        robotJoints.h = doorStates_.n;
+            path_.push_back(0);
+            doorStates_.Element[0] = startDoorState;
 
-        // Door openning path.
+            // Approach path.
 
-        int nApproachStates = poses_G_0_via.n + 1;
-        for (iState = 0; iState < nStates; iState++)
-        {
-            iState_ = iState + nApproachStates;
-            iNode = pData->path[iState];
+            iNode = pData->path[0];
             pNode = nodes.Element + iNode;
-            SetEnvironmentState(doorStates.Element[iState]);
+            SetEnvironmentState(startDoorState);
             RVLCOMPTRANSF3DWITHINV(robot.pose_0_W.R, robot.pose_0_W.t, pose_DD_S.R, pose_DD_S.t, pose_DD_0.R, pose_DD_0.t, V3Tmp);
             RVLCOMPTRANSF3D(pose_DD_0.R, pose_DD_0.t, pNode->pose.pose.R, pNode->pose.pose.t, pose_G_0.R, pose_G_0.t);
-            q = robotJoints.Element + robotJoints.w * iState_;
-            robot.InvKinematics(pose_G_0, q);
+            ApproachPath(&pose_G_0, poses_G_0_via, SDF);
+            //poses_G_0_via.n = 0;    // Only for debugging purpose!!!
+            int iState_;
+            for (i = 0; i < poses_G_0_via.n; i++)
+            {
+                iState_ = i + 1;
+                pose_G_0 = poses_G_0_via.Element[poses_G_0_via.n - i - 1];
+                q = robotJoints.Element + robotJoints.w * iState_;
+                robot.InvKinematics(pose_G_0, q);
+                node.pose.pose = pose_G_0;
+                node.PRTCP[0] = node.PRTCP[1] = 0.0f;      // Only for debugging purpose.
+                pathNodes.push_back(node);
+                path_.push_back(iState_);
+                doorStates_.Element[iState_] = startDoorState;
+            }
+            doorStates_.n = nStates + poses_G_0_via.n + 1;
+            robotJoints.h = doorStates_.n;
 
-            // Only for debugging purpose!!!
+            // Door openning path.
 
-            //Pose3D pose_6_0;
-            //pose_6_0 = robot.link_pose[5];
-            //memcpy(robot.q, q, robot.n * sizeof(float));
-            //robot.FwdKinematics();
-
-            //
-
-            node.pose.pose = pose_G_0;
-            pathNodes.push_back(node);
-            path_.push_back(iState_);
-            doorStates_.Element[iState_] = doorStates.Element[iState];
-        }
-
-        poses_G_0.n = pathNodes.size();
-        poses_G_0.Element = new Pose3D[poses_G_0.n];
-        for (iNode = 0; iNode < poses_G_0.n; iNode++)
-            poses_G_0.Element[iNode] = pathNodes[iNode].pose.pose;
-
-        ///
-
-#ifdef RVLDDMANIPULATOR_TIME_MESUREMENT
-        double pathPalnningTime;
-        if (pTimer)
-        {
-            pTimer->Stop();
-            pathPalnningTime = pTimer->GetTime();
-            printf("Path planned in %lf s.\n", 0.001 * pathPalnningTime);
-        }
-#endif
-
-        // Visualization.
-
-        if (pVisualizationData->bVisualize)
-            Visualize(&pathNodes, &path_, doorStates_, true, false, -1, &robotJoints);
-        //pVisualizationData->pVisualizer->Run();
-
-        // Write results to a file.
-
-        if (bLog && resultsFolder)
-        {
-            FILE* fpLog = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "path.txt").data(), "w");
+            int nApproachStates = poses_G_0_via.n + 1;
             for (iState = 0; iState < nStates; iState++)
             {
+                iState_ = iState + nApproachStates;
                 iNode = pData->path[iState];
-                fprintf(fpLog, "%d ", iNode);
+                pNode = nodes.Element + iNode;
+                SetEnvironmentState(doorStates.Element[iState]);
+                RVLCOMPTRANSF3DWITHINV(robot.pose_0_W.R, robot.pose_0_W.t, pose_DD_S.R, pose_DD_S.t, pose_DD_0.R, pose_DD_0.t, V3Tmp);
+                RVLCOMPTRANSF3D(pose_DD_0.R, pose_DD_0.t, pNode->pose.pose.R, pNode->pose.pose.t, pose_G_0.R, pose_G_0.t);
+                q = robotJoints.Element + robotJoints.w * iState_;
+                robot.InvKinematics(pose_G_0, q);
+
+                // Only for debugging purpose!!!
+
+                //Pose3D pose_6_0;
+                //pose_6_0 = robot.link_pose[5];
+                //memcpy(robot.q, q, robot.n * sizeof(float));
+                //robot.FwdKinematics();
+
+                //
+
+                node.pose.pose = pose_G_0;
+                node.PRTCP[0] = pNode->PRTCP[0]; node.PRTCP[1] = pNode->PRTCP[1];   // Only for debugging purpose.
+                pathNodes.push_back(node);
+                path_.push_back(iState_);
+                doorStates_.Element[iState_] = doorStates.Element[iState];
             }
-            fprintf(fpLog, "\n");
-            fclose(fpLog);
+
+            if (iLastNode == iBestEndNode)
+            {
+                poses_G_0.n = pathNodes.size();
+                poses_G_0.Element = new Pose3D[poses_G_0.n];
+                for (iNode = 0; iNode < poses_G_0.n; iNode++)
+                    poses_G_0.Element[iNode] = pathNodes[iNode].pose.pose;
+            }
+
+            if (pFeasiblePaths)
+            {
+                pPath = pFeasiblePaths->Element + iPath;
+                pPath->n = pathNodes.size();
+                pPath->Element = pathPosesMem + maxnPathPoints * iPath;
+                for (iNode = 0; iNode < pPath->n; iNode++)
+                    pPath->Element[iNode] = pathNodes[iNode].pose.pose;
+            }
+
+            if (pFeasiblePathsJoints)
+            {
+                pPathJoints = pFeasiblePathsJoints->Element + iPath;
+                pPathJoints->w = robotJoints.w;
+                pPathJoints->h = robotJoints.h;
+                pPathJoints->Element = pathJointsMem + maxnPathPoints * robotJoints.w * iPath;
+                memcpy(pPathJoints->Element, robotJoints.Element, robotJoints.h * robotJoints.w * sizeof(float));
+            }
+
+            ///
+
+#ifdef RVLDDMANIPULATOR_TIME_MESUREMENT
+            double pathPalnningTime;
+            if (pTimer)
+            {
+                pTimer->Stop();
+                pathPalnningTime = pTimer->GetTime();
+                printf("Path planned in %lf s.\n", 0.001 * pathPalnningTime);
+            }
+#endif
+
+            if (iLastNode == iBestEndNode)
+            {
+                // Visualization.
+
+                if (pVisualizationData->bVisualize)
+                    Visualize(&pathNodes, &path_, doorStates_, true, false, -1, &robotJoints);
+                //pVisualizationData->pVisualizer->Run();
+
+                // Write results to a file.
+
+                if (bLog && resultsFolder)
+                {
+                    FILE* fpLog = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "path.txt").data(), "w");
+                    for (iState = 0; iState < nStates; iState++)
+                    {
+                        iNode = pData->path[iState];
+                        fprintf(fpLog, "%d ", iNode);
+                    }
+                    fprintf(fpLog, "\n");
+                    fclose(fpLog);
+                }
+            }
+
+            pathNodes.clear();
+            path_.clear();
         }
 
         delete[] doorStates_.Element;
@@ -1696,7 +1780,7 @@ bool DDManipulator::Path2(
     //
 
     delete[] nodeDataMem;
-    delete[] pathMem;
+    delete[] pathMem_;
     delete[] doorStates.Element;
     delete[] feasibleNodeMem;
     delete[] SDF;
@@ -2468,8 +2552,10 @@ void DDManipulator::Visualize(
         {
             SetEnvironmentState(doorStates.Element[iState]);
             doorPanelActor = VisualizeDoorPenel();
-            VisualizeTool(pNodes->at(pPath->at(iState)).pose.pose, &(pVisualizationData->toolActors));
+            MOTION::Node* pNode = pNodes->data() + pPath->at(iState);
+            VisualizeTool(pNode->pose.pose, &(pVisualizationData->toolActors));
             robotActor = VisualizeRobot(pRobotJoints->Element + pRobotJoints->w * iState);
+            printf("distance to the door panel edge: x=%f, y=%f\n", pNode->PRTCP[0], pNode->PRTCP[1]);     // Only for debugging purpose.
             pVisualizer->Run();
             pVisualizer->renderer->RemoveViewProp(doorPanelActor);
             for (iToolActor = 0; iToolActor < pVisualizationData->toolActors.size(); iToolActor++)

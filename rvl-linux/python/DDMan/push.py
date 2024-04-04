@@ -155,10 +155,14 @@ class push():
             dcs_vertices_in[1,1] = vision_tolerance
             dcs_vertices_in[3,0] = vision_tolerance
             dcs_vertices_out = dcs_vertices.copy()
-            dcs_vertices_out[0,0] = -vision_tolerance
-            dcs_vertices_out[0,1] = -vision_tolerance
-            dcs_vertices_out[1,1] = -vision_tolerance
-            dcs_vertices_out[3,0] = -vision_tolerance
+            # dcs_vertices_out[0,0] = -vision_tolerance
+            # dcs_vertices_out[0,1] = -vision_tolerance
+            # dcs_vertices_out[1,1] = -vision_tolerance
+            # dcs_vertices_out[3,0] = -vision_tolerance
+            dcs_vertices_out[0,0] = 0.
+            dcs_vertices_out[0,1] = 0.
+            dcs_vertices_out[1,1] = 0.
+            dcs_vertices_out[3,0] = 0.
         else:
             dcs_vertices = np.array([[0.0, 0.0, 0.0], [0.0, self.dd.dd_contact_surface_params[1], 0.0],
                 [-self.dd.dd_contact_surface_params[0], self.dd.dd_contact_surface_params[1], 0.0], 
@@ -169,10 +173,14 @@ class push():
             dcs_vertices_in[1,0] = -vision_tolerance
             dcs_vertices_in[3,1] = vision_tolerance
             dcs_vertices_out = dcs_vertices.copy()
-            dcs_vertices_out[0,0] = vision_tolerance
-            dcs_vertices_out[0,1] = -vision_tolerance
-            dcs_vertices_out[1,0] = vision_tolerance
-            dcs_vertices_out[3,1] = -vision_tolerance
+            # dcs_vertices_out[0,0] = vision_tolerance
+            # dcs_vertices_out[0,1] = -vision_tolerance
+            # dcs_vertices_out[1,0] = vision_tolerance
+            # dcs_vertices_out[3,1] = -vision_tolerance
+            dcs_vertices_out[0,0] = 0.
+            dcs_vertices_out[0,1] = 0.
+            dcs_vertices_out[1,0] = 0.
+            dcs_vertices_out[3,1] = 0.
         dcs_triangles = np.array([[0, 3, 1], [1, 3, 2], [0, 1, 3], [1, 2, 3]]).astype(np.int32)
 
         # Transform TCS to the DCS reference frame (RF).
@@ -308,14 +316,15 @@ class push():
         T_TCS_DD = np.eye(4)
         T_TCS_DD[:3,:3] = R
         T_TCS_DD[:3,3] = contact_point
-        T_TCS_DD[2,3] -= z
-        T_TCS_DD[2,3] += sphere_to_TCS_distance
+        T_TCS_DD[2,3] -= z                
         T_G_DD = T_TCS_DD @ T_G_TCS      
         c_G = rvl.homogeneous(self.tool.tool_sample_spheres[self.tool.tool_sample_spheres_contact,:3])
         c_DD = T_G_DD @ c_G[:,:,np.newaxis]
         e = (c_DD[:,2] - self.tool.tool_sample_spheres[self.tool.tool_sample_spheres_contact,3]).min()
-        if e < 0.0:
-            T_G_DD[2,3] -= e
+        # print(-e+0.001)
+        # if e < 0.0:
+        #     T_G_DD[2,3] -= e
+        T_G_DD[2,3] += 0.006
         return T_G_DD
 
     def path(self, push_poses, init_pose):
@@ -615,7 +624,8 @@ class tool_model():
         else:
             with open(self.custom_gripper_spheres_path, 'rb') as f:
                 self.tool_sample_spheres = np.array(np.load(f))
-            self.tool_sample_spheres_contact = np.arange(17,23)
+            # self.tool_sample_spheres_contact = np.arange(17,23)
+            self.tool_sample_spheres_contact = np.arange(15,25)
             
             self.tool_sample_spheres /= 1000.
 
@@ -874,7 +884,7 @@ def demo_vn():
 def demo_push_poses():
     # Parameters.
   
-    dd_state_deg = 12.0
+    dd_state_deg = 7.0
     num_viewpoints = 100
     num_rot_angles = 12
     load_valid_contact_poses_from_file = False
@@ -892,14 +902,18 @@ def demo_push_poses():
         sphere_to_TCS_distance = 0.
     else:
         # Simundic
-        custom_gripper_spheres_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/gripper_spheres.npy'
-        custom_gripper_model_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/robotiq_3f_gripper_simplified.stl'
+        # custom_gripper_spheres_path = '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/gripper_spheres.npy'
+        custom_gripper_spheres_path = '/home/RVLuser/rvl-linux/data/Robotiq3Finger/spheres.npy'
+        custom_gripper_model_path = '/home/RVLuser/rvl-linux/data/Robotiq3Finger/robotiq_3f_gripper_simplified.stl'
         # END: Simundic
         # custom_gripper_spheres_path = '3finger_gripper/gripper_spheres.npy'
         # custom_gripper_model_path = '3finger_gripper/robotiq_3f_gripper_simplified.stl'
         
-        tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025], [0.006, -0.026, 0.0]])
+        # tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.031, -0.025], [0.006, -0.026, 0.0]])
+        # tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
+        tool_contact_surface_params = np.array([[0.0, -0.026, 0.0], [0.0, -0.030, -0.020], [0.006, -0.026, 0.0]])
         tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
+        # tool_finger_distances = [-0.155/2., 0., -0.102] # x, y, z
         sphere_to_TCS_distance = 0.004609
 
     gripper_params = {'is_default_gripper': use_default_gripper,
@@ -955,11 +969,13 @@ def demo_push_poses():
     # Feasible poses (no collision with the door/drawer plate).
 
     if load_feasible_poses_from_file:
-        feasible_poses = np.load('feasible_poses.npy')
+        # feasible_poses = np.load('feasible_poses.npy')
+        feasible_poses = np.load('/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis.npy')
     else:
         collision = push_.collision_detection(valid_contact_poses_, door.vn_dd)
         feasible_poses = valid_contact_poses_[np.logical_not(collision),:]
-        np.save('feasible_poses', feasible_poses)
+        # np.save('feasible_poses', feasible_poses)
+        np.save('/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis.npy', feasible_poses)
 
     # Collision-free poses.
 
@@ -967,24 +983,24 @@ def demo_push_poses():
     collision = push_.collision_detection(T_G_W, door.vn_env)
     contact_free_poses = feasible_poses[np.logical_not(collision),:]
 
-    # Visualization.
+    # # Visualization.
 
-    samples = contact_free_poses
-    # samples = feasible_poses
-    collision_ = np.zeros(samples.shape[0]).astype('bool')
-    for visualization_idx in range(10):
-        print('sample', visualization_idx)
-        good_sample = False
-        while not good_sample:
-            sample_idx = np.random.randint(samples.shape[0])
-            # sample_idx = 0
-            T_G_DD = samples[sample_idx,:,:]
-            p_ref_G = np.ones(4)
-            p_ref_G[:3] = -np.array([tool_finger_distances])
-            p_ref_DD = T_G_DD @ p_ref_G
-            good_sample = (p_ref_DD[0] < 0.0 or p_ref_DD[1] < 0.0)
-        dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
-        o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
+    # samples = contact_free_poses
+    # # samples = feasible_poses
+    # collision_ = np.zeros(samples.shape[0]).astype('bool')
+    # for visualization_idx in range(10):
+    #     print('sample', visualization_idx)
+    #     good_sample = False
+    #     while not good_sample:
+    #         sample_idx = np.random.randint(samples.shape[0])
+    #         # sample_idx = 0
+    #         T_G_DD = samples[sample_idx,:,:]
+    #         p_ref_G = np.ones(4)
+    #         p_ref_G[:3] = -np.array([tool_finger_distances])
+    #         p_ref_DD = T_G_DD @ p_ref_G
+    #         good_sample = (p_ref_DD[0] < 0.0 or p_ref_DD[1] < 0.0)
+    #     dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision_[sample_idx], door, tool, T_G_DD)
+    #     o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
 
 
 def demo_push_poses_ros(door_dims: np.array,

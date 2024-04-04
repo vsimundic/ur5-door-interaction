@@ -11,6 +11,6 @@
         args="--config_pkg=ur5_robotiq_ft_3f_moveit_config"
         launch-prefix="$(arg launch_prefix)"
         required="true"
-        output="screen" />
+        output="log" />
 
 </launch>

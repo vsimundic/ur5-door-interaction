@@ -4,7 +4,7 @@ import rospy
 import os
 import rospkg
 
-from core.read_config import read_config
+from core.util import read_config
 from core.ur5_commander import UR5Commander
 from core.rvl import RVLRGBD2PLY
 from gazebo_push_open.cabinet_model import Cabinet
@@ -93,7 +93,8 @@ if __name__ == '__main__':
 	T_A_0_[:3, 3] = t_G_0_0
 
 	T_Aa_A = np.eye(4)
-	z_ = (t_G_0_0[2]-0.01)/2.
+	# z_ = (t_G_0_0[2]-0.025)/2.
+	z_ = (t_G_0_0[2])/2.
 	T_Aa_A[:3, 3] = np.array([0.018/2., 0., -z_])
 
 	T_A_0 = T_A_0_ @ T_Aa_A
@@ -134,7 +135,7 @@ if __name__ == '__main__':
 
 	q_init = robot.get_current_joint_values()
 
-	np.save(save_path + 'q_init.npy', np.array(q_init))
+	# np.save(save_path + 'q_init.npy', np.array(q_init))
 
 	# q0 = robot.get_inverse_kin(q_init, T_Tpt0_0)
 	# q1 = robot.get_inverse_kin(q0, T_Tpt_0)
@@ -166,7 +167,7 @@ if __name__ == '__main__':
 	path_planner = rvlpy_dd_man.PYDDManipulator()
 	path_planner.create(config['rvl_config_path'])
 	path_planner.load_tool_model(config['tool_model_params'])
-	path_planner.set_environment_state(-8.0)
+	path_planner.set_environment_state(-7.5)
 	path_planner.load_feasible_tool_contact_poses(feasible_poses_args['feasible_poses_path'])
 	path_planner.set_robot_pose(np.eye(4))
 	path_planner.set_door_model_params(
@@ -190,7 +191,8 @@ if __name__ == '__main__':
 	q_init[q_init<-np.pi]+=(2.0*np.pi)
 	# q_init[0, :] = robot.joint_values_init
 
-	T_G_0_array, q = path_planner.path2(np.array(q_init))
+	# T_G_0_array, q = path_planner.path2(np.array(q_init))
+	T_G_0_array, q = path_planner.path2(np.array(q_init), -90.0, 17, False)
 
 	if T_G_0_array.shape[0] == 1:
 		print('Path is not found!')
@@ -223,7 +225,7 @@ if __name__ == '__main__':
 	q[q<-np.pi]+=(2.0*np.pi)
 	# q[0, :] = q_init
 
-	np.save(save_path +'q.npy', q)
+	# np.save(save_path +'q.npy', q)
 	# q = np.load(save_path +'q.npy')
 
 

@@ -35,9 +35,9 @@ using namespace RVL;
 void CreateParamList(
     CRVLParameterList* pParamList,
     CRVLMem* pMem,
-    char** pFeasibleToolContactPosesFileName,
-    char ** pToolModelDir,
     float &dd_state_angle_deg,
+    float &dd_end_state_angle_deg,
+    int &nStates,
     float *qHome,
     float *t_A_S,
     float &rotz_A_S,
@@ -47,9 +47,9 @@ void CreateParamList(
     RVLPARAM_DATA* pParamData;
     pParamList->Init();
 
-    pParamData = pParamList->AddParam("FeasibleToolContactPosesFileName", RVLPARAM_TYPE_STRING, pFeasibleToolContactPosesFileName);
-    pParamData = pParamList->AddParam("ToolModelDirectory", RVLPARAM_TYPE_STRING, pToolModelDir);
     pParamData = pParamList->AddParam("DoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_state_angle_deg);
+    pParamData = pParamList->AddParam("EndDoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_end_state_angle_deg);
+    pParamData = pParamList->AddParam("nStates", RVLPARAM_TYPE_INT, &nStates);
     pParamData = pParamList->AddParam("Robot.home.q1", RVLPARAM_TYPE_FLOAT, qHome);
     pParamData = pParamList->AddParam("Robot.home.q2", RVLPARAM_TYPE_FLOAT, qHome + 1);
     pParamData = pParamList->AddParam("Robot.home.q3", RVLPARAM_TYPE_FLOAT, qHome + 2);
@@ -415,9 +415,9 @@ int main(int argc, char** argv)
     if (cfgFileName == NULL)
         return 1;
     printf("Configuration file: %s\n", cfgFileName);
-    char* feasibleToolContactPosesFileName = NULL;
-    char* toolModelDir = NULL;
     float dd_state_angle_deg = 10.0f;
+    float dd_end_state_angle_deg = 90.0f;
+    int nStates = 17;
     CRVLParameterList ParamList;
     char* resultsFolder = NULL;
     float qHome[6];
@@ -426,9 +426,9 @@ int main(int argc, char** argv)
     float rotz_A_S_deg = 0.0;
     CreateParamList(&ParamList,
         &mem0,
-        &feasibleToolContactPosesFileName,
-        &toolModelDir,
         dd_state_angle_deg,
+        dd_end_state_angle_deg,
+        nStates,
         qHome,
         pose_A_S.t,
         rotz_A_S_deg,
@@ -455,19 +455,6 @@ int main(int argc, char** argv)
     manipulator.InitVisualizer(&visualizer);
     manipulator.resultsFolder = resultsFolder;
     manipulator.pTimer = new CRVLTimer;
-
-    // Tool model.
-
-    if (toolModelDir)
-        manipulator.LoadToolModel(toolModelDir);
-  
-    // Door state.
-    
-    manipulator.SetEnvironmentState(dd_state_angle_deg);
-
-    // Load feasible tool contact poses.
-
-    manipulator.LoadFeasibleToolContactPoses(feasibleToolContactPosesFileName);
 
     // Test Solver.
 
@@ -534,6 +521,8 @@ int main(int argc, char** argv)
     // Set door parameters.
 
     manipulator.SetDoorModelParams(0.018f, 0.396f, 0.496f, 0.0f, -0.5f * 0.396f, -1.0f, 0.018f, 0.005f);
+    //manipulator.pVNEnv->Display(&visualizer, 0.02f, manipulator.dVNEnv);
+    //visualizer.Run();
 
     // Set door pose. (Furniture pose is computed from the door pose.)
 
@@ -543,6 +532,13 @@ int main(int argc, char** argv)
     RVLROTZ(cs, sn, pose_A_S.R);
     manipulator.SetDoorPose(pose_A_S);
 
+    // Door state.
+
+    manipulator.SetEnvironmentState(dd_state_angle_deg);
+
+    //manipulator.pVNEnv->Display(&visualizer, 0.02f, manipulator.dVNEnv);
+    //visualizer.Run();
+
     ///
 
     // Path planning.
@@ -551,7 +547,10 @@ int main(int argc, char** argv)
     Array<Pose3D> poses_G_0;
     //manipulator.SetVisualizeVNEnvironmentModel();
     Array2D<float> robotJoints;
-    if (manipulator.Path2(qHomeRad, poses_G_0, robotJoints))
+    Array<Array<Pose3D>> allFeasiblePaths;
+    Array<Array2D<float>> allFeasiblePathsJoints;
+    //if (manipulator.Path2(qHomeRad, poses_G_0, robotJoints))
+    if (manipulator.Path2(qHomeRad, dd_end_state_angle_deg, nStates, poses_G_0, robotJoints, &allFeasiblePaths, &allFeasiblePathsJoints))
         printf("Path is successfully generated.\n");
     else
         printf("Path is not found.\n");
@@ -573,8 +572,6 @@ int main(int argc, char** argv)
 
     //
 
-    delete[] feasibleToolContactPosesFileName;
-    delete[] toolModelDir;
     delete[] resultsFolder;
     RVL_DELETE_ARRAY(poses_G_0.Element);
     RVL_DELETE_ARRAY(robotJoints.Element);
