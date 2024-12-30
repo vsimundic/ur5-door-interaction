@@ -36,8 +36,8 @@ if __name__ == '__main__':
 	robot = UR5Commander()
 
 	T_G_0_vertices = np.zeros((2, 4, 4), dtype=np.float32)
-	T_G_T = np.load(os.path.join(pkg_path, 'config/T_G_T_pen.npy'))
-	T_G_T[:3, 3] = np.array([0., 0., 0.310])
+	T_G_T = np.load(os.path.join(pkg_path, 'config/T_G_T.npy'))
+	T_G_T[:3, 3] = np.array([0., 0., 0.307])
 
 	T_RP_TCP = np.eye(4)
 	T_RP_TCP[:3, 3] = np.array([0.0775, 0., 0.097])
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 		if key == 'p':
 			T_T_0_ = robot.get_current_tool_pose()
 			T_G_0_vertices[i, :, :] = T_T_0_ @ T_G_T
-			np.save(save_path + 'T_T_0_v%d.npy' % i, T_T_0_)
+			np.save(save_path + '/T_T_0_v%d.npy' % i, T_T_0_)
 			i += 1
 
 	T_G_0_vertices[0, :, :] = np.load(save_path + '/T_T_0_v0.npy') @ T_G_T
@@ -138,6 +138,9 @@ if __name__ == '__main__':
 	T_Tpt0_0 = T_A_0 @ T_P0_A @ np.linalg.inv(T_G_T_closed_gripper)
 	T_Tpt_0 = T_A_0 @ T_P_A @ np.linalg.inv(T_G_T_closed_gripper)
 	T_Tpt1_0 = T_A_0 @ T_P1_A @ np.linalg.inv(T_G_T_closed_gripper)
+
+
+	input('Adjust the robot and press any key (and enter): ')
 
 	q_init = robot.get_current_joint_values()
 

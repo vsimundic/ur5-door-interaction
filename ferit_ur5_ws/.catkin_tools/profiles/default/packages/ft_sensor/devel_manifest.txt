@@ -1,0 +1,5 @@
+cosper/ft_sensor
+/home/RVLuser/ferit_ur5_ws/devel/.private/ft_sensor/cmake.lock /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock
+/home/RVLuser/ferit_ur5_ws/devel/.private/ft_sensor/share/ft_sensor/cmake/ft_sensorConfig-version.cmake /home/RVLuser/ferit_ur5_ws/devel/share/ft_sensor/cmake/ft_sensorConfig-version.cmake
+/home/RVLuser/ferit_ur5_ws/devel/.private/ft_sensor/share/ft_sensor/cmake/ft_sensorConfig.cmake /home/RVLuser/ferit_ur5_ws/devel/share/ft_sensor/cmake/ft_sensorConfig.cmake
+/home/RVLuser/ferit_ur5_ws/devel/.private/ft_sensor/lib/pkgconfig/ft_sensor.pc /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/ft_sensor.pc

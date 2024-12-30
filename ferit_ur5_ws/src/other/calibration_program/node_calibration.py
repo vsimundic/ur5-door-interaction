@@ -41,10 +41,10 @@ if __name__ == '__main__':
     rospy.init_node("calibration_program", anonymous=True)
 
     # image_topic = '/camera/color/image_raw'
-    image_topic = '/camera/rgb/image_rect_color'
+    image_topic = '/camera/rgb/image_raw'
     move_group_name = 'arm'
     # camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
-    camera_params_path = os.path.join(os.path.dirname(__file__), "kamera-parameters.yml")
+    camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
     aruco_dict_path = os.path.join(os.path.dirname(__file__), "4x4_1000.dict")
     save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_T.npy")
 
@@ -52,10 +52,18 @@ if __name__ == '__main__':
     arucoDetector = ArucoDetector(camera_params_path, aruco_dict_path)
     robotComms = RobotComms(move_group_name)
 
-    cameraCommands = CameraCommands(camerareader, arucoDetector, robotComms)
+
+    # TODO-1: set the position of the calibration pen w.r.t. robot flange (last float is a fixed 1.0)
+    tool_E = np.array([0.0, 0.0, 0.0, 1.0])
+
+    # TODO-2: Set the marker size (in meters)
+    marker_size = 1.0
+
+    cameraCommands = CameraCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size)
     robotCommands = RobotCommands(robotComms)
     gripperCommands = GripperCommands()
-    imageCommands = ImageCommands(camerareader, arucoDetector, robotComms)
+
+    imageCommands = ImageCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size)
     markerCommands = MarkerCommands(robotComms)
     
     while True:
@@ -79,16 +87,18 @@ if __name__ == '__main__':
             elif(command == "marker"):
                 markerCommands.eval(rest)
             elif(command == "calculate"):
-                # tool_E = np.array([0.0, 0.0, 0.25, 1.0])
-                tool_E = np.array([0.0, 0.0, 0.31, 1.0])
+                t_E_T = tool_E
                 #calculate(tool_E, markerCommands.markers, imageCommands.images)
-                num_iterations = 50
+                num_iterations = 200
                 E_T_C, tool_E = izracun.calculate2(tool_E, markerCommands.markers, imageCommands.images, num_iterations)
                 np.save(save_E_T_C_path, E_T_C)
                 print("E_T_C")
                 print(E_T_C)
                 print("tool_E")
                 print(tool_E)
+                T_G_T_pen = np.eye(4)
+                T_G_T_pen[:3, 3] = tool_E[0:3].copy()
+                np.save(os.path.join(os.path.dirname(__file__), 'T_G_T_pen.npy'), T_G_T_pen)
                 imageCommands.E_T_C = E_T_C
                 imageCommands.tool_E = tool_E
                 imageCommands.markers = markerCommands.markers

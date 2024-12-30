@@ -260,12 +260,17 @@ class UR5Commander():
         # if with_force_mode:
         #     txt += 'end_force_mode()\n'
         
-        txt += 'end\n'
-        txt += 'func()\n'
+        txt += f'socket_open(\"{self.pc_ip}\", {self.pc_port})\n'
+        txt += f'socket_send_string(\"Script completed\")\n'
+        txt += f'socket_close()\n'
+
+        txt += f'end\n'
+        txt += f'func()\n'
 
         with open(self.URScript_save_path, 'w') as f:
             f.write(txt)
             f.close()
+
 
     # def generate_URScript_poses(self, T_array:np.ndarray):
     #     n = q_array.shape[0]
@@ -290,7 +295,35 @@ class UR5Commander():
     
         print('URScript sent!')
         data = s.recv(1024)
+
         s.close()
+
+        server_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        host = self.pc_ip
+        port = self.pc_port
+        server_socket.bind((host, port))
+        server_socket.listen(1)
+        
+        print(f"Waiting for a connection on {host}:{port}...")
+
+        connection, client_address = server_socket.accept()
+        try:
+            print(f"Connection from {client_address} established")
+            
+            # Receive the data in small chunks and retransmit it
+            while True:
+                data = connection.recv(1024)
+                if data:
+                    print("Received message:", data.decode('utf-8'))
+                    break  # Exit the loop after receiving the message
+                else:
+                    break  # No more data from the client
+                
+        finally:
+            # Clean up the connection
+            connection.close()
+            print("Connection closed")
+
 
     def zero_ft_sensor(self):
 
@@ -302,6 +335,71 @@ class UR5Commander():
         time.sleep(1)
         data=s.recv(1024)
         s.close()
+    
+
+    def get_data_from_ft_sensor(self):
+
+        sensor_port = 63351
+        output_file_location = '/home/RVLuser/ferit_ur5_ws/ft_sensor_data.csv'
+        write_object = True
+        socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        publisher_object = publisher_object
+        is_published = False
+
+        try:
+            print('Connecting to UR5 at ' + self.robot_ip)
+            socket_object.connect((self.robot_ip, sensor_port))
+  
+            if self.write_object is True:
+                print('File Write Location: ' + output_file_location)
+                f = open(output_file_location, 'w')
+                       
+            try:
+                print('Writing in %s, Press Ctrl + Z to stop' % output_file_location)
+                
+                while True:
+                    data = self.socket_object.recv(1024) #procita bajte
+                    
+                    bytes_unpacked_data = data.decode('utf-8')[1:-1]
+                    #print(bytes_unpacked_data)
+                    dataF = bytes_unpacked_data.split(" , ")
+                    print(str(dataF))
+                    print("\n")
+
+                    #force_torque_values = (self.socket_object.recv(1024).replace("(","*")).replace(")","*")
+                    
+                    #value_list = force_torque_values.split("*")
+                   
+                    
+                    #rospy.loginfo(value_list [1])
+                    ##rospy.loginfo(dataF)
+
+
+
+                    #self.publisher_object.publish(value_list[1])
+                    # self.publisher_object.publish(dataF)
+                    ##self.publisher_rate.sleep()
+                
+
+                    #if self.write_object is True:       
+                    #    f.write(strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime()) + ": " +force_torque_values)
+                                              
+            except KeyboardInterrupt:
+                        
+                f.close()
+                socket_object.close()
+
+                return False
+
+        except Exception as e:
+
+            print("Error: No Connection!! Please check your ethernet cable :)" + str(e))
+
+            return False
+
+
+
+
 
     def open_gripper_pinch(self):
 
@@ -323,6 +421,7 @@ class UR5Commander():
             end_time = time.time()
             if float(end_time - start_time) >= 3.0: # 3s
                 break
+
 
     def close_gripper_pinch(self):
 
