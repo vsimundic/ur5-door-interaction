@@ -15,6 +15,6 @@
 -- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/hook/ros_package_path.dsv
 -- Installing: /home/RVLuser/ferit_ur5_ws/devel/share/stomp/hook/python_path.dsv
 -- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp
--- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/task.h
 -- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/stomp.h
 -- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/utils.h
+-- Installing: /home/RVLuser/ferit_ur5_ws/devel/include/stomp/task.h
