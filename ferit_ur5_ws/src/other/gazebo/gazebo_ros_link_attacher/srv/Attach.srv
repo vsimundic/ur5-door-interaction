@@ -1,0 +1,8 @@
+string model_name_1
+string link_name_1
+string model_name_2
+string link_name_2
+float64 spring_stiffness
+float64 damping
+---
+bool ok
