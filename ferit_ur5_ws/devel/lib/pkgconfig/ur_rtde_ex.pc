@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_rtde_ex/lib/pkgconfig/ur_rtde_ex.pc

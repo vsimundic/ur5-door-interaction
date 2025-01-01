@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/green_matrix_summit/lib/pkgconfig/green_matrix_summit.pc

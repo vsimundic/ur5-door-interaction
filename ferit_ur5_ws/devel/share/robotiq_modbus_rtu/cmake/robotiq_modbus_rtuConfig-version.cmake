@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_modbus_rtu/share/robotiq_modbus_rtu/cmake/robotiq_modbus_rtuConfig-version.cmake

@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/controller_stopper/lib/pkgconfig/controller_stopper.pc

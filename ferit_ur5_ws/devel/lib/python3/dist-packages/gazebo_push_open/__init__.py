@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/gazebo_push_open/lib/python3/dist-packages/gazebo_push_open/__init__.py

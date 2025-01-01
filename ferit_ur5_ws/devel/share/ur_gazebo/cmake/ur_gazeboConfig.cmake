@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_gazebo/share/ur_gazebo/cmake/ur_gazeboConfig.cmake

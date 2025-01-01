@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/gazebo_push_open/share/gazebo_push_open/cmake/gazebo_push_openConfig.cmake

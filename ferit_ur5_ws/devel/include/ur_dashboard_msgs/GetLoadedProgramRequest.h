@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_dashboard_msgs/include/ur_dashboard_msgs/GetLoadedProgramRequest.h

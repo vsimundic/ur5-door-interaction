@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_description/lib/pkgconfig/ur5_description.pc

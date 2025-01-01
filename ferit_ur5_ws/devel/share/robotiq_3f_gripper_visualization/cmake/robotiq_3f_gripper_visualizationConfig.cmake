@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_3f_gripper_visualization/share/robotiq_3f_gripper_visualization/cmake/robotiq_3f_gripper_visualizationConfig.cmake

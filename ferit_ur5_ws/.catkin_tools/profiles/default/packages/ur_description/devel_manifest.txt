@@ -1,5 +1,0 @@
-ur5_configs/fmauch_universal_robot/ur_description
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_description/cmake.lock /home/RVLuser/ferit_ur5_ws/devel/./cmake.lock
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_description/lib/pkgconfig/ur_description.pc /home/RVLuser/ferit_ur5_ws/devel/lib/pkgconfig/ur_description.pc
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_description/share/ur_description/cmake/ur_descriptionConfig.cmake /home/RVLuser/ferit_ur5_ws/devel/share/ur_description/cmake/ur_descriptionConfig.cmake
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_description/share/ur_description/cmake/ur_descriptionConfig-version.cmake /home/RVLuser/ferit_ur5_ws/devel/share/ur_description/cmake/ur_descriptionConfig-version.cmake

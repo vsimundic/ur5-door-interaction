@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/green_matrix_summit/share/green_matrix_summit/cmake/green_matrix_summitConfig.cmake

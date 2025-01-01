@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_rtde_ex/share/ur_rtde_ex/cmake/ur_rtde_exConfig.cmake

@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur_description/share/ur_description/cmake/ur_descriptionConfig.cmake

@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ao_manipulation/lib/pkgconfig/ao_manipulation.pc

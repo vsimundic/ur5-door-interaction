@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/controller_stopper/share/controller_stopper/cmake/controller_stopperConfig-version.cmake

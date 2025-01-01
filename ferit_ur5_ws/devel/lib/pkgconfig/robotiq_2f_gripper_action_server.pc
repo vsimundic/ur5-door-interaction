@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/robotiq_2f_gripper_action_server/lib/pkgconfig/robotiq_2f_gripper_action_server.pc

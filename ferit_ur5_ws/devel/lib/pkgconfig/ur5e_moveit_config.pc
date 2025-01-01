@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/ur5e_moveit_config/lib/pkgconfig/ur5e_moveit_config.pc

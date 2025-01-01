@@ -1,1 +1,0 @@
-/home/RVLuser/ferit_ur5_ws/devel/.private/catkin_tools_prebuild/local_setup.bash
