@@ -11,15 +11,15 @@ def rot_z(angle_rad):
     
     return R
 
-results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/push_simulation/simulation_results.csv'
+results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results_simulation_tsr_single_contact.csv'
 
 data = pd.read_csv(filepath_or_buffer=results_path, sep=',', header=0)
 
 data = data.loc[((data['path_found'] == True) & 
-                        (data['traj_success'] == True) & 
+                        (data['traj_success'] == False) & 
                         (data['contact_free'] == True) & 
                         (data['door_opened'] == False))] 
-
+print(data.index)
 T_B_S = np.eye(4)
 T_B_S[2, 3] = 0.005
 
