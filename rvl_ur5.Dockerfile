@@ -60,6 +60,25 @@ ENV PYTHONPATH "${PYTHONPATH}:/home/RVLuser/rvl-linux/python/build/lib"
 ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/modules/RVLPY"
 ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/python"
 
+### FCL installation ###
+WORKDIR /
+# libccd
+RUN wget -O libccd-2.1.tar.gz https://github.com/danfis/libccd/archive/refs/tags/v2.1.tar.gz
+RUN tar -xvf libccd-2.1.tar.gz
+RUN cd libccd-2.1 && mkdir build && cd build && cmake .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" && make -j$(nproc) && make install
+
+# octomap
+RUN wget https://github.com/OctoMap/octomap/archive/refs/tags/v1.10.0.tar.gz -O octomap-1.10.0.tar.gz
+RUN tar -xvf octomap-1.10.0.tar.gz
+RUN cd octomap-1.10.0 && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
+
+# FCL
+RUN wget https://github.com/flexible-collision-library/fcl/archive/refs/tags/0.7.0.tar.gz -O fcl-0.7.0.tar.gz
+RUN tar -xvf fcl-0.7.0.tar.gz
+RUN cd fcl-0.7.0 && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
+
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
 
 # ###### DETECTRON2 ######
 # WORKDIR /home/RVLuser
