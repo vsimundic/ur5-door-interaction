@@ -62,31 +62,27 @@ ENV PYTHONPATH="${PYTHONPATH}:/home/RVLuser/rvl-linux/python"
 
 ### FCL installation ###
 WORKDIR /
-
-ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-
 # libccd
-RUN wget -O libccd-2.1.tar.gz https://github.com/danfis/libccd/archive/refs/tags/v2.1.tar.gz && \
-tar -xvf libccd-2.1.tar.gz && \
-cd libccd-2.1 && mkdir build && cd build && \
-cmake .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" && \
-make -j$(nproc) && make install && ldconfig
+RUN wget -O libccd-2.1.tar.gz https://github.com/danfis/libccd/archive/refs/tags/v2.1.tar.gz
+RUN tar -xvf libccd-2.1.tar.gz
+RUN cd libccd-2.1 && mkdir build && cd build && cmake .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC" && make -j$(nproc) && make install
 
 # octomap
-WORKDIR /
-RUN wget https://github.com/OctoMap/octomap/archive/refs/tags/v1.8.0.tar.gz -O octomap-1.8.0.tar.gz
-RUN tar -xvf octomap-1.8.0.tar.gz
-RUN cd octomap-1.8.0 && mkdir build && cd build && \
-    cmake .. && make -j$(nproc) && make install && ldconfig
+RUN wget https://github.com/OctoMap/octomap/archive/refs/tags/v1.10.0.tar.gz -O octomap-1.10.0.tar.gz
+RUN tar -xvf octomap-1.10.0.tar.gz
+RUN cd octomap-1.10.0 && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
-RUN ls /usr/local/lib && ldconfig -p | grep octomap
-
-# FCL
-RUN wget https://github.com/flexible-collision-library/fcl/archive/refs/tags/0.7.0.tar.gz -O fcl-0.7.0.tar.gz && \
-    tar -xvf fcl-0.7.0.tar.gz && \
-    cd fcl-0.7.0 && mkdir build && cd build && \
-    cmake .. -DCMAKE_PREFIX_PATH="/usr/local;/usr/local/lib" -DCMAKE_VERBOSE_MAKEFILE=ON && \
-    make -j$(nproc) && make install && ldconfig
+# FCL 
+RUN wget https://github.com/flexible-collision-library/fcl/archive/refs/tags/0.7.0.tar.gz -O fcl-0.7.0.tar.gz
+RUN tar -xvf fcl-0.7.0.tar.gz
+# delete line 241 because it errors out - deleting it will fix
+RUN sed -i '241d' fcl-0.7.0/CMakeLists.txt 
+RUN cd fcl-0.7.0 && mkdir build && cd build && \
+    cmake .. \
+    -DCMAKE_PREFIX_PATH=/usr/local \
+    -DOctomap_DIR=/usr/local/share/octomap \
+    && make -j$(nproc) && make install
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # FCL python
 RUN pip3 install python-fcl==0.7.0.6
@@ -94,7 +90,7 @@ RUN pip3 install python-fcl==0.7.0.6
 
 ###### DETECTRON2 ######
 WORKDIR /home/RVLuser
-COPY detectron2/ /home/RVLuser/detectron2
+COPY ../detectron2/ /home/RVLuser/detectron2
 RUN apt-get update && apt-get install -y \
     python3-opencv ca-certificates python3-dev git wget sudo ninja-build
 # RUN ln -sv /usr/bin/python3 /usr/bin/python

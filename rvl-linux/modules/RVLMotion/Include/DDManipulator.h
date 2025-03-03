@@ -417,7 +417,7 @@ namespace RVL
 		char *toolModelDir;
 		Array<MOTION::Node> nodes;
 		Graph<GRAPH::Node_<GRAPH::EdgePtr<MOTION::Edge>>, MOTION::Edge, GRAPH::EdgePtr<MOTION::Edge>> graph;
-		MOTION::DisplayCallbackData *pVisualizationData;
+		RVL::MOTION::DisplayCallbackData *pVisualizationData;
 		Array<RECOG::VN_::ModelCluster *> VNMClusters;
 		RECOG::VN_::ModelCluster *pPanelVNMCluster;
 		Box<float> dd_panel_box;
@@ -428,7 +428,7 @@ namespace RVL
 		int nodeBuffMemCapacity;
 		Solver solver;
 		float csMaxSurfaceContactAngle;
-		MOTION::Plane freeSpacePlanes_S[4];
+		RVL::MOTION::Plane freeSpacePlanes_S[4];
 		Pose3D pose_DD_0;
 		float default_tool_P1_G[3];
 		float default_tool_P2_G[3];

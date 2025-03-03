@@ -24,6 +24,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "PSGM.h"
 #include "VN.h"
 #include "RRT.h"
+#include "RVLMotionCommon.h"
 #include "DDManipulator.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>

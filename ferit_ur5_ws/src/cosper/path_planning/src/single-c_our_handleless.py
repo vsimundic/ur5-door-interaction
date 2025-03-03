@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     IS_SAVING_RESULTS = True
     IS_SAVING_IMAGES = False
-    START_FROM_BEGINNING = False
+    START_FROM_BEGINNING = True
     method_name = 'our'
 
     # TF buffer setup
@@ -74,8 +74,8 @@ if __name__ == '__main__':
     # Adjust joint values from ROS
     q_init[0] += np.pi
     q_init[5] += np.pi
-    # q_init[q_init>np.pi]-=(2.0*np.pi)
-    # q_init[q_init<-np.pi]+=(2.0*np.pi)
+    q_init[q_init>np.pi]-=(2.0*np.pi)
+    q_init[q_init<-np.pi]+=(2.0*np.pi)
 
     # Static cabinet params
     door_thickness=config['cabinet_door_dims']['depth']
@@ -162,13 +162,13 @@ if __name__ == '__main__':
                 # Sleep to ensure the robot is ready
                 rospy.sleep(1.)
 
-                # Spawning model in Gazebo
-                cabinet_model.delete_model_gazebo()
-                cabinet_model.spawn_model_gazebo()
+                # # Spawning model in Gazebo
+                # cabinet_model.delete_model_gazebo()
+                # cabinet_model.spawn_model_gazebo()
 
-                # Open doors in Gazebo
-                cabinet_model.set_door_state_gazebo(state_angle)
-                cabinet_model.change_door_angle(state_angle)
+                # # Open doors in Gazebo
+                # cabinet_model.set_door_state_gazebo(state_angle)
+                # cabinet_model.change_door_angle(state_angle)
 
                 contact_state = {'contact_free': True}
                 contact_sub = rospy.Subscriber('/contact', ContactsState, contact_callback, contact_state)
@@ -185,13 +185,22 @@ if __name__ == '__main__':
 
 
                 # Spawn the cabinet in Moveit
-                robot.add_mesh_to_scene(cabinet_full_mesh_filename, 'cabinet', cabinet_model.T_A_S)
+                # robot.add_mesh_to_scene(cabinet_full_mesh_filename, 'cabinet', cabinet_model.T_A_S)
 
                 # Go to the first point
-                robot.send_joint_values_to_robot(q[1], wait=True)
+                # robot.send_joint_values_to_robot(q[1], wait=True)
+                robot.send_multiple_joint_space_poses_to_robot2(q[:2])
+                
+                cabinet_model.delete_model_gazebo()
+                cabinet_model.spawn_model_gazebo()
+                
+                # Open doors in Gazebo
+                cabinet_model.set_door_state_gazebo(state_angle)
+                cabinet_model.change_door_angle(state_angle)
+                rospy.sleep(1.)
 
                 # Remove from scene
-                robot.remove_from_scene('cabinet')
+                # robot.remove_from_scene('cabinet')
 
                 # Execute the trajectory and wait until it finishes
                 trajectory_successful = robot.send_multiple_joint_space_poses_to_robot2(q[1:])
@@ -211,16 +220,17 @@ if __name__ == '__main__':
                     print('Experiment finished successfully')
                     final_success = True
 
+                if IS_SAVING_RESULTS:
+                    with open(csv_path, 'a') as f:
+                        writer = csv.writer(f, delimiter=',')
+                        writer.writerow([i, path_found, trajectory_successful, contact_free, door_opened, width, height, position[0], position[1], position[2], rot_z_deg, state_angle, axis_pos])
+
                 # Shutdown Gazebo simulation and kill all of its processes
                 # stop_gazebo_launcher(gazebo_process)
                 launch_process.terminate()
                 launch_process.wait()
                 kill_processes()
 
-                if IS_SAVING_RESULTS:
-                    with open(csv_path, 'a') as f:
-                        writer = csv.writer(f, delimiter=',')
-                        writer.writerow([i, path_found, trajectory_successful, contact_free, door_opened, width, height, position[0], position[1], position[2], rot_z_deg, state_angle, axis_pos])
             i += 1
 
         except rospy.exceptions.ROSTimeMovedBackwardsException as e:

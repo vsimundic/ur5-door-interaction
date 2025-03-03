@@ -72,12 +72,20 @@ RUN wget https://github.com/OctoMap/octomap/archive/refs/tags/v1.10.0.tar.gz -O 
 RUN tar -xvf octomap-1.10.0.tar.gz
 RUN cd octomap-1.10.0 && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
-# FCL
+# FCL 
 RUN wget https://github.com/flexible-collision-library/fcl/archive/refs/tags/0.7.0.tar.gz -O fcl-0.7.0.tar.gz
 RUN tar -xvf fcl-0.7.0.tar.gz
-RUN cd fcl-0.7.0 && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
-
+# delete line 241 because it errors out - deleting it will fix
+RUN sed -i '241d' fcl-0.7.0/CMakeLists.txt 
+RUN cd fcl-0.7.0 && mkdir build && cd build && \
+    cmake .. \
+    -DCMAKE_PREFIX_PATH=/usr/local \
+    -DOctomap_DIR=/usr/local/share/octomap \
+    && make -j$(nproc) && make install
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+# FCL python
+RUN pip3 install python-fcl==0.7.0.6
 
 
 # ###### DETECTRON2 ######
