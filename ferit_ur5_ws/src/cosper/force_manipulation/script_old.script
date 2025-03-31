@@ -1,0 +1,37 @@
+global forcez = 0
+thread force_monitoring():
+    textmsg("Force monitoring thread started.")
+
+    while True:
+        force = get_tcp_force()
+        textmsg("Force values: Fx=", force[0], ", Fy=", force[1], ", Fz=", force[2])
+
+        if abs(force[2]) > 1000:
+            textmsg("Force too high!")
+            forcez = force[2]
+            textmsg("Current TCP Z-force: ", force[2])
+            textmsg("Breaking...")
+            break
+        
+        sync()
+    end
+    textmsg("Finished with monitoring")
+end
+
+def func():
+    # movej([-1.5764210124517033, -1.899309120378992, -1.1575108529966076, -0.033174192381872684, 1.5162949132681085, 0.8482419859559984], a=1.2, v=0.25)  # Move to goal position with acceleration and velocity
+    sleep(2.)
+    
+    forces = get_tcp_force()
+    # textmsg("forcez=", forcez)
+    
+    # Notify PC
+    socket_open("192.168.10.125", 30002)
+    socket_send_string(forcez)
+    socket_close()
+end
+
+monitor_thread = run force_monitoring()
+func()
+kill monitor_thread  # Stop monitoring thread after reaching goal
+

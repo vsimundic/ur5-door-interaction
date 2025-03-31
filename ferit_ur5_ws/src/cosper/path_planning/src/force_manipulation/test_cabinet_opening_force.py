@@ -1,4 +1,7 @@
 #!/usr/bin/python
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import rospy
 from core.util import read_csv_DataFrame
@@ -9,6 +12,9 @@ from gazebo_push_open.cabinet_model import Cabinet
 # from cabinet_model import generate_cabinet_urdf_from_door_panel, get_cabinet_world_pose
 import numpy as np
 from utils import *
+# from path_planning.src.force_manipulation.force_utils import *
+from force_utils import *
+import threading
 
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
@@ -131,32 +137,48 @@ if __name__ == '__main__':
             if key == 'p':
                 break
 
-        # Plan 
-        # T_G_0_array, q = path_planner.path2(np.array(q_init))
+        monitor_thread = threading.Thread(target=monitor_force_and_cancel, args=(robot, 30.0))
+        monitor_thread.start()
+        success = robot.send_joint_trajectory_action(q[:3])        
+        monitor_thread.join()
 
-        # q[:, 0] -= np.pi
-        # q[:, 5] -= np.pi
-        # q[q>np.pi]-=(2.0*np.pi)     
-        # q[q<-np.pi]+=(2.0*np.pi)
-        # q = np.unwrap(q, axis=0)
-        # q = np.unwrap(q, axis=0)
-        
-        # robot.generate_URScript(q[1:], with_force_mode=False)
-        # robot.send_URScript(get_feedback=False)
-        robot.force_threshold = 40 # N
-        robot.send_joint_trajectory_action(q[:3])
         robot.zero_ft_sensor()
-        robot.force_threshold = 30 # N
+
+        monitor_thread = threading.Thread(target=monitor_force_and_cancel, args=(robot, 30.0))
+        monitor_thread.start()
+        rospy.sleep(0.05)
         robot.send_joint_trajectory_action(q[2:])
+        monitor_thread.join()
+
+        if robot.force_violation:
+            T_6_0 = robot.get_current_tool_pose()
+            
+            T_6offset_6 = np.eye(4)
+            T_6offset_6[2, 3] = - 0.1
+
+            T_6goal_0 = T_6_0 @ T_6offset_6
+
+            q = robot.get_closest_ik_solution(T_6goal_0)
+            
+            if q is None:
+                rospy.logwarn('Cannot move the robot back.')
+                break
+            
+            backup_trajectory = np.array([robot.get_current_joint_values(), q])
+
+            monitor_thread = threading.Thread(target=monitor_force_drop_and_remember_joints, args=(robot, 10.0, 1.0, 50.0))
+            monitor_thread.start()
+            rospy.sleep(0.05)
+            robot.send_joint_trajectory_action(backup_trajectory)
+            monitor_thread.join()
 
         while True:
             key = input('Press s when robot finishes:')
             if key == 's':
                 break
 
-
         key = input('press 1 or 0 to store experiment success:')
         exp_success.append(int(key))
 
-        np.savetxt(real_results_path, np.array(exp_success, dtype=int), delimiter=',')
+        # np.savetxt(real_results_path, np.array(exp_success, dtype=int), delimiter=',')
         print(exp_success)

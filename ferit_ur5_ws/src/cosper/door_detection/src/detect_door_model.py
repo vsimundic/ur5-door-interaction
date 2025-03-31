@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python
 
 import os
 import rospy
@@ -16,23 +16,28 @@ import RVLPYDDDetector
 number_of_images = 0
 key_counter = 0
 
-# Parameters (will be set in main)
+# Parameters (set in main)
 base_dir = ""
 rgb_dir = ""
 depth_dir = ""
 ply_dir = ""
 model_output_path = ""
 detector_config_path = ""
+rgb_topic = ""
+depth_topic = ""
 node_name = "rgbAndDepth_image_subscriber"
+
 
 def stop_node(node_name):
     kill_nodes([node_name])
+
 
 def ensure_directories_exist(*dirs):
     for d in dirs:
         if not os.path.exists(d):
             os.makedirs(d)
             rospy.loginfo(f"Created directory: {d}")
+
 
 def image_callback(rgb_msg, depth_msg):
     global number_of_images, key_counter, base_dir, rgb_dir, depth_dir
@@ -59,6 +64,7 @@ def image_callback(rgb_msg, depth_msg):
     if key_counter >= 2:
         cv2.destroyAllWindows()
         create_ply_images(number_of_images)
+
 
 def create_ply_images(count):
     global base_dir, rgb_dir, depth_dir, ply_dir
@@ -90,6 +96,7 @@ def create_ply_images(count):
 
     print("PLY generation complete.")
     stop_node(node_name)
+
 
 def build_model(count):
     global base_dir, ply_dir, rgb_dir, model_output_path, detector_config_path
@@ -123,21 +130,37 @@ def build_model(count):
     print("Detection complete.")
     return ao_result
 
+
 def main():
-    global base_dir, rgb_dir, depth_dir, ply_dir, model_output_path, detector_config_path
+    global base_dir, rgb_dir, depth_dir, ply_dir
+    global model_output_path, detector_config_path
+    global rgb_topic, depth_topic
 
     rospy.init_node(node_name)
 
     # Load parameters
-    base_dir = rospy.get_param("~base_dir", "/home/RVLuser/ur5_ws/src/ao_manipulation/scripts")
+    base_dir = rospy.get_param("~base_dir", "/home/RVLuser/ferit_ur5_ws/data/door_detection")
     rgb_dir = rospy.get_param("~rgb_dir", "RGB_images")
     depth_dir = rospy.get_param("~depth_dir", "DEPTH_images")
     ply_dir = rospy.get_param("~ply_dir", "PLY_seg")
-    model_output_path = rospy.get_param("~model_output_path", base_dir + "/models/doorModel.txt")
+    model_output_path = rospy.get_param("~model_output_path", "models/doorModel.txt")
+    model_output_path = os.path.join(base_dir, model_output_path)
     detector_config_path = rospy.get_param("~detector_config_path", "/home/RVLuser/rvl-linux/RVLRecognitionDemo_Cupec_DDD2_Detection.cfg")
 
-    rgb_sub = Subscriber("/camera/color/image_raw", Image)
-    depth_sub = Subscriber("/camera/aligned_depth_to_color/image_raw", Image)
+    rgb_topic = rospy.get_param("~rgb_topic", "/camera/color/image_raw")
+    depth_topic = rospy.get_param("~depth_topic", "/camera/aligned_depth_to_color/image_raw")
+
+    # Ensure required directories exist
+    ensure_directories_exist(
+        os.path.join(base_dir, rgb_dir),
+        os.path.join(base_dir, depth_dir),
+        os.path.join(base_dir, ply_dir),
+        os.path.dirname(model_output_path)
+    )
+
+    # Create subscribers with parameters
+    rgb_sub = Subscriber(rgb_topic, Image)
+    depth_sub = Subscriber(depth_topic, Image)
 
     sync = ApproximateTimeSynchronizer([rgb_sub, depth_sub], queue_size=5, slop=0.1)
     sync.registerCallback(image_callback)
@@ -145,6 +168,7 @@ def main():
     rospy.spin()
 
     build_model(number_of_images)
+
 
 if __name__ == "__main__":
     main()

@@ -18,6 +18,7 @@ import socket
 import time
 from actionlib import GoalStatus
 from sensor_msgs.msg import JointState
+from typing import Union
 
 
 class UR5Commander():
@@ -31,7 +32,7 @@ class UR5Commander():
         self.__gripper_pub = rospy.Publisher('Robotiq3FGripperRobotOutput', Robotiq3FGripperRobotOutput, queue_size=10)   
         self.robot_ip = '192.168.10.14'
         self.robot_port = 30002
-        self.pc_ip = '192.168.10.100'
+        self.pc_ip = '192.168.10.125'
         self.pc_port = 30002
 
         self.T_B_S = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_B_S.npy')))
@@ -45,7 +46,7 @@ class UR5Commander():
 
         self.__follow_joint_trajectory_client = SimpleActionClient('/trajectory_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
         
-        self.URScript_save_path = os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'script.txt')
+        self.URScript_save_path = os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'script.script')
 
         self.__create_init_scene()
 
@@ -383,7 +384,7 @@ class UR5Commander():
         np.save(file_path, T)
 
 
-    def get_current_joint_values(self):
+    def get_current_joint_values(self) -> list:
         return self.__group.get_current_joint_values()
 
 
@@ -392,48 +393,89 @@ class UR5Commander():
         np.save(file_path, np.array(joint_values))
 
 
-    def generate_URScript(self, q_array:np.ndarray, with_force_mode:bool):
-        n = q_array.shape[0]
-        txt = ''
-        txt += 'def func():\n'
-        if with_force_mode:
-            txt += 'force_mode(tool_pose(), [0, 0, 1, 0, 0, 0], [0.0, 0.0, 25.0, 0.0, 0.0, 0.0], 2, [0.2, 0.2, 0.1, 0.60, 0.60, 0.35])\n'
-        for i in range(n):
-            txt += 'movej(' + str(q_array[i].tolist()) + ', a=1.4, v=0.2)\n'
-        
-        # if with_force_mode:
-        #     txt += 'end_force_mode()\n'
-        
-        # Needs debugging
-        txt += f'socket_open(\"{self.pc_ip}\", {self.pc_port})\n'
-        txt += f'socket_send_string(\"Script completed\")\n'
-        txt += f'socket_close()\n'
-
-        txt += f'end\n'
-        txt += f'func()\n'
-
-        with open(self.URScript_save_path, 'w') as f:
-            f.write(txt)
-            f.close()
-
-    # def generate_URScript_poses(self, T_array:np.ndarray):
+    # def generate_URScript(self, q_array:np.ndarray, with_force_mode:bool):
     #     n = q_array.shape[0]
     #     txt = ''
     #     txt += 'def func():\n'
+    #     if with_force_mode:
+    #         txt += 'force_mode(tool_pose(), [0, 0, 1, 0, 0, 0], [0.0, 0.0, 25.0, 0.0, 0.0, 0.0], 2, [0.2, 0.2, 0.1, 0.60, 0.60, 0.35])\n'
     #     for i in range(n):
     #         txt += 'movej(' + str(q_array[i].tolist()) + ', a=1.4, v=0.2)\n'
-    #     txt += 'end\n'
-    #     txt += 'func()\n'
+        
+    #     # if with_force_mode:
+    #     #     txt += 'end_force_mode()\n'
+        
+    #     # Needs debugging
+    #     txt += f'socket_open(\"{self.pc_ip}\", {self.pc_port})\n'
+    #     txt += f'socket_send_string(\"Script completed\")\n'
+    #     txt += f'socket_close()\n'
+
+    #     txt += f'end\n'
+    #     txt += f'func()\n'
+
     #     with open(self.URScript_save_path, 'w') as f:
     #         f.write(txt)
     #         f.close()
 
+    def generate_URScript(self, q_array: np.ndarray, with_force_mode: bool, script_path:str=None):
+        """
+        Generate a URScript that zeroes the force-torque sensor, enters force mode (optional),
+        executes joint motions, and notifies the PC via socket.
+        """
+        n = q_array.shape[0]
+        indent = '    '
+        lines = []
 
-    def send_URScript(self, get_feedback: False):
+        lines.append('def func():')
+
+        if with_force_mode:
+            lines.append(f'{indent}# Zero the force-torque sensor before force mode')
+            lines.append(f'{indent}zero_ftsensor()')
+            lines.append(f'{indent}sleep(0.1)  # Allow sensor to settle')
+
+            lines.append(f'{indent}# Start force mode')
+            lines.append(f'{indent}force_mode(tool_pose(), [0, 0, 0, 0, 0, 0], '
+                        f'[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], '
+                        f'2, [0.2, 0.2, 0.1, 0.60, 0.60, 0.35])')
+
+        lines.append(f'{indent}# Execute joint motions')
+        for i in range(n):
+            q_list = q_array[i].tolist()
+            lines.append(f'{indent}movej({q_list}, a=1.4, v=0.2)')
+
+        if with_force_mode:
+            lines.append(f'{indent}# Exit force mode')
+            lines.append(f'{indent}end_force_mode()')
+
+        lines.append(f'{indent}# Notify PC')
+        lines.append(f'{indent}socket_open("{self.pc_ip}", {self.pc_port})')
+        lines.append(f'{indent}socket_send_string("Script completed")')
+        lines.append(f'{indent}socket_close()')
+
+        lines.append('end')
+        lines.append('func()')
+        
+        with open(self.URScript_save_path if script_path is None else script_path, 'w') as f:
+            f.write('\n'.join(lines))
+
+        # def generate_URScript_poses(self, T_array:np.ndarray):
+        #     n = q_array.shape[0]
+        #     txt = ''
+        #     txt += 'def func():\n'
+        #     for i in range(n):
+        #         txt += 'movej(' + str(q_array[i].tolist()) + ', a=1.4, v=0.2)\n'
+        #     txt += 'end\n'
+        #     txt += 'func()\n'
+        #     with open(self.URScript_save_path, 'w') as f:
+        #         f.write(txt)
+        #         f.close()
+
+
+    def send_URScript(self, get_feedback: False, script_path:str=None):
 
         s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         s.connect((self.robot_ip, self.robot_port))
-        f = open(self.URScript_save_path, 'rb')
+        f = open(self.URScript_save_path if script_path is None else script_path, 'rb')
         l = f.read()
         s.sendall(l)
     
@@ -608,7 +650,7 @@ class UR5Commander():
             return True  # Valid plan exists, meaning no collision
         return False  # Collision detected
     
-    def get_inverse_kin(self, q_init, T):
+    def get_inverse_kin(self, q_init: list, T: np.ndarray) -> Union[list, None]:
 
         pose_ = matrix_to_pose(T)
         
@@ -631,7 +673,7 @@ class UR5Commander():
             rospy.logwarn("IK solution is in collision!")
             return None
 
-    def get_inverse_kin_builtin(self, q_init: list, T: np.ndarray):
+    def get_inverse_kin_builtin(self, q_init: list, T: np.ndarray) -> Union[list, None]:
         """
         Uses built-in set_pose_targets() and plan() to get inverse kin.
         """

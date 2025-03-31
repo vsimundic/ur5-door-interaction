@@ -1,0 +1,17 @@
+def func():
+    # Zero the force-torque sensor before force mode
+    zero_ftsensor()
+    sleep(0.1)  # Allow sensor to settle
+    # Start force mode
+    force_mode(tool_pose(), [0, 0, 1, 0, 0, 0], [0.0, 0.0, 25.0, 0.0, 0.0, 0.0], 2, [0.2, 0.2, 0.1, 0.60, 0.60, 0.35])
+    # Execute joint motions
+    movej([-1.5171611944781702, -0.6131866613971155, -2.397074047719137, -0.0622637907611292, 1.5475844144821167, 0.8372868895530701], a=1.4, v=0.2)
+    movej([-1.564889739975305, -1.5135754036675957, -1.961201913233473, 0.4012700639594387, 1.5953057789315448, 0.8413605340355557], a=1.4, v=0.2)
+    # Exit force mode
+    end_force_mode()
+    # Notify PC
+    socket_open("192.168.10.100", 30002)
+    socket_send_string("Script completed")
+    socket_close()
+end
+func()

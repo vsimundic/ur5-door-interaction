@@ -1,0 +1,12 @@
+<launch>
+    <node name="rgb_depth_capture_node" pkg="door_detection" type="rgb_depth_capture.py" output="screen" launch-prefix="gnome-terminal --">
+        <param name="base_dir" value="/home/RVLuser/ferit_ur5_ws/data/Exp-detect_cabinet_and_mc-20250328"/>
+        <param name="model_output_path" value="models/doorModel.txt"/>
+        <param name="rgb_dir" value="RGB_images"/>
+        <param name="depth_dir" value="DEPTH_images"/>
+        <param name="ply_dir" value="PLY_seg"/>
+        <param name="detector_config_path" value="/home/RVLuser/rvl-linux/RVLRecognitionDemo_Cupec_DDD2_Detection.cfg"/>
+        <param name="rgb_topic" value="/camera/color/image_raw"/>
+        <param name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+    </node>
+</launch>

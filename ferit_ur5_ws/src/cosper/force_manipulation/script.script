@@ -1,0 +1,41 @@
+def force_monitored_move():
+    textmsg("Starting monitored move to joint goal.")
+    
+    target = [-1.576395, -1.899279, -1.157482, -0.033161, 1.516233, 0.848231]
+    threshold = 10
+    reached = False
+
+    # Move to joint goal
+    movej(target, a=1.2, v=0.25)
+
+    while not reached:
+        force = get_tcp_force()
+        textmsg("Fz: ", force[2])
+        
+        if abs(force[2]) > threshold:
+            textmsg("Force exceeded! Z-force: ", force[2])
+            stopj(2.0)
+            break
+        end
+
+        current = get_actual_joint_positions()
+        diff = norm(current - target)
+        if diff < 0.01:
+            reached = True
+        end
+
+        sleep(0.05)
+    end
+
+    # Final force report
+    final_force = get_tcp_force()
+    textmsg("Final Z-force: ", final_force[2])
+
+    socket_open("192.168.10.125", 30002)
+    socket_send_string(str(final_force[2]))
+    socket_close()
+
+    textmsg("Motion done or stopped due to force.")
+end
+
+force_monitored_move()
