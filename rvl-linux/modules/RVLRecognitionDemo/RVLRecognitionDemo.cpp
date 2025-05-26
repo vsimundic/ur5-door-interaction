@@ -23,6 +23,8 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "Mesh.h"
 #include "MSTree.h"
 #include "Visualizer.h"
+#include "AccuSphere.h"
+#include "ConvexHullCreator.h"
 #include "SceneSegFile.hpp"
 #include "ReconstructionEval.h"
 #include "SurfelGraph.h"
@@ -200,6 +202,7 @@ void CreateParamList(
 	pParamList->AddID(pParamData, "TG", RVLRECOGNITION_METHOD_TG);
 	pParamList->AddID(pParamData, "DDD", RVLRECOGNITION_METHOD_DDD);
 	pParamList->AddID(pParamData, "BM", RVLRECOGNITION_METHOD_BM);
+	pParamList->AddID(pParamData, "CGSP", RVLRECOGNITION_METHOD_CGSP);
 	pParamData = pParamList->AddParam("Save PLY", RVLPARAM_TYPE_FLAG, &flags); // VIDOVIC
 	pParamList->AddID(pParamData, "yes", RVLRECOGNITION_DEMO_FLAG_SAVE_PLY);   // VIDOVIC
 	pParamData = pParamList->AddParam("3D Visualization", RVLPARAM_TYPE_FLAG, &flags);
@@ -511,8 +514,8 @@ int main(int argc, char **argv)
 	SelectionColor[2] = 0;
 
 	Visualizer visualizer;
-
 	visualizer.Create();
+	RVLCOLORS
 
 	// Main part - recognition.
 
@@ -1987,6 +1990,20 @@ int main(int argc, char **argv)
 			pMesh = models.Element;
 			while (modelLoader.GetNext(modelFilePath, modelFileName))
 			{
+				bool bSkip = false;
+				if (detector.test == RVLDDD_TEST_DETECT_RECTSTRUCT && bSkipAnnotatedImages)
+				{
+					std::string DDFrontSurfaceFilePath = std::string(modelFilePath, std::string(modelFilePath).rfind(".") + 1) + "yml";
+					FILE *fp = fopen(DDFrontSurfaceFilePath.data(), "r");
+					if (fp)
+					{
+						fclose(fp);
+						printf("Image %s is already annotated.\n", modelFileName);
+						bSkip = true;
+					}
+				}
+				if (!bSkip)
+			{
 				printf("Loading model %s\n", modelFileName);
 #ifdef RVLPCL
 				if (bMeshBuilder)
@@ -1998,6 +2015,7 @@ int main(int argc, char **argv)
 					pMesh++;
 				}
 				modelFileNames.push_back(modelFilePath);
+				}
 			}
 			printf("completed.\n");
 			models.n = pMesh - models.Element;
@@ -2015,13 +2033,11 @@ int main(int argc, char **argv)
 				modelLoader.ResetID();
 				for (int iModel = 0; iModel < models.n; iModel++)
 				{
-					modelLoader.GetNext(modelFilePath, modelFileName);
-					printf("model %s\n", modelFileName);
+					printf("model %s\n", modelFileNames[iModel].data());
 					pMesh = models.Element + iModel;
-
 					cv::Mat BGR;
 					pMesh->GetBGR(BGR);
-					std::string DDFrontSurfaceFilePath = std::string(modelFilePath, std::string(modelFilePath).rfind(".") + 1) + "yml";
+					std::string DDFrontSurfaceFilePath = modelFileNames[iModel].substr(0, modelFileNames[iModel].rfind(".") + 1) + "yml";
 					Array<RECOG::DDD::FrontSurface> orthogonalViews;
 					int nOrthogonalViews = 3;
 					bool bDetection = false;
@@ -2899,6 +2915,80 @@ int main(int argc, char **argv)
 			// cvShowImage(imgFileName, depthImageDisplay);
 			// cv::waitKey();
 			detector.Detect(depthImage);
+		}
+	}
+	else if (method == RVLRECOGNITION_METHOD_CGSP)
+	{
+		ObjectDetector convexDetector;
+		FILE *fpRnd = fopen("..\\pseudorandom1000000.dat", "rb");
+		if (convexDetector.LoadPseudoRandomFromFile(fpRnd))
+			fclose(fpRnd);
+		convexDetector.visualizationData.pVisualizer = &visualizer;
+		convexDetector.SetSurfelGraph(&surfels);
+		convexDetector.resultsFolder = ResultsFolder;
+		convexDetector.pMem = &mem;
+
+		FileSequenceLoader modelsLoader;
+		char modelFilePath[200];
+		char modelFileName[200];
+		modelsLoader.Init(modelSequenceFileName);
+		Mesh mesh;
+		// uchar green[] = {0, 255, 0};
+		uchar blue[] = {0, 0, 255};
+		while (modelsLoader.GetNext(modelFilePath, modelFileName))
+		{
+			printf("Model %s\n", modelFileName);
+			if (!MESH::LoadFromOFF(modelFilePath, &mesh))
+				continue;
+			// visualizer.DisplayMesh(&mesh);
+			// mesh.CreateVTKPolyData();
+			// visualizer.AddMesh(mesh.pPolygonData);
+			// visualizer.Run();
+			// visualizer.Clear();
+			// #ifdef NEVER
+			surfelDetector.Segment2(&mesh, &surfels, 0.001f, &visualizer);
+			// visualizer.Run();
+
+			// Create polygons from a dense mesh.
+
+			// mesh.LoadFromPLY(modelFilePath, maxMeshTriangleEdgeLen);
+			// surfels.Init(&mesh);
+			// surfelDetector.Init(&mesh, &surfels, &mem);
+			// printf("Segmentation to surfels...");
+			// surfelDetector.Segment(&mesh, &surfels);
+			// printf("completed.\n");
+			////surfels.NodeColors(SelectionColor);
+			////surfels.InitDisplay(&visualizer, &mesh, &surfelDetector);
+			////surfels.Display(&visualizer, &mesh);
+			// surfelDetector.CreatePolygons(&mesh, &surfels, 20, 0.01f);
+
+			// Number of surfels.
+
+			int nSurfels = surfels.NodeArray.n;
+			printf("No. of surfels = %d\n", nSurfels);
+
+			// Create polygon graph.
+
+			// surfels.CreatePolygonGraph(0.05f);
+			surfels.CreatePolygonGraph(0.005f);
+			// surfels.SetDisplayPolygonsOn();
+			// surfels.InitDisplay(&visualizer, &mesh, &surfelDetector);
+			// surfels.DisplayPolygons(&visualizer, blue);
+			// visualizer.Run();
+
+			// Detect convex surfaces.
+
+			std::vector<OBJECT_DETECTION::ConvexSurface> convexSurfaces;
+			convexSurfaces.reserve(10);
+			std::vector<int> surfelIdxMem;
+			surfelIdxMem.reserve(nSurfels);
+			std::vector<Pair<int, float>> sortedConvexSurfaces;
+			convexDetector.ConvexSurfaces(0.002f, &convexSurfaces, surfelIdxMem, &sortedConvexSurfaces);
+			// convexDetector.DisplayConvexSurfaces(&convexSurfaces, surfelIdxMem, &sortedConvexSurfaces);
+			std::string modelFilePath_ = std::string(modelFilePath);
+			std::string convexFileName = modelFilePath_.substr(0, modelFilePath_.find_last_of('.') + 1) + "cvx";
+			convexDetector.WriteConvexSurfaces(convexFileName, &convexSurfaces, surfelIdxMem, &sortedConvexSurfaces);
+			// #endif
 		}
 	}
 

@@ -9,6 +9,13 @@ namespace RVL
 			float d;
 		};
 
+		struct VisualizationNode
+		{
+			float P[3];
+			int iState;
+			int iNodeJS;
+		};
+
 		struct DisplayCallbackData
 		{
 			Visualizer *pVisualizer;
@@ -16,8 +23,13 @@ namespace RVL
 			CRVLParameterList paramList;
 			bool bVNEnv;
 			std::vector<vtkSmartPointer<vtkActor>> robotActors;
+			std::vector<vtkSmartPointer<vtkActor>> envActors;
+			std::vector<vtkSmartPointer<vtkActor>> errorActors;
 			bool bVisualize;
+			bool bOptimization;
 			Box<float> VNBBox;
+			std::vector<MOTION::VisualizationNode> visNodes;
+			std::vector<Pair<int, int>> visEdges;
 		};
 
 		void InitVisualizer(

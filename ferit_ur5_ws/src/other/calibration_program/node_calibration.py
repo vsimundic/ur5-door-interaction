@@ -21,12 +21,15 @@ import izracun
 
 def printHelp():
     print("calibration program commands are:")
+
     print("camera - commands used to show current image from camera")
     print("robot - commands used to move robot and read position from robot")
     print("gripper - commands use to control gripper")
     print("image - commands used to capture images for calibration")
     print("marker - commands used to capture marker positions for calibration")
     print("calculate - perform calculation")
+    print("quit - Exit the program")
+    print("q - Exit the program")
     print("help - prints this message")
 
 if __name__ == '__main__':
@@ -41,10 +44,10 @@ if __name__ == '__main__':
     rospy.init_node("calibration_program", anonymous=True)
 
     # image_topic = '/camera/color/image_raw'
-    image_topic = '/camera/rgb/image_raw'
+    image_topic = '/camera/color/image_raw'
     move_group_name = 'arm'
     # camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
-    camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
+    camera_params_path = os.path.join(os.path.dirname(__file__), "rgb_IntelRealSense_L550_params.yaml")
     aruco_dict_path = os.path.join(os.path.dirname(__file__), "4x4_1000.dict")
     save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_T.npy")
 
@@ -54,10 +57,11 @@ if __name__ == '__main__':
 
 
     # TODO-1: set the position of the calibration pen w.r.t. robot flange (last float is a fixed 1.0)
-    tool_E = np.array([0.0, 0.0, 0.0, 1.0])
+    tool_E = np.array([0, 0, 0.3154, 1.0])
+    
 
     # TODO-2: Set the marker size (in meters)
-    marker_size = 1.0
+    marker_size = 0.15
 
     cameraCommands = CameraCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size)
     robotCommands = RobotCommands(robotComms)

@@ -170,7 +170,6 @@ while i < n:
 
     rotz_deg = np.random.uniform(cabinet_pose['rot_angle_min_deg'], cabinet_pose['rot_angle_max_deg'])
 
-
     if exp_name == 'real_exp':
         rotz_deg += 90.
         T_A_S = np.eye(4)

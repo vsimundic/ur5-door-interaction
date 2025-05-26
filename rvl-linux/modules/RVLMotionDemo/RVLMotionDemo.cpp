@@ -29,7 +29,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "RVLMotionCommon.h"
 #include "RRT.h"
 #include "DDManipulator.h"
-// #include "Touch.h"
+#include "Touch.h"
 #include "cnpy.h"
 #include <chrono>
 
@@ -500,12 +500,44 @@ int main(int argc, char **argv)
         RVL_DELETE_ARRAY(poses_G_0.Element);
         RVL_DELETE_ARRAY(robotJoints.Element);
     }
-    // else if (method == RVLMOTION_METHOD_TOUCH)
-    // {
-    //     Touch touch;
-    //     touch.pMem0 = &mem0;
-    //     touch.Create(cfgFileName);
-    // }
+    else if (method == RVLMOTION_METHOD_TOUCH)
+    {
+        Touch touch;
+        touch.pMem0 = &mem0;
+        touch.Create(cfgFileName);
+        touch.InitVisualizer(&visualizer, cfgFileName);
+        touch.bDoor = true;
+        float sx = 0.018f;
+        float sy = 0.39251819252967834f;
+        float sz = 0.533647894859314f;
+        //float rx = 0.01f;
+        float rx = 0.0011762514477595687f;
+        float ry = -0.19625909626483917f;
+        float a = 0.4f;
+        float b = ry - sy*0.5f;
+        //float b = 0.0025f;
+        float c = 0.005f;
+        float qDeg = -7.91f;
+        // float ry = -(0.5f * sy + b);
+        touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, qDeg);
+        float a_tool = 0.019f;
+        float b_tool = 0.064f;
+        float c_tool = 0.007f;
+        float d_tool = 0.049f;
+        float h_tool = 0.02706f;
+        float t_tool[3] = {0.0f, 0.0f, 0.0f}; // distance from the flange center to the tool box center
+        touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool, t_tool);
+
+        // For simulation purposes
+        {
+            // touch.Simulation();
+        }
+
+
+
+
+        
+    }
 
     delete[] resultsFolder;
 
@@ -1945,3 +1977,4 @@ void TestFeasibleRobotPose(
     // delete[] eCF;
     // delete[] w;
 }
+

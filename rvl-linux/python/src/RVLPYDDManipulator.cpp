@@ -85,6 +85,9 @@ public:
 	py::bool_ free_tool_only(py::array T_G_S);
 	py::array get_T_G_6();
 	void visualize_current_state(py::array q, py::array T_G_R);
+	void load_cabinet_static_mesh_fcl(std::string cabinetStaticMeshPath);
+	void load_cabinet_panel_mesh_fcl(std::string cabinetPanelMeshPath);
+
 public:
 	DDManipulator manipulator;
 	int memSize;
@@ -130,6 +133,13 @@ void PYDDManipulator::create(
 	maxnIKSolutions = manipulator.maxnIKSolutions;
 	approachPathMem = new Pair<int, int>[maxnIKSolutions * maxnIKSolutions];
 
+	if (manipulator.use_fcl)
+	{
+		manipulator.LoadToolModelFCL();
+		manipulator.CreateRobotCylindersFCL();
+		manipulator.CreateGndFCL();
+	}
+
 }
 
 void PYDDManipulator::set_memory_storage_size(
@@ -168,7 +178,7 @@ py::tuple PYDDManipulator::path2(
 		manipulator.CreateGndFCL();
         // RVLCOMPTRANSF3D(manipulator.pose_F_S.R, manipulator.pose_F_S.t, manipulator.pose_A_F.R, manipulator.pose_A_F.t, manipulator.pose_A_S_FCL.R, manipulator.pose_A_S_FCL.t);
 
-        manipulator.CreateGndFCL();
+        // manipulator.CreateGndFCL();
 
 	}
 	
@@ -716,8 +726,8 @@ py::tuple PYDDManipulator::inv_kinematics_all_sols(py::array T_G_0, bool bTCP)
 py::tuple PYDDManipulator::inv_kinematics_all_sols_prev(py::array T_6_0)
 {
 	double *T_6_0_ = (double *)T_6_0.request().ptr;
-	Pose3D pose_G_0;
-	RVLHTRANSFMXDECOMP(T_6_0_, pose_G_0.R, pose_G_0.t);
+	Pose3D pose_6_0;
+	RVLHTRANSFMXDECOMP(T_6_0_, pose_6_0.R, pose_6_0.t);
 	auto q = py::array(py::buffer_info(
 		nullptr,
 		sizeof(float),
@@ -731,7 +741,7 @@ py::tuple PYDDManipulator::inv_kinematics_all_sols_prev(py::array T_6_0)
 	RVL::Array2D<float> RVLinvKinSolutions;
 	RVLinvKinSolutions.Element = NULL;
 
-	bool bSuccess = manipulator.robot.InvKinematicsPrev(pose_G_0, RVLinvKinSolutions);
+	bool bSuccess = manipulator.robot.InvKinematicsPrev(pose_6_0, RVLinvKinSolutions);
 
 	for (int iSol = 0; iSol < RVLinvKinSolutions.h; q_ += manipulator.robot.n, iSol++)
 	{
@@ -790,6 +800,18 @@ void PYDDManipulator::visualize_current_state(py::array q, py::array T_G_R)
 	manipulator.VisualizeCurrentState(q_, pose_G_R);
 }
 
+void PYDDManipulator::load_cabinet_static_mesh_fcl(std::string cabinetStaticMeshPath)
+{
+	if (manipulator.use_fcl)
+		manipulator.LoadCabinetStaticFCL(cabinetStaticMeshPath, pose_A_S);
+}
+
+void PYDDManipulator::load_cabinet_panel_mesh_fcl(std::string cabinetPanelMeshPath)
+{
+	if (manipulator.use_fcl)
+		manipulator.LoadCabinetPanelFCL(cabinetPanelMeshPath);
+}
+
 ////////////////////////////////////////////////////////////////////
 //
 //     RVL PYDDManipulator Wrapper
@@ -826,5 +848,7 @@ PYBIND11_MODULE(RVLPYDDManipulator, m)
 		.def("free_tool_only", &PYDDManipulator::free_tool_only)
 		.def("get_T_G_6", &PYDDManipulator::get_T_G_6)
 		.def("visualize_current_state", &PYDDManipulator::visualize_current_state)
-		.def("approach_path_poses", &PYDDManipulator::approach_path_poses);
+		.def("approach_path_poses", &PYDDManipulator::approach_path_poses)
+		.def("load_cabinet_static_mesh_fcl", &PYDDManipulator::load_cabinet_static_mesh_fcl)
+		.def("load_cabinet_panel_mesh_fcl", &PYDDManipulator::load_cabinet_panel_mesh_fcl);
 }

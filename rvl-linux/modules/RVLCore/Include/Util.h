@@ -376,6 +376,9 @@ namespace RVL
 		int m,
 		Array2D<int> &comb,
 		int *idxMem = NULL);
+	void Combinations(
+		Array<int> N,
+		Array2D<int> &V);
 	void DistributionFromCovMx(
 		float *C,
 		float *R,
@@ -448,6 +451,13 @@ namespace RVL
 	void IntrinsicCameraMatrix(
 		Camera camera,
 		float *K);
+	void InvIntrinsicCameraMatrix(
+		float *K,
+		float *invK);
+	void TriangleNormalAndArea(
+		float **P,
+		float *N,
+		float &area);
 
 	// created by Damir Filko
 	// adapted for general case by Robert Cupec
@@ -1199,7 +1209,7 @@ namespace RVL
 		int z;
 		do
 			RVLRND(1000000, rndVal.Element, rndVal.n, iRndVal, z)
-			while (z == 0);
+		while (z == 0);
 		T u1 = 1e-6 * (T)z;
 		RVLRND(1000000, rndVal.Element, rndVal.n, iRndVal, z);
 		T u2 = 1e-6 * (T)z;
@@ -1265,7 +1275,11 @@ namespace RVL
 		float *size,
 		float *P,
 		int *faces,
-		int faceIdxOffset);
+		int faceIdxOffset = 0);
+	bool LineConvexSetIntersection2D(
+		float *line,
+		Array<Vector3<float>> convexSet,
+		float *intersectionLineSegment);
 
 	// Vidovic
 	void UnionOfIndices(

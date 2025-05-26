@@ -179,16 +179,38 @@ namespace RVL
 			float max;
 		};
 
-		struct Point2D
-		{
-			float P[2];
-		};
-
 		struct DisplayCallbackData
 		{
 			Visualizer *pVisualizer;
 			Mesh *pMesh;
 			vtkSmartPointer<vtkActor> selectedPtActor;
+		};
+
+		struct SurfelGraphEdge
+		{
+			int idx;
+			int iVertex[2];
+			GRAPH::EdgePtr2<PSD::SurfelGraphEdge> *pVertexEdgePtr[2];
+			float N[3];
+			float P[3];
+			float d;
+			Moments<double> moments;
+			float cost;
+			QLIST::Index2 *pQueueEntry;
+			SurfelGraphEdge *pNext;
+			SurfelGraphEdge **pPtrToThis;
+		};
+
+		struct SurfelGraphNode
+		{
+			int idx;
+			float N[3];
+			float P[3];
+			float d;
+			Moments<double> moments;
+			QList<GRAPH::EdgePtr2<SurfelGraphEdge>> EdgeList;
+			QList<QLIST::Index> elementList;
+			QList<QLIST::Index> vertexList;
 		};
 
 		int RegionGrowingOperation(
@@ -247,10 +269,16 @@ namespace RVL
 #endif
 		}
 		bool UpdateConvexSet(
-			std::vector<PSD::Point2D> CIn,
+			std::vector<Point2D> CIn,
 			float *N,
 			float d,
-			std::vector<PSD::Point2D> &COut);
+			std::vector<Point2D> &COut);
+		void Polygon(
+			Array<Point2D> contour,
+			float tol,
+			std::vector<Point2D> *pVertices,
+			Pair<int, int> *pPolygonVertexInterval,
+			QLIST::Index *pSegmentEndpointMemIn = NULL);
 	}
 
 	class PlanarSurfelDetector
@@ -266,6 +294,11 @@ namespace RVL
 		void Segment(
 			Mesh *pMesh,
 			SurfelGraph *pSurfels);
+		void Segment2(
+			Mesh *pMesh,
+			SurfelGraph *pSurfels,
+			float tol,
+			Visualizer *pVisualizer);
 		void RandomIndices(Array<int> &A);
 		void DefineBoundary(
 			Mesh *pMesh,
@@ -300,6 +333,11 @@ namespace RVL
 		void CreatePolygons(
 			Mesh *pMesh,
 			SurfelGraph *pSurfels,
+			int minSurfelSize,
+			float tol);
+		void CreatePolygons2(
+			Mesh *pMesh,
+			SurfelGraph *pSurfels,
 			Mesh *pPolygonMesh);
 		void Polygonalize(
 			SurfelGraph *pSurfels,
@@ -323,14 +361,9 @@ namespace RVL
 			Mesh *pMesh,
 			int iSeedPt,
 			Array<int> &ptIdx);
-		bool UpdateConvexSet(
-			std::vector<PSD::Point2D> CIn,
-			float *N,
-			float d,
-			std::vector<PSD::Point2D> &COut);
-		float Area(std::vector<PSD::Point2D> C);
+		float Area(std::vector<Point2D> C);
 		void VisualizeConvexSet(
-			std::vector<PSD::Point2D> C,
+			std::vector<Point2D> C,
 			int resolution,
 			Rect<float> *pROI = NULL);
 		void DisplaySoftEdges(
@@ -594,6 +627,13 @@ namespace RVL
 			float *dP,
 			Array<int> &initCut,
 			Array<int> &lineCut);
+		void SurfelGraphEdgeCost(
+			Mesh *pMesh,
+			Graph<PSD::SurfelGraphNode, PSD::SurfelGraphEdge, GRAPH::EdgePtr2<PSD::SurfelGraphEdge>> *pG,
+			PSD::SurfelGraphEdge *pGEdge,
+			float tol,
+			float csNormalAngleThr,
+			float maxCost);
 #endif
 #ifdef RVLPLANARSURFELDETECTOR_EDGE_BOUNDARY_DEBUG
 		void SaveNeighborhood(
@@ -701,5 +741,12 @@ namespace RVL
 		Array<int> iEdgeClassDepthOccupancyBin;
 		FILE *fpDebugPts;
 		FILE *fpDebugEdges;
+		cv::Mat cvC;
+		double *C;
+		cv::Mat cvEigVC;
+		double *eigVC;
+		cv::Mat cvEigC;
+		double *lfN;
+		double lfP[3];
 	};
 }

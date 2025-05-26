@@ -29,4 +29,6 @@ void MOTION::InitVisualizer(
         pVisualizationData->bOwnVisualizer = true;
     }
     pVisualizationData->bVisualize = false;
+    pVisualizationData->bVNEnv = false;
+    pVisualizationData->bOptimization = false;
 }

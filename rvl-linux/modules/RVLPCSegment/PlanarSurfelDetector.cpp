@@ -52,6 +52,8 @@ PlanarSurfelDetector::PlanarSurfelDetector()
 	edgeClassImageBoundary.miny = 5;
 	edgeClassImageBoundary.maxy = 474;
 	zGndThr = 0.005f;
+	cvC.create(3, 3, CV_64FC1);
+	C = (double*)(cvC.data);
 
 	pMem = NULL;
 	//iPtBuff = NULL;
@@ -242,7 +244,7 @@ void PlanarSurfelDetector::RandomIndices(Array<int> &A)
 #ifdef RVLPLANARSURFELDETECTOR_PSEUDO_RANDOM_DEBUG
 #ifdef RVLLINUX
 	//FILE *fp = fopen((std::string(precomputesFolder) + "/pseudorandom1000000.dat").data(), "rb");
-	FILE *fp = fopen("/home/RVLuser/rvl-linux/pseudorandom1000000.dat", "rb");
+	FILE *fp = fopen("/home/robert/Documents/RVL/RVL/pseudorandom1000000.dat", "rb");
 #else
 	FILE *fp = fopen("..\\pseudorandom1000000.dat", "rb");
 #endif
@@ -673,6 +675,61 @@ void PlanarSurfelDetector::Segment(
 	if (bJoinSmallSurfelsToClosestNeighbors)
 		JoinSmallSurfelsToClosestNeighbors(pMesh, pSurfels);
 
+	// Compute surfel plane parameters and rotation matrix.
+
+	pSurfel = pSurfels->NodeArray.Element;
+	RVL_DELETE_ARRAY(pSurfels->momentsMem);
+	pSurfels->momentsMem = new Moments<double>[pSurfels->NodeArray.n];
+	Moments<double>* pMoments = pSurfels->momentsMem;
+	Moments<double> moments_;
+	Array<int> ptArray;
+	ptArray.Element = new int[pMesh->NodeArray.n];
+	Array<int> iSurfelArray;
+	iSurfelArray.Element = &iSurfel;
+	iSurfelArray.n = 1;
+	cv::Mat cvC(3, 3, CV_64FC1);
+	double* C = (double*)(cvC.data);
+	cv::Mat cvEigVC;
+	double* eigVC;
+	cv::Mat cvEigC;
+	double* lfN;
+	double lfP[3];
+	double V3Tmp[3];
+	double* lfY;
+	for (iSurfel = 0; iSurfel < pSurfels->NodeArray.n; iSurfel++, pSurfel++)
+	{
+		if (pSurfel->size < minSurfelSize)
+			continue;
+		pSurfels->GetPoints(iSurfelArray, ptArray);
+		pMesh->ComputeMoments(ptArray, moments_);
+		pSurfel->pMoments = pMoments;
+		*pMoments = moments_;
+		GetCovMatrix3<double>(pMoments, C, lfP);
+		cv::eigen(cvC, cvEigC, cvEigVC);
+		eigVC = (double*)(cvEigVC.data);
+		lfN = eigVC + 6;
+		if (RVLDOTPRODUCT3(pSurfel->N, lfN) > 0.0f)
+		{
+			RVLCOPY3VECTOR(lfN, pSurfel->N);
+		}
+		else
+		{
+			RVLNEGVECT3(lfN, pSurfel->N);
+		}
+		RVLCOPY3VECTOR(lfP, pSurfel->P);
+		pSurfel->d = RVLDOTPRODUCT3(pSurfel->N, pSurfel->P);
+		RVLCOPYTOCOL3(pSurfel->N, 2, pSurfel->R);
+		RVLCOPYTOCOL3(eigVC, 0, pSurfel->R);
+		RVLCROSSPRODUCT3(pSurfel->N, eigVC, V3Tmp);
+		lfY = eigVC + 3;
+		if (RVLDOTPRODUCT3(V3Tmp, lfY) < 0.0f)
+		{
+			RVLNEGVECT3(lfY, lfY);
+		}
+		RVLCOPYTOCOL3(lfY, 1, pSurfel->R);
+	}
+	delete[] ptArray.Element;
+
 	// Identify neighbors of large surfels and create edges between neighboring surfels. 
 
 	MeshEdgePtr **pNewBoundaryElement = pSurfels->surfelBndMem;
@@ -745,6 +802,834 @@ void PlanarSurfelDetector::Segment(
 	delete[] regionGrowingBuffer;
 	delete[] RandPtIdxArray.Element;
 }
+
+namespace RVL
+{
+	namespace GRAPH
+	{
+		// This function requires allocated array int *iVisitedNodeEdge with reserved memory for the number of integers equal to the number of graph nodes.
+		// All elements of iVisitedNodeEdge should be -1 and the function ensures that they have the same value after execution.
+		// The function also requires allocated array Array<Pair<int, int>> mergedEdges with reserved memory 
+		// sufficient to contain the number of pairs equal to the total number of all edges of iNode1 and iNode2.
+
+		template<typename NodeType, typename EdgeType, typename EdgePtrType>
+		void Merge(
+			// Graph<typename NodeType, typename EdgeType, typename EdgePtrType>& graph,
+			Graph<NodeType, EdgeType, EdgePtrType>& graph,
+			int iNode1,
+			int iNode2,
+			Array<Pair<int, int>> &mergedEdges,
+			int* iVisitedNodeEdge)
+		{
+			// iNode1, iNode2 <- nodes connected by pEdge
+
+			NodeType* pNode1 = graph.NodeArray.Element + iNode1;
+
+			QList<EdgePtrType>* pEdgeList1 = &(pNode1->EdgeList);
+
+			QList<QLIST::Index>* pElementList1 = &(pNode1->elementList);
+
+			NodeType* pNode2 = graph.NodeArray.Element + iNode2;
+
+			QList<EdgePtrType>* pEdgeList2 = &(pNode2->EdgeList);
+
+			QList<QLIST::Index>* pElementList2 = &(pNode2->elementList);
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DEBUG
+			//fprintf(fp, "Removing edge %d: cost %f iCost %d\n", iEdge, pEdge->cost, iMaxCost);
+
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode1);
+
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode2);
+#endif
+
+			// iNode1 <- union of iNode1 and iNode2 
+
+			RVLQLIST_APPEND(pElementList1, pElementList2);
+
+			// iNode2 <- empty set
+
+			RVLQLIST_INIT(pElementList2);
+
+			// In WERAggregation2 here is the code "Add new node to the hierarchy".
+
+			// In WERAggregation2 here is the code "Remove the edge connecting iNode1 and iNode2 from the edgeQueue."
+
+			// Append the edge list of iNode2 to the edge list of iNode1.
+
+			RVLQLIST_APPEND2(pEdgeList1, pEdgeList2);
+			EdgePtrType* pEdgePtr21 = pEdgeList2->pFirst;
+			EdgeType* pEdge12;
+			while (pEdgePtr21)
+			{
+				pEdge12 = pEdgePtr21->pEdge;
+				if (pEdge12->iVertex[0] == iNode2)
+					pEdge12->iVertex[0] = iNode1;
+				else if (pEdge12->iVertex[1] == iNode2)
+					pEdge12->iVertex[1] = iNode1;
+				pEdgePtr21 = pEdgePtr21->pNext;
+			}
+
+			// Empty the edge list of iNode2.
+
+			RVLQLIST_INIT(pEdgeList2);
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DETAILED_DEBUG
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode1);
+
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode2);
+#endif
+
+			// 
+
+			EdgePtrType* pEdgePtr13 = pEdgeList1->pFirst;
+			EdgeType* pEdge13;
+			int iEdge13;
+			int side3;
+			int iNode3;
+			Pair<int, int>* pMergedEdges = mergedEdges.Element;
+			int iRefEdge;
+			EdgePtrType* pEdgePtr31;
+			NodeType* pNode3;
+			QList<EdgePtrType>* pEdgeList3;
+			while (pEdgePtr13)	// for every edge of iNode1
+			{
+				// iNode3 <- node connected to iNode1 via edge pEdge13
+
+				pEdge13 = pEdgePtr13->pEdge;
+
+				iEdge13 = pEdge13->idx;
+
+				side3 = 1 - RVLPCSEGMENT_GRAPH_GET_SIDE(pEdgePtr13);
+
+				iNode3 = pEdge13->iVertex[side3];
+
+				if (iNode3 == iNode1)
+				{
+					RVLQLIST_REMOVE_ENTRY2(pEdgeList1, pEdgePtr13, EdgePtrType);	// Remove pEdge13 from the edge list of iNode1.
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DETAILED_DEBUG
+					fprintf(fp, "Removing edge %d(%d-%d) from the edge list of N%d.\n", iEdge13, iNode1, iNode3, iNode1);
+
+					WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode1);
+#endif
+				}
+				else if (iVisitedNodeEdge[iNode3] >= 0)
+				{
+					// Remove pEdge13 from the edge list of iNode1. 
+
+					RVLQLIST_REMOVE_ENTRY2(pEdgeList1, pEdgePtr13, EdgePtrType);
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DETAILED_DEBUG
+					fprintf(fp, "Removing edge %d(%d-%d) from the edge list of N%d.\n", iEdge13, iNode1, iNode3, iNode1);
+
+					WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode1);
+#endif
+
+					// Remove pEdge13 from the edge list of iNode3. 
+
+					pEdgePtr31 = pEdge13->pVertexEdgePtr[side3];
+
+					pNode3 = graph.NodeArray.Element + iNode3;
+
+					pEdgeList3 = &(pNode3->EdgeList);
+
+					RVLQLIST_REMOVE_ENTRY2(pEdgeList3, pEdgePtr31, EdgePtrType);
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DETAILED_DEBUG
+					fprintf(fp, "Removing edge %d(%d-%d) from the edge list of N%d.\n", iEdge13, iNode1, iNode3, iNode3);
+
+					WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode3);
+#endif
+
+					// iRefEdge <- the first visited edge which connects iNode1 and iNode3
+
+					iRefEdge = iVisitedNodeEdge[iNode3];
+					pMergedEdges->a = iRefEdge;
+					pMergedEdges->b = iEdge13;
+					pMergedEdges++;
+
+					// In WERAggregation2 here is the code from "iRefEdge <- the first visited edge which connects iNode1 and iNode3" to "Update iMaxCost".					
+				}
+				else
+					iVisitedNodeEdge[iNode3] = iEdge13;
+
+				//if (ppNextDebug)
+				//	if (edgeQueue.Element[576].ppNext != ppNextDebug)
+				//		int debug = 0;
+
+				pEdgePtr13 = pEdgePtr13->pNext;
+			}	// for every edge of iNode1
+			mergedEdges.n = pMergedEdges - mergedEdges.Element;
+
+			pEdgePtr13 = pEdgeList1->pFirst;
+
+			while (pEdgePtr13)	// for every edge of iNode1
+			{
+				iNode3 = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_NODE(pEdgePtr13);
+
+				iVisitedNodeEdge[iNode3] = -1;
+
+				pEdgePtr13 = pEdgePtr13->pNext;
+			}
+
+#ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DEBUG
+			fprintf(fp, "After aggregation:\n", iEdge, pEdge->cost);
+
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode1);
+
+			WriteAggNodeData<NodeType, EdgeType, EdgePtrType>(fp, graph, iNode2);
+
+			fprintf(fp, "\n");
+
+			fflush(fp);
+#endif
+
+		}
+	}
+}
+
+void PlanarSurfelDetector::SurfelGraphEdgeCost(
+	Mesh *pMesh,
+	Graph<PSD::SurfelGraphNode, PSD::SurfelGraphEdge, GRAPH::EdgePtr2<PSD::SurfelGraphEdge>> *pG,
+	PSD::SurfelGraphEdge* pGEdge,
+	float tol,
+	float csNormalAngleThr,
+	float maxCost)
+{
+	PSD::SurfelGraphNode* pNode[2];
+	pNode[0] = pG->NodeArray.Element + pGEdge->iVertex[0];
+	pNode[1] = pG->NodeArray.Element + pGEdge->iVertex[1];
+	if (RVLDOTPRODUCT3(pNode[0]->N, pNode[1]->N) >= csNormalAngleThr)
+	{
+		SumMoments<double>(pNode[0]->moments, pNode[1]->moments, pGEdge->moments);
+		GetCovMatrix3<double>(&(pGEdge->moments), C, lfP);
+		cv::eigen(cvC, cvEigC, cvEigVC);
+		eigVC = (double*)(cvEigVC.data);
+		lfN = eigVC + 6;
+		if (RVLDOTPRODUCT3(pNode[0]->N, lfN) > 0.0f)
+		{
+			RVLCOPY3VECTOR(lfN, pGEdge->N);
+		}
+		else
+		{
+			RVLNEGVECT3(lfN, pGEdge->N);
+		}
+		RVLCOPY3VECTOR(lfP, pGEdge->P);
+		pGEdge->d = RVLDOTPRODUCT3(pGEdge->N, pGEdge->P);
+		int i;
+		float V3Tmp[3];
+		QLIST::Index* pVertexIdx;
+		Point* pVertex;
+		pGEdge->cost = 0.0f;
+		float e;
+		for (i = 0; i < 2; i++)
+		{
+			pVertexIdx = pNode[i]->vertexList.pFirst;
+			while (pVertexIdx)
+			{
+				pVertex = pMesh->NodeArray.Element + pVertexIdx->Idx;
+				e = RVLDOTPRODUCT3(pGEdge->N, pVertex->P) - pGEdge->d;
+				if (RVLABS(e) <= tol)
+				{
+					if (e > pGEdge->cost)
+						pGEdge->cost = e;
+				}
+				else
+					break;
+				pVertexIdx = pVertexIdx->pNext;
+			}
+			if (pVertexIdx)
+				break;
+		}
+		if(i < 2)
+			pGEdge->cost = 2.0f * maxCost;
+	}
+	else
+		pGEdge->cost = 2.0f * maxCost;
+}
+
+void PlanarSurfelDetector::Segment2(
+	Mesh* pMesh,
+	SurfelGraph* pSurfels,
+	float tol,
+	Visualizer* pVisualizer)
+{
+	// Parameters.
+
+	float normalAngleThrDeg = 22.5f;
+	int costResolution = 100;
+
+	// Constants.
+
+	float csNormalAngleThr = cos(DEG2RAD * normalAngleThrDeg);
+	float dCost = tol / (float)costResolution;
+
+	//
+
+	// Create surfel graph nodes from mesh faces.
+
+	Graph<PSD::SurfelGraphNode, PSD::SurfelGraphEdge, GRAPH::EdgePtr2<PSD::SurfelGraphEdge>> G;
+	G.NodeMem = new PSD::SurfelGraphNode[pMesh->faces.n];
+	G.NodeArray.Element = G.NodeMem;
+	PSD::SurfelGraphNode* pNode = G.NodeArray.Element;
+	G.NodeArray.n = pMesh->faces.n;
+	int iFace;
+	MESH::Face* pFace;
+	MeshEdgePtr* pMeshEdgePtr;
+	int iVertex;
+	Array<int> vertices;
+	vertices.Element = new int[pMesh->NodeArray.n];
+	float V3Tmp[3];
+	QLIST::Index* vertexMem = new QLIST::Index[3 * pMesh->faces.n];
+	QLIST::Index* pVertexIdx = vertexMem;
+	QList<QLIST::Index> *pVertexList;
+	QList<GRAPH::EdgePtr2<PSD::SurfelGraphEdge>>* pNodeEdgeList;
+	QList<QLIST::Index>* pNodeElementList;
+	QLIST::Index* nodeElementMem = new QLIST::Index[G.NodeArray.n];
+	QLIST::Index* pNodeElement = nodeElementMem;
+	for (iFace = 0; iFace < pMesh->faces.n; iFace++, pNode++)
+	{
+		pFace = pMesh->faces.Element[iFace];
+		pVertexList = &(pNode->vertexList);
+		RVLQLIST_INIT(pVertexList);
+		vertices.n = 0;
+		pMeshEdgePtr = pFace->pFirstEdgePtr;
+		if (pMeshEdgePtr)
+		{
+			do
+			{
+				iVertex = RVLPCSEGMENT_GRAPH_GET_NODE(pMeshEdgePtr);
+				vertices.Element[vertices.n++] = iVertex;
+				pVertexIdx->Idx = iVertex;
+				RVLQLIST_ADD_ENTRY(pVertexList, pVertexIdx);
+				pVertexIdx++;
+				pMeshEdgePtr = pMeshEdgePtr->pNext;
+				if (pMeshEdgePtr == NULL)
+					pMeshEdgePtr = pMesh->NodeArray.Element[iVertex].EdgeList.pFirst;
+				pMeshEdgePtr = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_EDGE_PTR(pMeshEdgePtr);
+			} while (pMeshEdgePtr != pFace->pFirstEdgePtr);
+		}
+		pMesh->ComputeMoments(vertices, pNode->moments);
+		//GetCovMatrix3<double>(&(pNode->moments), C, lfP);
+		//cv::eigen(cvC, cvEigC, cvEigVC);
+		//eigVC = (double*)(cvEigVC.data);
+		//lfN = eigVC + 6;
+		//if (RVLDOTPRODUCT3(pFace->N, lfN) > 0.0f)
+		//{
+		//	RVLCOPY3VECTOR(lfN, pNode->N);
+		//}
+		//else
+		//{
+		//	RVLNEGVECT3(lfN, pNode->N);
+		//}
+		//RVLCOPY3VECTOR(lfP, pNode->P);
+		RVLCOPY3VECTOR(pFace->N, pNode->N);
+		float fn = (float)(pNode->moments.n);
+		RVLSCALE3VECTOR2(pNode->moments.S, fn, pNode->P);
+		pNode->d = RVLDOTPRODUCT3(pNode->N, pNode->P);
+		pNodeEdgeList = &(pNode->EdgeList);
+		RVLQLIST_INIT(pNodeEdgeList);
+		pNodeElementList = &(pNode->elementList);
+		RVLQLIST_INIT(pNodeElementList);
+		pNodeElement->Idx = iFace;
+		RVLQLIST_ADD_ENTRY(pNodeElementList, pNodeElement);
+		pNodeElement++;
+	}
+
+	// Surfel graph edges.
+
+	int i;
+	G.EdgeMem = new PSD::SurfelGraphEdge[pMesh->EdgeArray.n];
+	G.EdgeArray.Element = G.EdgeMem;
+	PSD::SurfelGraphEdge* pGEdge = G.EdgeArray.Element;
+	G.EdgePtrMem = new GRAPH::EdgePtr2<PSD::SurfelGraphEdge>[2 * pMesh->EdgeArray.n];
+	GRAPH::EdgePtr2<PSD::SurfelGraphEdge>* pGEdgePtr = G.EdgePtrMem;
+	int iEdge;	
+	MeshEdge* pMeshEdge = pMesh->EdgeArray.Element;
+	for (iEdge = 0; iEdge < pMesh->EdgeArray.n; iEdge++, pMeshEdge++)
+	{
+		if (pMeshEdge->pFace[0] == NULL || pMeshEdge->pFace[1] == NULL)
+			continue;
+		pGEdge->idx = pGEdge - G.EdgeArray.Element;
+		pGEdge->iVertex[0] = pMeshEdge->pFace[0]->idx;
+		pGEdge->iVertex[1] = pMeshEdge->pFace[1]->idx;
+		ConnectNodes2<PSD::SurfelGraphNode, PSD::SurfelGraphEdge, GRAPH::EdgePtr2<PSD::SurfelGraphEdge>>(G.NodeArray, pGEdge, pGEdgePtr);
+		pGEdgePtr += 2;
+		SurfelGraphEdgeCost(pMesh, &G, pGEdge, tol, csNormalAngleThr, tol);
+		pGEdge++;
+	}
+	G.EdgeArray.n = pGEdge - G.EdgeArray.Element;
+
+	/// Merge mesh triangles in approximatelly planar surfaces using the WER method.
+
+	// edgeQueue <- edge queue sorted according to their cost.
+
+	Array<QList<QLIST::Index2>> edgeQueue;
+	edgeQueue.n = costResolution + 1;
+	edgeQueue.Element = new QList<QLIST::Index2>[edgeQueue.n];
+	QLIST::Index2* edgeQueueMem = new QLIST::Index2[G.EdgeArray.n];
+	QList<QLIST::Index2>* pEdgeList;
+	RVLQLIST_ARRAY_INIT(edgeQueue, pEdgeList);
+	int iCost;
+	QLIST::Index2* pEdgeQueueEntry;
+	for (iEdge = 0; iEdge < G.EdgeArray.n; iEdge++)
+	{
+		pGEdge = G.EdgeArray.Element + iEdge;
+		if (pGEdge->cost < 0)
+			continue;
+		iCost = (int)floor(pGEdge->cost / dCost);
+		if (iCost > costResolution)
+			continue;
+		pEdgeQueueEntry = edgeQueueMem + iEdge;
+		pEdgeQueueEntry->Idx = iEdge;
+		pEdgeList = edgeQueue.Element + iCost;
+		RVLQLIST_ADD_ENTRY2(pEdgeList, pEdgeQueueEntry);
+		pGEdge->pQueueEntry = pEdgeQueueEntry;
+	}
+
+#ifdef RVLPLANARSURFDETECTOR_SEGMENT2_DEBUG
+	fprintf(fp, "Sorted edge list:\n\n", iEdge, pEdge->cost);
+
+	for (iCost = iMaxCost; iCost >= 0; iCost--)
+		WriteWERAggEdgeQueueBin<CostType>(fp, edgeQueue, iCost, true);
+
+	fprintf(fp, "\n");
+#endif
+
+	// Visualization.
+
+	//RVLCOLORS
+	//RVLVISUALIZER_LINES_INIT(visPts, visLines, pMesh->faces.n);
+	//Point* pVisPt = visPts.Element;
+	//Pair<int, int>* pVisLine = visLines.Element;
+	//pNode = G.NodeArray.Element;
+	//for (iFace = 0; iFace < pMesh->faces.n; iFace++, pNode++, pVisLine++)
+	//{
+	//	pFace = pMesh->faces.Element[iFace];
+	//	RVLCOPY3VECTOR(pNode->P, pVisPt->P);
+	//	pVisPt++;
+	//	RVLSCALE3VECTOR(pNode->N, 0.02f, V3Tmp);
+	//	RVLSUM3VECTORS(pNode->P, V3Tmp, pVisPt->P);
+	//	pVisPt++;
+	//	pVisLine->a = 2 * iFace;
+	//	pVisLine->b = pVisLine->a + 1;
+	//}
+	//pVisualizer->DisplayLines(visPts, visLines, red);
+	//RVLVISUALIZER_LINES_FREE(visPts, visLines);
+
+	//delete[] vertices.Element;
+
+	// WER aggregation.
+
+	int* iVisitedNodeEdge = new int[G.NodeArray.n];
+	memset(iVisitedNodeEdge, 0xff, G.NodeArray.n * sizeof(int));
+	Array<Pair<int, int>> mergedEdges;
+	mergedEdges.Element = new Pair<int, int>[G.EdgeArray.n];
+	iCost = 0;
+	int iEdge_;
+	PSD::SurfelGraphEdge* pGEdge_;
+	QList<QLIST::Index2>* pEdgeList_;
+	int iCost_, iNewCost;
+	PSD::SurfelGraphNode* pNode_;
+	QList<QLIST::Index>* pVertexList_;
+	bool* bJoined = new bool[pMesh->NodeArray.n];
+	memset(bJoined, 0, pMesh->NodeArray.n * sizeof(bool));
+	while (true)
+	{
+		pEdgeList = edgeQueue.Element + iCost;
+		while (pEdgeList->pFirst == NULL && iCost <= costResolution)
+		{
+			iCost++;
+			pEdgeList = edgeQueue.Element + iCost;
+		}
+		if (iCost > costResolution)
+			break;
+		//printf("iStep=%d iCost=%d\n", debug, iCost);
+		//if (debug == 120)
+		//	int debug_ = 0;
+		//debug++;
+		pEdgeQueueEntry = pEdgeList->pFirst;
+		RVLQLIST_REMOVE_ENTRY2(pEdgeList, pEdgeQueueEntry, QLIST::Index2);
+		iEdge = pEdgeQueueEntry->Idx;
+		pGEdge = G.EdgeArray.Element + iEdge;
+		pNode = G.NodeArray.Element + pGEdge->iVertex[0];
+		pNode_ = G.NodeArray.Element + pGEdge->iVertex[1];
+		//if (pGEdge->iVertex[0] == 142 || pGEdge->iVertex[1] == 142)
+		//	int debug = 0;
+		GRAPH::Merge < PSD::SurfelGraphNode, PSD::SurfelGraphEdge, GRAPH::EdgePtr2<PSD::SurfelGraphEdge>>(G, pGEdge->iVertex[0], pGEdge->iVertex[1], mergedEdges, iVisitedNodeEdge);
+		pNode->moments = pGEdge->moments;
+		RVLCOPY3VECTOR(pGEdge->N, pNode->N);
+		RVLCOPY3VECTOR(pGEdge->P, pNode->P);
+		pNode->d = pGEdge->d;
+		pGEdgePtr = pNode->EdgeList.pFirst;
+		while(pGEdgePtr)
+		{
+			pGEdge_ = pGEdgePtr->pEdge;
+			iCost_ = (int)floor(pGEdge_->cost / dCost);
+			if (iCost_ <= costResolution)
+			{
+				SurfelGraphEdgeCost(pMesh, &G, pGEdge_, tol, csNormalAngleThr, tol);
+				iNewCost = (int)floor(pGEdge_->cost / dCost);
+				if (iNewCost != iCost_)
+				{
+					pEdgeList_ = edgeQueue.Element + iCost_;
+					RVLQLIST_REMOVE_ENTRY2(pEdgeList_, pGEdge_->pQueueEntry, QLIST::Index2);
+					if (iNewCost <= costResolution)
+					{
+						pEdgeList_ = edgeQueue.Element + iNewCost;
+						RVLQLIST_ADD_ENTRY2(pEdgeList_, pGEdge_->pQueueEntry);
+						if (iNewCost < iCost)
+							iCost = iNewCost;
+					}
+				}
+			}
+			pGEdgePtr = pGEdgePtr->pNext;
+		}
+		for (i = 0; i < mergedEdges.n; i++)
+		{
+			iEdge = mergedEdges.Element[i].b;
+			pGEdge_ = G.EdgeArray.Element + iEdge;
+			iCost_ = (int)floor(pGEdge_->cost / dCost);
+			if (iCost_ <= costResolution)
+			{
+				pEdgeList_ = edgeQueue.Element + iCost_;
+				RVLQLIST_REMOVE_ENTRY2(pEdgeList_, pGEdge_->pQueueEntry, QLIST::Index2);
+			}
+		}
+		pVertexList = &(pNode->vertexList);
+		pVertexIdx = pVertexList->pFirst;
+		while (pVertexIdx)
+		{
+			bJoined[pVertexIdx->Idx] = true;
+			pVertexIdx = pVertexIdx->pNext;
+		}
+		pVertexList_ = &(pNode_->vertexList);
+		pVertexIdx = pVertexList_->pFirst;
+		while (pVertexIdx)
+		{
+			if(!bJoined[pVertexIdx->Idx])
+				RVLQLIST_ADD_ENTRY(pVertexList, pVertexIdx)
+			pVertexIdx = pVertexIdx->pNext;
+		}
+		pVertexIdx = pVertexList->pFirst;
+		while (pVertexIdx)
+		{
+			bJoined[pVertexIdx->Idx] = false;
+			pVertexIdx = pVertexIdx->pNext;
+		}
+	}
+
+	delete[] edgeQueue.Element;
+	delete[] edgeQueueMem;
+	delete[] vertexMem;
+	delete[] iVisitedNodeEdge;
+	delete[] mergedEdges.Element;
+	delete[] bJoined;
+
+	/// Polygons.
+
+	// nodes <- nodes obtained by WER aggregation.
+
+	Array<int> nodes;
+	nodes.Element = new int[G.NodeArray.n];
+	nodes.n = 0;
+	int iNode;
+	for (iNode = 0; iNode < G.NodeArray.n; iNode++)
+	{
+		pNode = G.NodeArray.Element + iNode;
+		if(RVLDOTPRODUCT3(pNode->N, pNode->N) > 0.5f)
+			if (pNode->elementList.pFirst)
+				nodes.Element[nodes.n++] = iNode;
+	}
+
+	// 
+
+	RVL_DELETE_ARRAY(pSurfels->NodeMem);
+	pSurfels->NodeMem = new Surfel[nodes.n];
+	pSurfels->NodeArray.n = nodes.n;
+	pSurfels->NodeArray.Element = pSurfels->NodeMem;
+	Surfel* pSurfel = pSurfels->NodeMem;
+	RVL_DELETE_ARRAY(pSurfels->momentsMem);
+	pSurfels->momentsMem = new Moments<double>[pSurfels->NodeArray.n];
+	RVL_DELETE_ARRAY(pSurfels->triangleMem);
+	pSurfels->triangleMem = new int[G.NodeArray.n];
+	int* pTriangleMem = pSurfels->triangleMem;
+	QLIST::Index* pTriangleIdx;
+	bool* bBelongsToPoly = new bool[pMesh->faces.n];
+	memset(bBelongsToPoly, 0, pMesh->faces.n * sizeof(bool));
+	int iPoly;
+	bool* bContourEdge = new bool[pMesh->EdgeArray.n];
+	memset(bContourEdge, 0, pMesh->EdgeArray.n * sizeof(bool));
+	Array<int> contourEdges;
+	contourEdges.Element = new int[pMesh->EdgeArray.n];
+	bJoined = new bool[pMesh->EdgeArray.n];
+	memset(bJoined, 0, pMesh->EdgeArray.n * sizeof(bool));
+	int side;
+	MeshEdge* pMeshEdge_;
+	Array<Array<int>> contours;
+	contours.Element = new Array<int>[pMesh->EdgeArray.n];
+	Array<int>* pContour;
+	int* contourMem = new int[pMesh->EdgeArray.n];
+	int* pContourMem;
+	int j, k;
+	float fTmp;
+	int iOutContour;
+	float contourLen, maxContourLen;
+	float* P1, * P2;
+	float dP[3];
+	int nVertices;
+	Pair<int, int>* polyDataMem = new Pair<int, int>[pMesh->faces.n];
+	Pair<int, int>* pPolyData = polyDataMem;
+	Array<int> contourTmp;
+	float RSF_[9];
+	float* XF_S = RSF_; float* YF_S = RSF_ + 3; float* ZF_S = RSF_ + 6;
+	Array<Point2D> contour;
+	contour.Element = new Point2D[pMesh->NodeArray.n];
+	Point2D* pP2D;
+	float PF_[3];
+	float CF_[3];
+	float a, b, ca, sa, area;
+	float RFF_[9];
+	float PF[3];
+	Point2D P2D;
+	pSurfels->polygonVertices.clear();
+	int nContours = 0;
+	for (iPoly = 0; iPoly < nodes.n; iPoly++)
+	{
+		//if (iPoly == 15)
+		//	int debug = 0;
+		pNode = G.NodeArray.Element + nodes.Element[iPoly];
+		RVLCOPY3VECTOR(pNode->N, pSurfel->N);
+		RVLCOPY3VECTOR(pNode->P, pSurfel->P);
+		pSurfel->d = pNode->d;
+		pSurfel->pMoments = pSurfels->momentsMem + iPoly;
+		*(pSurfel->pMoments) = pNode->moments;
+
+		// 
+
+		// Identify mesh triangles which belong to the polygon and compute the polygon size.
+
+		area = 0.0f;
+		pNodeElement = pNode->elementList.pFirst;
+		while (pNodeElement)
+		{
+			bBelongsToPoly[pNodeElement->Idx] = true;
+			area += pMesh->faces.Element[pNodeElement->Idx]->Area;
+			pNodeElement = pNodeElement->pNext;
+		}
+		pSurfel->size = (int)ceil(area / pSurfels->sizeUnit);
+
+		// contourEdges <- mesh edges at the boundary contour of the polygon
+
+		contourEdges.n = 0;
+		pNodeElement = pNode->elementList.pFirst;
+		while (pNodeElement)
+		{
+			pFace = pMesh->faces.Element[pNodeElement->Idx];
+			pMeshEdgePtr = pFace->pFirstEdgePtr;
+			do
+			{
+				pMeshEdge = pMeshEdgePtr->pEdge;
+				iEdge = pMeshEdge->idx;
+				iVertex = RVLPCSEGMENT_GRAPH_GET_NODE(pMeshEdgePtr);
+				if (!bContourEdge[iEdge])
+				{
+					if (pMeshEdge->pFace[0] == NULL || pMeshEdge->pFace[1] == NULL)
+					{
+						bContourEdge[iEdge] = true;
+						contourEdges.Element[contourEdges.n++] = iEdge;
+					}
+					else if (bBelongsToPoly[pMeshEdge->pFace[0]->idx] != bBelongsToPoly[pMeshEdge->pFace[1]->idx])
+					{
+						bContourEdge[iEdge] = true;
+						contourEdges.Element[contourEdges.n++] = iEdge;
+					}
+				}
+				pMeshEdgePtr = pMeshEdgePtr->pNext;
+				if (pMeshEdgePtr == NULL)
+					pMeshEdgePtr = pMesh->NodeArray.Element[iVertex].EdgeList.pFirst;
+				pMeshEdgePtr = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_EDGE_PTR(pMeshEdgePtr);
+			} while (pMeshEdgePtr != pFace->pFirstEdgePtr);
+			pNodeElement = pNodeElement->pNext;
+		}
+
+		// Follow contours.
+
+		contours.n = 0;
+		nVertices = 0;
+		pContourMem = contourMem;
+		for (i = 0; i < contourEdges.n; i++)
+		{
+			pMeshEdge = pMesh->EdgeArray.Element + contourEdges.Element[i];
+			if (bJoined[pMeshEdge->idx])
+				continue;
+			side = (pMeshEdge->pFace[0] ? (bBelongsToPoly[pMeshEdge->pFace[0]->idx] ? 0 : 1) : 1);
+			pMeshEdgePtr = pMeshEdge->pVertexEdgePtr[side];
+			pContour = contours.Element + contours.n;
+			pContour->n = 0;
+			pContour->Element = pContourMem;
+			pMeshEdge_ = pMeshEdge;
+			while(true)
+			{
+				iVertex = pMeshEdge_->iVertex[side];
+				pContour->Element[pContour->n++] = iVertex;
+				bJoined[pMeshEdge_->idx] = true;
+				do
+				{
+					pMeshEdgePtr = pMeshEdgePtr->pNext;
+					if (pMeshEdgePtr == NULL)
+						pMeshEdgePtr = pMesh->NodeArray.Element[iVertex].EdgeList.pFirst;
+				} while (!bContourEdge[pMeshEdgePtr->pEdge->idx]);
+				pMeshEdgePtr = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_EDGE_PTR(pMeshEdgePtr);
+				pMeshEdge_ = pMeshEdgePtr->pEdge;
+				if (pMeshEdge_ == pMeshEdge)
+					break;
+				side = (pMeshEdge_->pFace[0] ? (bBelongsToPoly[pMeshEdge_->pFace[0]->idx] ? 0 : 1) : 1);
+			}
+			pContourMem += pContour->n;
+			contours.n++;
+			nVertices += pContour->n;
+		}
+		nContours += contours.n;
+
+		// Reset buffers and indicators.
+
+		pNodeElement = pNode->elementList.pFirst;
+		while (pNodeElement)
+		{
+			bBelongsToPoly[pNodeElement->Idx] = false;
+			pNodeElement = pNodeElement->pNext;
+		}
+		for (i = 0; i < contourEdges.n; i++)
+			bContourEdge[contourEdges.Element[i]] = false;
+		for (i = 0; i < contourEdges.n; i++)
+			bJoined[contourEdges.Element[i]] = false;
+
+		// iOutContour <- the longest contour
+
+		maxContourLen = 0.0f;
+		for (i = 0; i < contours.n; i++)
+		{
+			pContour = contours.Element + i;
+			contourLen = 0.0f;
+			P1 = pMesh->NodeArray.Element[pContour->Element[pContour->n - 1]].P;
+			for (j = 0; j < pContour->n; j++)
+			{
+				P2 = pMesh->NodeArray.Element[pContour->Element[j]].P;
+				RVLDIF3VECTORS(P2, P1, dP);
+				contourLen += sqrt(RVLDOTPRODUCT3(dP, dP));
+				P1 = P2;
+			}
+			if (contourLen > maxContourLen)
+			{
+				maxContourLen = contourLen;
+				iOutContour = i;
+			}
+		}
+		if (iOutContour != 0)
+		{
+			contourTmp = contours.Element[iOutContour];
+			contours.Element[iOutContour] = contours.Element[0];
+			contours.Element[0] = contourTmp;
+		}
+
+		// Minimum bounding box of the outer contour.
+
+		RVLCOPY3VECTOR(pSurfel->N, ZF_S);
+		RVLORTHOGONAL3(ZF_S, XF_S, i, j, k, fTmp);
+		RVLCROSSPRODUCT3(ZF_S, XF_S, YF_S);
+		pContour = contours.Element;
+		pP2D = contour.Element;
+		contour.n = pContour->n;
+		for (i = 0; i < pContour->n; i++, pP2D++)
+		{
+			P1 = pMesh->NodeArray.Element[pContour->Element[i]].P;
+			RVLMULMX3X3VECT(RSF_, P1, PF_);
+			RVLCOPY2VECTOR(PF_, pP2D->P);
+		}
+		if (!MinBoundingBox(contour, CF_, a, b, ca, sa, area))
+			continue;
+
+		// Polygon triangles.
+
+		pSurfel->triangles.Element = pTriangleMem;
+		pTriangleIdx = pNode->elementList.pFirst;
+		while (pTriangleIdx)
+		{
+			*(pTriangleMem++) = pTriangleIdx->Idx;
+			pTriangleIdx = pTriangleIdx->pNext;
+		}
+		pSurfel->triangles.n = pTriangleMem - pSurfel->triangles.Element;
+
+		// Polygon reference frame.
+
+		CF_[2] = pSurfel->d;
+		RVLMULMX3X3TVECT(RSF_, CF_, pSurfel->P);
+		RVLROTZ(ca, sa, RFF_);
+		RVLMXMUL3X3T1(RSF_, RFF_, pSurfel->R);
+
+		// Create polygon.
+		
+		pSurfel->polygonVertexIntervals.n = contours.n;
+		for (i = 0; i < contours.n; i++)
+		{
+			pContour = contours.Element + i;
+			pPolyData->a = pSurfels->polygonVertices.size();
+			pPolyData->b = pPolyData->a + pContour->n - 1;
+			pPolyData++;
+			for (j = pContour->n - 1; j >= 0; j--)
+			{
+				P1 = pMesh->NodeArray.Element[pContour->Element[j]].P;
+				RVLINVTRANSF3(P1, pSurfel->R, pSurfel->P, PF, V3Tmp);
+				RVLCOPY2VECTOR(PF, P2D.P);
+				pSurfels->polygonVertices.push_back(P2D);
+			}
+		}
+		pSurfel++;
+	}
+	pSurfels->NodeArray.n = pSurfel - pSurfels->NodeArray.Element;
+
+	delete[] nodeElementMem;
+	delete[] nodes.Element;
+	delete[] bBelongsToPoly;
+	delete[] bContourEdge;
+	delete[] bJoined;
+	delete[] contours.Element;
+	delete[] contourMem;
+	delete[] contour.Element;
+
+	// Assign polygon vertices to polygons and compute their 3D coordinates.
+
+	if (pSurfels->polygonVertices.size() > pSurfels->polygonVerticesS.n)
+	{
+		if(pSurfels->polygonVerticesS.Element)
+			RVL_DELETE_ARRAY(pSurfels->polygonVerticesS.Element);
+		pSurfels->polygonVerticesS.Element = new Vector3<float>[pSurfels->polygonVertices.size()];
+	}
+	pSurfels->polygonVerticesS.n = pSurfels->polygonVertices.size();
+	Vector3<float>* pVertex = pSurfels->polygonVerticesS.Element;
+	RVL_DELETE_ARRAY(pSurfels->polygonDataMem);
+	pSurfels->polygonDataMem = new Pair<int, int>[nContours];
+	memcpy(pSurfels->polygonDataMem, polyDataMem, nContours * sizeof(Pair<int, int>));
+	pPolyData = pSurfels->polygonDataMem;
+	pSurfel = pSurfels->NodeMem;
+	PF[2] = 0.0f;
+	pP2D = pSurfels->polygonVertices.data();
+	for (iPoly = 0; iPoly < pSurfels->NodeArray.n; iPoly++, pSurfel++)
+	{
+		pSurfel->polygonVertexIntervals.Element = pPolyData;
+		for(i = 0; i < pSurfel->polygonVertexIntervals.n; i++, pPolyData++)
+			for (iVertex = pPolyData->a; iVertex <= pPolyData->b; iVertex++, pVertex++, pP2D++)
+			{
+				RVLCOPY2VECTOR(pP2D->P, PF);
+				RVLTRANSF3(PF, pSurfel->R, pSurfel->P, pVertex->Element);
+			}
+	}
+
+	delete[] polyDataMem;
+}
+
 
 void PlanarSurfelDetector::InitPlanarRegionGrowing(
 	Mesh *pMesh,
@@ -6066,6 +6951,98 @@ void PlanarSurfelDetector::JoinSmallSurfelsToClosestNeighbors(
 }
 
 void PlanarSurfelDetector::CreatePolygons(
+	Mesh* pMesh,
+	SurfelGraph* pSurfels,
+	int minSurfelSize,
+	float tol)
+{
+	int i;
+	int iSurfel;
+	Surfel* pSurfel;
+	int iBoundary;
+	Array<MeshEdgePtr*>* pBoundary;
+	int maxBoundarySize = 0;
+	int nBoundaries = 0;
+	for (iSurfel = 0; iSurfel < pSurfels->NodeArray.n; iSurfel++)
+	{
+		pSurfel = pSurfels->NodeArray.Element + iSurfel;
+		if (pSurfel->size < minSurfelSize || pSurfel->bEdge)
+			continue;
+		for (iBoundary = 0; iBoundary < pSurfel->BoundaryArray.n; iBoundary++)
+		{
+			pBoundary = pSurfel->BoundaryArray.Element + iBoundary;
+			if (pBoundary->n > maxBoundarySize)
+				maxBoundarySize = pBoundary->n;
+		}
+		nBoundaries += pSurfel->BoundaryArray.n;
+	}
+	RVL_DELETE_ARRAY(pSurfels->polygonDataMem);
+	pSurfels->polygonDataMem = new Pair<int, int>[nBoundaries];
+	Pair<int, int>* pPolygonInterval = pSurfels->polygonDataMem;
+	Array<Point2D> boundary2D;
+	boundary2D.Element = new Point2D[maxBoundarySize];
+	MeshEdgePtr* pEdgePtr;
+	int iPt;
+	float *P;
+	float PF[3];
+	float* P2D;
+	float V3Tmp[3];
+	pSurfels->polygonVertices.clear();
+	for (iSurfel = 0; iSurfel < pSurfels->NodeArray.n; iSurfel++)
+	{
+		pSurfel = pSurfels->NodeArray.Element + iSurfel;
+		if (pSurfel->size < minSurfelSize || pSurfel->bEdge)
+		{
+			pSurfel->polygonVertexIntervals.n = 0;
+			continue;
+		}
+		pSurfel->polygonVertexIntervals.Element = pPolygonInterval;
+		for (iBoundary = 0; iBoundary < pSurfel->BoundaryArray.n; iBoundary++, pPolygonInterval++)
+		{
+			pBoundary = pSurfel->BoundaryArray.Element + iBoundary;
+			boundary2D.n = pBoundary->n;
+			for (i = 0; i < pBoundary->n; i++)
+			{
+				pEdgePtr = pBoundary->Element[i];
+				iPt = RVLPCSEGMENT_GRAPH_GET_NODE(pEdgePtr);
+				P = pMesh->NodeArray.Element[iPt].P;
+				RVLINVTRANSF3(P, pSurfel->R, pSurfel->P, PF, V3Tmp);
+				P2D = boundary2D.Element[i].P;
+				P2D[0] = PF[0]; P2D[1] = PF[1];
+			}
+			PSD::Polygon(boundary2D, tol, &(pSurfels->polygonVertices), pPolygonInterval);
+		}
+		pSurfel->polygonVertexIntervals.n = pPolygonInterval - pSurfel->polygonVertexIntervals.Element;
+	}
+	delete[] boundary2D.Element;
+
+	RVL_DELETE_ARRAY(pSurfels->polygonVerticesS.Element);
+	pSurfels->polygonVerticesS.Element = new Vector3<float>[pSurfels->polygonVertices.size()];
+	memset(pSurfels->polygonVerticesS.Element, 0, pSurfels->polygonVertices.size() * sizeof(Vector3<float>));
+	pSurfels->polygonVerticesS.n = pSurfels->polygonVertices.size();
+	int iVertex;
+	PF[2] = 0.0f;
+	float* PS;
+	int iPoly;
+	Pair<int, int>* pPolygonVertexInterval;
+	for (iSurfel = 0; iSurfel < pSurfels->NodeArray.n; iSurfel++)
+	{
+		pSurfel = pSurfels->NodeArray.Element + iSurfel;
+		for (iPoly = 0; iPoly < pSurfel->polygonVertexIntervals.n; iPoly++)
+		{
+			pPolygonVertexInterval = pSurfel->polygonVertexIntervals.Element + iPoly;
+			for (iVertex = pPolygonVertexInterval->a; iVertex <= pPolygonVertexInterval->b; iVertex++)
+			{
+				P2D = pSurfels->polygonVertices[iVertex].P;
+				RVLCOPY2VECTOR(P2D, PF);
+				PS = pSurfels->polygonVerticesS.Element[iVertex].Element;
+				RVLTRANSF3(PF, pSurfel->R, pSurfel->P, PS);
+			}
+		}
+	}
+}
+
+void PlanarSurfelDetector::CreatePolygons2(
 	Mesh *pMesh,
 	SurfelGraph *pSurfels,
 	Mesh *pPolygonMesh)
@@ -6679,9 +7656,9 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 		pPtP->bInQueue = false;
 		pPtP->bOutlier = false;
 	}
-	std::vector<PSD::Point2D> C;
+	std::vector<Point2D> C;
 	float rInitCircle = 1.0f / sqrt(2.0f);
-	PSD::Point2D v;
+	Point2D v;
 	float phi;
 	float dPhi = 2.0f * PI / (float)initCircleApproxResolution;
 	for (i = 0; i < initCircleApproxResolution; i++)
@@ -6713,7 +7690,7 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 	float r;
 	float dP[3], P_[2];
 	bool bBelow1, bBelow2;
-	std::vector<PSD::Point2D> C_, C__;
+	std::vector<Point2D> C_, C__;
 	ptIdx.n = 0;
 	int iBin_;
 	MeshEdge* pEdge;
@@ -6850,52 +7827,11 @@ void PlanarSurfelDetector::DetectPlaneNSB(
 	delete[] ptPMem;
 }
 
-bool PlanarSurfelDetector::UpdateConvexSet(
-	std::vector<PSD::Point2D> CIn,
-	float *N,
-	float d,
-	std::vector<PSD::Point2D> &COut)
-{
-	int n = CIn.size();
-	PSD::Point2D v = CIn[n - 1];
-	float e = v.P[0] * N[0] + v.P[1] * N[1] - d;
-	float ePrev;
-	PSD::Point2D vPrev, vIS, dv;
-	float s, s_;
-	bool bBelow = (e < 0.0f);
-	bool bPrevIsBelow;
-	bool bPtsBelow = false;
-	for (int i = 0; i < n; i++)
-	{
-		vPrev = v;
-		ePrev = e;
-		v = CIn[i];
-		e = v.P[0] * N[0] + v.P[1] * N[1] - d;
-		bPrevIsBelow = bBelow;
-		bBelow = (e < 0.0f);
-		if (bBelow || bPrevIsBelow)
-		{
-			if (bBelow != bPrevIsBelow)
-			{
-				s = ePrev / (ePrev - e);
-				s_ = 1.0f - s;
-				vIS.P[0] = s_ * vPrev.P[0] + s * v.P[0];
-				vIS.P[1] = s_ * vPrev.P[1] + s * v.P[1];
-				COut.push_back(vIS);
-			}
-			if (bBelow)
-				COut.push_back(v);
-			bPtsBelow = true;
-		}
-	}
-	return bPtsBelow;
-}
-
-float PlanarSurfelDetector::Area(std::vector<PSD::Point2D> C)
+float PlanarSurfelDetector::Area(std::vector<Point2D> C)
 {
 	int n = C.size();
-	PSD::Point2D v = C[n - 1];
-	PSD::Point2D vPrev;
+	Point2D v = C[n - 1];
+	Point2D vPrev;
 	float area = 0.0f;
 	for (int i = 0; i < n; i++)
 	{
@@ -6907,7 +7843,7 @@ float PlanarSurfelDetector::Area(std::vector<PSD::Point2D> C)
 }
 
 void PlanarSurfelDetector::VisualizeConvexSet(
-	std::vector<PSD::Point2D> C,
+	std::vector<Point2D> C,
 	int resolution,
 	Rect<float>* pROI)
 {
@@ -6994,16 +7930,16 @@ void PSD::MouseRButtonDown(vtkObject* caller, unsigned long eid, void* clientdat
 }
 
 bool PSD::UpdateConvexSet(
-	std::vector<PSD::Point2D> CIn,
+	std::vector<Point2D> CIn,
 	float* N,
 	float d,
-	std::vector<PSD::Point2D>& COut)
+	std::vector<Point2D>& COut)
 {
 	int n = CIn.size();
-	PSD::Point2D v = CIn[n - 1];
+	Point2D v = CIn[n - 1];
 	float e = v.P[0] * N[0] + v.P[1] * N[1] - d;
 	float ePrev;
-	PSD::Point2D vPrev, vIS, dv;
+	Point2D vPrev, vIS, dv;
 	float s, s_;
 	bool bBelow = (e < 0.0f);
 	bool bPrevIsBelow;
@@ -7032,4 +7968,160 @@ bool PSD::UpdateConvexSet(
 		}
 	}
 	return bPtsBelow;
+}
+
+void PSD::Polygon(
+	Array<Point2D> contour,
+	float tol,
+	std::vector<Point2D>* pVertices,
+	Pair<int, int>* pPolygonVertexInterval,
+	QLIST::Index* pSegmentEndpointMemIn)
+{
+	// Find the most distant point from the first point of the contour.
+
+	int i;
+	int iFurthest;
+	float* P1;
+	P1 = contour.Element[0].P;
+	float * P;
+	float dP[2];
+	float l2;
+	float maxDist2 = 0.0f;
+	for (i = 1; i < contour.n; i++)
+	{
+		P = contour.Element[i].P;
+		RVLDIF2VECTORS(P, P1, dP);
+		l2 = RVLDOTPRODUCT2(dP, dP);
+		if (l2 > maxDist2)
+		{
+			maxDist2 = l2;
+			iFurthest = i;
+		}
+	}
+
+	//
+
+	QList<QLIST::Index> segmentEndpointList;
+	QList<QLIST::Index>* pSegmentEndpointList = &segmentEndpointList;
+	RVLQLIST_INIT(pSegmentEndpointList);
+	QLIST::Index* pSegmentEndpointMem = (pSegmentEndpointMemIn ? pSegmentEndpointMemIn : new QLIST::Index[contour.n + 1]);
+	QLIST::Index* pSegmentEndpoint = pSegmentEndpointMem;
+	RVLQLIST_ADD_ENTRY(pSegmentEndpointList, pSegmentEndpoint);
+	pSegmentEndpoint->Idx = 0;
+	pSegmentEndpoint++;
+	RVLQLIST_ADD_ENTRY(pSegmentEndpointList, pSegmentEndpoint);
+	pSegmentEndpoint->Idx = iFurthest;
+	pSegmentEndpoint++;
+	RVLQLIST_ADD_ENTRY(pSegmentEndpointList, pSegmentEndpoint);
+	pSegmentEndpoint->Idx = 0;
+	pSegmentEndpoint++;
+	QLIST::Index* pSegmentEndpoint1 = pSegmentEndpointList->pFirst;
+	QLIST::Index* pSegmentEndpoint2 = pSegmentEndpoint1->pNext;
+	float *P2;
+	float U[2], V[2], Q[2];
+	int iPointEdge, iPointEdge3;
+	float l;
+	float s, e, maxe_;
+	while (pSegmentEndpoint2)
+	{
+		// P1 <- position vector of the point indexed by pSegmentEndpoint1->idx
+
+		P1 = contour.Element[pSegmentEndpoint1->Idx].P;
+
+		// P2 <- position vector of the point indexed by pSegmentEndpoint2->idx
+
+		P2 = contour.Element[pSegmentEndpoint2->Idx].P;
+
+		// dP <- P2 - P1
+
+		RVLDIF2VECTORS(P2, P1, dP);
+
+		// l <- || dP ||;
+
+		l = sqrt(RVLDOTPRODUCT2(dP, dP));
+
+		// U <- dP / || dP ||
+
+		RVLSCALE2VECTOR2(dP, l, U);
+
+		// V <- unit vector perpendicular to U
+
+		V[0] = -U[1]; V[1] = U[0];
+
+		// iPointEdge3 <- index of the point from the segment between pSegmentEndpoint1->idx and pSegmentEndpoint2->idx, which is the most distant from the line P1-P2.
+		// If all points of this segment are at distance tol or closer, then iPointEdge3 <- -1.
+
+		iPointEdge3 = -1;
+		maxe_ = tol;
+		iPointEdge = (pSegmentEndpoint1->Idx + 1) % contour.n;
+		while (iPointEdge != pSegmentEndpoint2->Idx)
+		{
+			P = contour.Element[iPointEdge].P;
+			RVLDIF2VECTORS(P, P1, Q);
+			s = RVLDOTPRODUCT2(U, Q);
+			if (s < 0.0f)
+			{
+				e = sqrt(RVLDOTPRODUCT2(Q, Q));
+				if (e > maxe_)
+				{
+					maxe_ = e;
+					iPointEdge3 = iPointEdge;
+				}
+			}
+			else if (s > l)
+			{
+				RVLDIF2VECTORS(P, P2, Q);
+				e = sqrt(RVLDOTPRODUCT2(Q, Q));
+				if (e > maxe_)
+				{
+					maxe_ = e;
+					iPointEdge3 = iPointEdge;
+				}
+			}
+			else
+			{
+				e = RVLDOTPRODUCT2(V, Q);
+				e = RVLABS(e);
+				if (e > maxe_)
+				{
+					maxe_ = e;
+					iPointEdge3 = iPointEdge;
+				}
+			}
+			iPointEdge = (iPointEdge + 1) % contour.n;
+		}	// for all boundary points between pSegmentEndpoint1->Idx and pSegmentEndpoint2->Idx
+
+		if (iPointEdge3 >= 0)	// If there is a point in the interval [pSegmentEndpoint1->idx, pSegmentEndpoint2->idx], 
+								// which is outside of the tolerance tol from the line P1-P2
+		{
+			// Insert an endpoint with index iPointEdge3 between pSegmentEndpoint1 and pSegmentEndpoint2.
+
+			RVLQLIST_INSERT_ENTRY(pSegmentEndpointList, pSegmentEndpoint1, pSegmentEndpoint2, pSegmentEndpoint);
+			pSegmentEndpoint->Idx = iPointEdge3;
+
+			// pSegmentEndpoint2 <- pSegmentEndpoint
+
+			pSegmentEndpoint2 = pSegmentEndpoint;
+			pSegmentEndpoint++;
+		}
+		else
+		{
+			// (pSegmentEndpoint1, pSegmentEndpoint2) <- (pSegmentEndpoint2, pSegmentEndpoint2->pNext)
+
+			pSegmentEndpoint1 = pSegmentEndpoint2;
+			pSegmentEndpoint2 = pSegmentEndpoint2->pNext;
+		}
+	}	// while(pSegmentEndpoint2)
+
+	pPolygonVertexInterval->a = pVertices->size();
+	pSegmentEndpoint = pSegmentEndpointList->pFirst;
+	while (pSegmentEndpoint->pNext)
+	{
+		pVertices->push_back(contour.Element[pSegmentEndpoint->Idx]);
+		pSegmentEndpoint = pSegmentEndpoint->pNext;
+	}
+	pPolygonVertexInterval->b = pVertices->size() - 1;
+
+	if (pSegmentEndpointMemIn == NULL)
+		delete[] pSegmentEndpointMem;
 }

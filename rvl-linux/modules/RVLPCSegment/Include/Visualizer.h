@@ -2,6 +2,17 @@
 
 #include "Figure.h"
 
+#define RVLCOLORS \
+uchar black[] = {0, 0, 0};\
+uchar red[] = { 255, 0, 0 };\
+uchar green[] = { 0, 255, 0 };\
+uchar blue[] = { 0, 0, 255 };\
+uchar yellow[] = { 255, 255, 0 };\
+uchar cyan[] = { 0, 255, 255 };\
+uchar magenta[] = { 255, 0, 255 };\
+uchar white[] = { 255, 255, 255 };\
+uchar darkGreen[] = {0, 128, 0};
+
 #define RVLVISUALIZER_SET_PIXEL_COLOR(pPixArray, u, v, widthStep, color, pPix)\
 {\
 	pPix = pPixArray + 3 * u + v * widthStep;\
@@ -16,6 +27,18 @@
 	v = iPix / width;\
 	RVLVISUALIZER_SET_PIXEL_COLOR(pPixArray, u, v, widthStep, color, pPix);\
 }
+
+#define RVLVISUALIZER_LINES_INIT(pts, lines, nLines)\
+Array<Point> pts;\
+pts.Element = new Point[2 * nLines];\
+pts.n = 2 * nLines;\
+Array<Pair<int, int>> lines;\
+lines.Element = new Pair<int, int>[nLines];\
+lines.n = nLines;
+
+#define RVLVISUALIZER_LINES_FREE(pts, lines)\
+delete[] pts.Element;\
+delete[] lines.Element;
 
 namespace RVL
 {
@@ -44,6 +67,8 @@ namespace RVL
 			void* clientData);
 		void SetText(char * textIn);
 		void Run();
+		void Clear();
+		void Clear(std::vector<vtkSmartPointer<vtkActor>> actors);
 		void PaintPoint(
 			int iPt,
 			vtkSmartPointer<vtkPolyData> &pd,
@@ -98,6 +123,10 @@ namespace RVL
 			double red,
 			double green,
 			double blue);
+		void DisplaySphere(
+			float* P,
+			float r,
+			int resolution);
 		void DisplayEllipsoid(
 			float *P,
 			float *C,
@@ -190,11 +219,12 @@ namespace RVL
 			Array<Point> vertices,
 			Array<Pair<int, int>> lines,
 			uchar *color,
-			float lineWidth = 1.0f);
+			float lineWidth = 1.0f,
+			bool bMultiColor = false);
 		void DisplayReferenceFrames(
 			Array<Pose3D> referenceFrames,
 			double axesLength);
-		void DisplayReferenceFrame(
+		vtkSmartPointer<vtkActor> DisplayReferenceFrame(
 			Pose3D *pReferenceFrame,
 			double axesLength);
 		vtkSmartPointer<vtkActor2D> DisplayLabels(vtkSmartPointer<vtkPolyData> ptsPolyData);
@@ -211,6 +241,9 @@ namespace RVL
 			uchar* pointColorIn = NULL,
 			float normalLen = 0.05f,
 			uchar *normalColorIn = NULL);
+		void DisplaySphereGrid();
+		void DisplaySphericalHistogram(Array<Pair<Vector3<float>, float>> vectors);
+		void DisplayMesh(Mesh* pMesh);
 
 	public:
 		CRVLMem *pMem;

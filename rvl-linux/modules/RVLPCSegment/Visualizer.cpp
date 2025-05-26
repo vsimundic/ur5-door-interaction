@@ -339,6 +339,18 @@ void Visualizer::Run()
 	}
 }
 
+void Visualizer::Clear()
+{
+	if (b3D)
+		renderer->RemoveAllViewProps();
+}
+
+void Visualizer::Clear(std::vector<vtkSmartPointer<vtkActor>> actors)
+{
+	for (int iActor = 0; iActor < actors.size(); iActor++)
+		renderer->RemoveViewProp(actors[iActor]);
+}
+
 void Visualizer::PaintPoint(
 	int iPt,
 	vtkSmartPointer<vtkPolyData> &pd,
@@ -765,6 +777,41 @@ vtkSmartPointer<vtkActor> Visualizer::DisplayCylinder(
 	return actor;
 }
 
+void Visualizer::DisplaySphere(
+	float* P,
+	float r,
+	int resolution)
+{
+	// Create sphere.
+	vtkSmartPointer<vtkSphereSource> pSphere = vtkSmartPointer<vtkSphereSource>::New();
+	pSphere->SetRadius(r);
+	pSphere->SetPhiResolution(resolution);
+	pSphere->SetThetaResolution(resolution);
+
+	// Translation to P.
+	vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
+	double R[9];
+	RVLUNITMX3(R);
+	double T[16];
+	RVLHTRANSFMX(R, P, T);
+	transform->SetMatrix(T);
+	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+	transformFilter->SetInputConnection(pSphere->GetOutputPort()); //PLY model
+	transformFilter->SetTransform(transform);
+	transformFilter->Update();
+
+	// Create a mapper
+	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper->SetInputConnection(transformFilter->GetOutputPort());
+
+	// Create an actor
+	vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+	actor->SetMapper(mapper);
+
+	//Insert actor
+	renderer->AddActor(actor);
+}
+
 void Visualizer::DisplayEllipsoid(
 	float *P,
 	float *C,
@@ -883,7 +930,8 @@ vtkSmartPointer<vtkActor> Visualizer::DisplayLines(
 	Array<Point> vertices,
 	Array<Pair<int, int>> lines,
 	uchar* color,
-	float lineWidth)
+	float lineWidth,
+	bool bMultiColor)
 {
 	// Create the polydata where we will store all the geometric data
 	vtkSmartPointer<vtkPolyData> linesPolyData =
@@ -921,6 +969,7 @@ vtkSmartPointer<vtkActor> Visualizer::DisplayLines(
 
 	vtkSmartPointer<vtkLine>* line = new vtkSmartPointer<vtkLine>[lines.n];
 
+	int kMultiColor = (bMultiColor ? 3 : 0);
 	int iLine;
 
 	for (iLine = 0; iLine < lines.n; iLine++)
@@ -932,7 +981,7 @@ vtkSmartPointer<vtkActor> Visualizer::DisplayLines(
 
 		vtkLines->InsertNextCell(line[iLine]);
 
-		colors->InsertNextTypedTuple(color);
+		colors->InsertNextTypedTuple(color + kMultiColor * iLine);
 	}
 
 	// Add the lines to the polydata container
@@ -1014,7 +1063,7 @@ void Visualizer::DisplayReferenceFrames(
 	renderer->AddActor(actor);
 }
 
-void Visualizer::DisplayReferenceFrame(
+vtkSmartPointer<vtkActor> Visualizer::DisplayReferenceFrame(
 	Pose3D *pReferenceFrame,
 	double axesLength)
 {
@@ -1056,6 +1105,8 @@ void Visualizer::DisplayReferenceFrame(
 	actor->SetMapper(mapper);
 
 	renderer->AddActor(actor);
+
+	return actor;
 }
 
 vtkSmartPointer<vtkActor2D> Visualizer::DisplayLabels(vtkSmartPointer<vtkPolyData> ptsPolyData)
@@ -1259,4 +1310,84 @@ void Visualizer::DisplayOrganizedOrientedPC(
 	delete[] RGB;
 	delete[] visNormalPts.Element;
 	delete[] visNormals.Element;
+}
+
+void Visualizer::DisplaySphereGrid()
+{
+	Array<Point> gridPts;
+	gridPts.n = 8 * 200 + 7 * 200;
+	gridPts.Element = new Point[gridPts.n];
+	for (int i = 0; i < 8; i++)
+	{
+		float az = (float)i / 8.0f * PI;
+		for (int j = 0; j < 200; j++)
+		{
+			float el = (float)j / 100.0f * PI;
+			RVLSET3VECTOR(gridPts.Element[200 * i + j].P, cos(az) * cos(el), sin(az) * cos(el), sin(el));
+		}
+	}
+	for (int i = -3; i <= 3; i++)
+	{
+		float el = (float)i / 8.0f * PI;
+		float r = cos(el);
+		float z = sin(el);
+		for (int j = 0; j < 200; j++)
+		{
+			float az = (float)j / 100.0f * PI;
+			RVLSET3VECTOR(gridPts.Element[8 * 200 + 200 * (i + 3) + j].P, r * cos(az), r * sin(az), z);
+		}
+	}
+	uchar blue[] = { 0, 0, 255 };
+	DisplayPointSet<float, Point>(gridPts, blue, 1.0f);
+	delete[] gridPts.Element;
+}
+
+void Visualizer::DisplaySphericalHistogram(Array<Pair<Vector3<float>, float>> vectors)
+{
+	DisplaySphereGrid();
+	float maxWeight = 0.0f;
+	Pair<Vector3<float>, float>* pVector = vectors.Element;
+	for (int iVector = 0; iVector < vectors.n; iVector++, pVector++)
+		if (pVector->b > maxWeight)
+			maxWeight = pVector->b;
+	pVector = vectors.Element;
+	for (int iVector = 0; iVector < vectors.n; iVector++, pVector++)
+	{
+		float r = pow((float)(pVector->b) / maxWeight, 1.0f / 3.0f) * 0.1f;
+		int resolution = (r >= 0.02f ? 16 : 8);
+		DisplaySphere(pVector->a.Element, r, resolution);
+	}
+}
+
+void Visualizer::DisplayMesh(Mesh* pMesh)
+{
+	RVLCOLORS
+	Array<Point> visPts;
+	visPts.Element = new Point[pMesh->NodeArray.n];
+	Point* pVisPt = visPts.Element;
+	for (int iVertex = 0; iVertex < pMesh->NodeArray.n; iVertex++)
+		if (pMesh->NodeArray.Element[iVertex].bValid)
+		{
+			RVLCOPY3VECTOR(pMesh->NodeArray.Element[iVertex].P, pVisPt->P);
+			pVisPt++;
+		}
+	visPts.n = pVisPt - visPts.Element;
+	DisplayPointSet<float, Point>(visPts, darkGreen, 6.0f);
+	delete[] visPts.Element;
+	Array<Pair<int, int>> visLines;
+	visLines.Element = new Pair<int, int>[pMesh->EdgeArray.n];
+	visLines.n = pMesh->EdgeArray.n;
+	Pair<int, int>* pVisLine = visLines.Element;
+	for (int iEdge = 0; iEdge < pMesh->EdgeArray.n; iEdge++)
+	{
+		MeshEdge* pEdge = pMesh->EdgeArray.Element + iEdge;
+		if (pEdge->pFace[0] == NULL && pEdge->pFace[1] == NULL)
+			continue;
+		pVisLine->a = pEdge->iVertex[0];
+		pVisLine->b = pEdge->iVertex[1];
+		pVisLine++;
+	}
+	visLines.n = pVisLine - visLines.Element;
+	DisplayLines(pMesh->NodeArray, visLines, darkGreen, 2.0f);
+	delete[] visLines.Element;
 }

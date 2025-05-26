@@ -131,7 +131,7 @@ namespace RVL
 	public:
 		Graph()
 		{
-            NodeArray.n = EdgeArray.n = 0;
+			NodeArray.n = EdgeArray.n = 0;
 			NodeMem = NULL;
 			EdgeMem = NULL;
 			EdgePtrMem = NULL;
@@ -210,11 +210,11 @@ namespace RVL
 		void Clear()
 		{
 			RVL_DELETE_ARRAY(NodeMem);
-            NodeMem = NULL;
+			NodeMem = NULL;
 			RVL_DELETE_ARRAY(EdgeMem);
-            EdgeMem = NULL;
+			EdgeMem = NULL;
 			RVL_DELETE_ARRAY(EdgePtrMem);
-            EdgePtrMem = NULL;
+			EdgePtrMem = NULL;
 		}
 
 		void OrientTreeEdges(int iRoot)
@@ -321,7 +321,7 @@ namespace RVL
 
 				pEdgePtr = pEdgePtr->pNext;
 			} // for every neighborint node
-        }     // region growing loop
+		}	  // region growing loop
 
 		return piNodeFetch;
 	}
@@ -505,55 +505,55 @@ namespace RVL
 		RVLQLIST_ADD_ENTRY(pEdgeList2, pEdgePtr_);
 	}
 
-    template <typename NodeType, typename EdgeType, typename EdgePtrType>
-    inline void ConnectNodes(
-        Array<NodeType> &NodeArray,
-        EdgeType *pEdge,
-        EdgePtrType *pEdgePtr)
-    {
-        NodeType *pNode1 = NodeArray.Element + pEdge->iVertex[0];
-        NodeType *pNode2 = NodeArray.Element + pEdge->iVertex[1];
+	template <typename NodeType, typename EdgeType, typename EdgePtrType>
+	inline void ConnectNodes(
+		Array<NodeType> &NodeArray,
+		EdgeType *pEdge,
+		EdgePtrType *pEdgePtr)
+	{
+		NodeType *pNode1 = NodeArray.Element + pEdge->iVertex[0];
+		NodeType *pNode2 = NodeArray.Element + pEdge->iVertex[1];
 
-        QList<EdgePtrType> *pEdgeList1 = &(pNode1->EdgeList);
-        QList<EdgePtrType> *pEdgeList2 = &(pNode2->EdgeList);
+		QList<EdgePtrType> *pEdgeList1 = &(pNode1->EdgeList);
+		QList<EdgePtrType> *pEdgeList2 = &(pNode2->EdgeList);
 
-        pEdgePtr->pEdge = pEdge;
-        pEdge->pVertexEdgePtr[0] = pEdgePtr;
+		pEdgePtr->pEdge = pEdge;
+		pEdge->pVertexEdgePtr[0] = pEdgePtr;
 
-        RVLQLIST_ADD_ENTRY(pEdgeList1, pEdgePtr);
+		RVLQLIST_ADD_ENTRY(pEdgeList1, pEdgePtr);
 
-        EdgePtrType *pEdgePtr_ = pEdgePtr + 1;
+		EdgePtrType *pEdgePtr_ = pEdgePtr + 1;
 
-        pEdgePtr_->pEdge = pEdge;
-        pEdge->pVertexEdgePtr[1] = pEdgePtr_;
+		pEdgePtr_->pEdge = pEdge;
+		pEdge->pVertexEdgePtr[1] = pEdgePtr_;
 
-        RVLQLIST_ADD_ENTRY(pEdgeList2, pEdgePtr_);
-    }
+		RVLQLIST_ADD_ENTRY(pEdgeList2, pEdgePtr_);
+	}
 
-    template <typename NodeType, typename EdgeType, typename EdgePtrType>
-    inline void ConnectNodes2(
-        Array<NodeType> &NodeArray,
-        EdgeType *pEdge,
-        EdgePtrType *pEdgePtr)
-    {
-        NodeType *pNode1 = NodeArray.Element + pEdge->iVertex[0];
-        NodeType *pNode2 = NodeArray.Element + pEdge->iVertex[1];
+	template <typename NodeType, typename EdgeType, typename EdgePtrType>
+	inline void ConnectNodes2(
+		Array<NodeType> &NodeArray,
+		EdgeType *pEdge,
+		EdgePtrType *pEdgePtr)
+	{
+		NodeType *pNode1 = NodeArray.Element + pEdge->iVertex[0];
+		NodeType *pNode2 = NodeArray.Element + pEdge->iVertex[1];
 
-        QList<EdgePtrType> *pEdgeList1 = &(pNode1->EdgeList);
-        QList<EdgePtrType> *pEdgeList2 = &(pNode2->EdgeList);
+		QList<EdgePtrType> *pEdgeList1 = &(pNode1->EdgeList);
+		QList<EdgePtrType> *pEdgeList2 = &(pNode2->EdgeList);
 
-        pEdgePtr->pEdge = pEdge;
-        pEdge->pVertexEdgePtr[0] = pEdgePtr;
+		pEdgePtr->pEdge = pEdge;
+		pEdge->pVertexEdgePtr[0] = pEdgePtr;
 
-        RVLQLIST_ADD_ENTRY2(pEdgeList1, pEdgePtr);
+		RVLQLIST_ADD_ENTRY2(pEdgeList1, pEdgePtr);
 
-        EdgePtrType *pEdgePtr_ = pEdgePtr + 1;
+		EdgePtrType *pEdgePtr_ = pEdgePtr + 1;
 
-        pEdgePtr_->pEdge = pEdge;
-        pEdge->pVertexEdgePtr[1] = pEdgePtr_;
+		pEdgePtr_->pEdge = pEdge;
+		pEdge->pVertexEdgePtr[1] = pEdgePtr_;
 
-        RVLQLIST_ADD_ENTRY2(pEdgeList2, pEdgePtr_);
-    }
+		RVLQLIST_ADD_ENTRY2(pEdgeList2, pEdgePtr_);
+	}
 
 #ifdef RVLPCSEGMENT_GRAPH_WERAGGREGATION_DEBUG
 	template <typename NodeType, typename EdgeType, typename EdgePtrType>
@@ -1124,5 +1124,5 @@ namespace RVL
 			fclose(fp);
 #endif
 		} // WERSegmentation()
-    }     // namespace GRAPH
+	}	  // namespace GRAPH
 } // namespace RVL

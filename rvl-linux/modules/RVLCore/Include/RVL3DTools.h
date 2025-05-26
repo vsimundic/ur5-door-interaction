@@ -7,46 +7,58 @@
     }
 // Tgt = Src(3x1)
 #define RVLCOPY3VECTOR(Src, Tgt) \
-    Tgt[0] = Src[0];             \
-    Tgt[1] = Src[1];             \
-    Tgt[2] = Src[2];
+    {                            \
+        Tgt[0] = Src[0];         \
+        Tgt[1] = Src[1];         \
+        Tgt[2] = Src[2];         \
+    }
 // Tgt = Src(3x3)
 #define RVLCOPYMX3X3(Src, Tgt) \
-    Tgt[0] = Src[0];           \
-    Tgt[1] = Src[1];           \
-    Tgt[2] = Src[2];           \
-    Tgt[3] = Src[3];           \
-    Tgt[4] = Src[4];           \
-    Tgt[5] = Src[5];           \
-    Tgt[6] = Src[6];           \
-    Tgt[7] = Src[7];           \
-    Tgt[8] = Src[8];
+    {                          \
+        Tgt[0] = Src[0];       \
+        Tgt[1] = Src[1];       \
+        Tgt[2] = Src[2];       \
+        Tgt[3] = Src[3];       \
+        Tgt[4] = Src[4];       \
+        Tgt[5] = Src[5];       \
+        Tgt[6] = Src[6];       \
+        Tgt[7] = Src[7];       \
+        Tgt[8] = Src[8];       \
+    }
 // Tgt = Src(3x3)'
 #define RVLCOPYMX3X3T(Src, Tgt) \
-    Tgt[0] = Src[0];            \
-    Tgt[1] = Src[3];            \
-    Tgt[2] = Src[6];            \
-    Tgt[3] = Src[1];            \
-    Tgt[4] = Src[4];            \
-    Tgt[5] = Src[7];            \
-    Tgt[6] = Src[2];            \
-    Tgt[7] = Src[5];            \
-    Tgt[8] = Src[8];
+    {                           \
+        Tgt[0] = Src[0];        \
+        Tgt[1] = Src[3];        \
+        Tgt[2] = Src[6];        \
+        Tgt[3] = Src[1];        \
+        Tgt[4] = Src[4];        \
+        Tgt[5] = Src[7];        \
+        Tgt[6] = Src[2];        \
+        Tgt[7] = Src[5];        \
+        Tgt[8] = Src[8];        \
+    }
 // Tgt = -Src(3x1)
 #define RVLNEGVECT3(Src, Tgt) \
-    Tgt[0] = -Src[0];         \
-    Tgt[1] = -Src[1];         \
-    Tgt[2] = -Src[2];
+    {                         \
+        Tgt[0] = -Src[0];     \
+        Tgt[1] = -Src[1];     \
+        Tgt[2] = -Src[2];     \
+    }
 // y = i-th column of X(3x3)
 #define RVLCOPYCOLMX3X3(X, i, y) \
-    y[0] = X[i];                 \
-    y[1] = X[3 + i];             \
-    y[2] = X[6 + i];
+    {                            \
+        y[0] = X[i];             \
+        y[1] = X[3 + i];         \
+        y[2] = X[6 + i];         \
+    }
 // i-th column of Y(3x3) = x
 #define RVLCOPYTOCOL3(x, i, Y) \
-    Y[i] = x[0];               \
-    Y[3 + i] = x[1];           \
-    Y[6 + i] = x[2];
+    {                          \
+        Y[i] = x[0];           \
+        Y[3 + i] = x[1];       \
+        Y[6 + i] = x[2];       \
+    }
 // Tgt(i:i+2, j:j+2) = Src, (Rows of Tgt have n elements)
 #define RVLCOPY3BLOCKTOMX(Src, Tgt, i, j, n) \
     {                                        \
@@ -75,84 +87,106 @@
     }
 // Z = X(3x3) + Y(3x3)
 #define RVLSUMMX3X3(X, Y, Z) \
-    Z[0] = X[0] + Y[0];      \
-    Z[1] = X[1] + Y[1];      \
-    Z[2] = X[2] + Y[2];      \
-    Z[3] = X[3] + Y[3];      \
-    Z[4] = X[4] + Y[4];      \
-    Z[5] = X[5] + Y[5];      \
-    Z[6] = X[6] + Y[6];      \
-    Z[7] = X[7] + Y[7];      \
-    Z[8] = X[8] + Y[8];
+    {                        \
+        Z[0] = X[0] + Y[0];  \
+        Z[1] = X[1] + Y[1];  \
+        Z[2] = X[2] + Y[2];  \
+        Z[3] = X[3] + Y[3];  \
+        Z[4] = X[4] + Y[4];  \
+        Z[5] = X[5] + Y[5];  \
+        Z[6] = X[6] + Y[6];  \
+        Z[7] = X[7] + Y[7];  \
+        Z[8] = X[8] + Y[8];  \
+    }
 // Z = X(3x3) - Y(3x3)
 #define RVLDIFMX3X3(X, Y, Z) \
-    Z[0] = X[0] - Y[0];      \
-    Z[1] = X[1] - Y[1];      \
-    Z[2] = X[2] - Y[2];      \
-    Z[3] = X[3] - Y[3];      \
-    Z[4] = X[4] - Y[4];      \
-    Z[5] = X[5] - Y[5];      \
-    Z[6] = X[6] - Y[6];      \
-    Z[7] = X[7] - Y[7];      \
-    Z[8] = X[8] - Y[8];
+    {                        \
+        Z[0] = X[0] - Y[0];  \
+        Z[1] = X[1] - Y[1];  \
+        Z[2] = X[2] - Y[2];  \
+        Z[3] = X[3] - Y[3];  \
+        Z[4] = X[4] - Y[4];  \
+        Z[5] = X[5] - Y[5];  \
+        Z[6] = X[6] - Y[6];  \
+        Z[7] = X[7] - Y[7];  \
+        Z[8] = X[8] - Y[8];  \
+    }
 // Z = X(3x3) + Y(3x3)' (only diagonal + upper triangle are computed)
 #define RVLSUMMX3X3T2UT(X, Y, Z) \
-    Z[0] = X[0] + Y[0];          \
-    Z[1] = X[1] + Y[3];          \
-    Z[2] = X[2] + Y[6];          \
-    Z[4] = X[4] + Y[4];          \
-    Z[5] = X[5] + Y[7];          \
-    Z[8] = X[8] + Y[8];
+    {                            \
+        Z[0] = X[0] + Y[0];      \
+        Z[1] = X[1] + Y[3];      \
+        Z[2] = X[2] + Y[6];      \
+        Z[4] = X[4] + Y[4];      \
+        Z[5] = X[5] + Y[7];      \
+        Z[8] = X[8] + Y[8];      \
+    }
 // Z = X(3x3) + Y(3x3) (only diagonal + upper triangle are computed)
 #define RVLSUMMX3X3UT(X, Y, Z) \
-    Z[0] = X[0] + Y[0];        \
-    Z[1] = X[1] + Y[1];        \
-    Z[2] = X[2] + Y[2];        \
-    Z[4] = X[4] + Y[4];        \
-    Z[5] = X[5] + Y[5];        \
-    Z[8] = X[8] + Y[8];
+    {                          \
+        Z[0] = X[0] + Y[0];    \
+        Z[1] = X[1] + Y[1];    \
+        Z[2] = X[2] + Y[2];    \
+        Z[4] = X[4] + Y[4];    \
+        Z[5] = X[5] + Y[5];    \
+        Z[8] = X[8] + Y[8];    \
+    }
 // X = 0(3x1)
 #define RVLNULL3VECTOR(X) X[0] = X[1] = X[2] = 0.0;
 // X = 0(3x3)
 #define RVLNULLMX3X3(X) X[0] = X[1] = X[2] = X[3] = X[4] = X[5] = X[6] = X[7] = X[8] = 0.0;
 // X = I(3x3)
-#define RVLUNITMX3(X)         \
-    X[0] = X[4] = X[8] = 1.0; \
-    X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0;
+#define RVLUNITMX3(X)                                  \
+    {                                                  \
+        X[0] = X[4] = X[8] = 1.0;                      \
+        X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0; \
+    }
 // X = diag(x)
-#define RVL3VECTORTODIAGMX(x, X) \
-    X[0] = x[0];                 \
-    X[4] = x[1];                 \
-    X[8] = x[2];                 \
-    X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0;
+#define RVL3VECTORTODIAGMX(x, X)                       \
+    {                                                  \
+        X[0] = x[0];                                   \
+        X[4] = x[1];                                   \
+        X[8] = x[2];                                   \
+        X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0; \
+    }
 // X = diag([d1 d2 d3]')
-#define RVLDIAGMX3(d1, d2, d3, X) \
-    X[0] = d1;                    \
-    X[4] = d2;                    \
-    X[8] = d3;                    \
-    X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0;
+#define RVLDIAGMX3(d1, d2, d3, X)                      \
+    {                                                  \
+        X[0] = d1;                                     \
+        X[4] = d2;                                     \
+        X[8] = d3;                                     \
+        X[1] = X[2] = X[3] = X[5] = X[6] = X[7] = 0.0; \
+    }
 // element in i-th row and j-th column of matrix Mx with nCol columns
 #define RVLMXEL(Mx, nCols, i, j) Mx[nCols * (i) + j]
 // Tgt = Src1(3x1) + Src2(3x1)
 #define RVLSUM3VECTORS(Src1, Src2, Tgt) \
-    Tgt[0] = Src1[0] + Src2[0];         \
-    Tgt[1] = Src1[1] + Src2[1];         \
-    Tgt[2] = Src1[2] + Src2[2];
+    {                                   \
+        Tgt[0] = Src1[0] + Src2[0];     \
+        Tgt[1] = Src1[1] + Src2[1];     \
+        Tgt[2] = Src1[2] + Src2[2];     \
+    }
 // Tgt = Src1(3x1) - Src2(3x1)
 #define RVLDIF3VECTORS(Src1, Src2, Tgt) \
-    Tgt[0] = Src1[0] - Src2[0];         \
-    Tgt[1] = Src1[1] - Src2[1];         \
-    Tgt[2] = Src1[2] - Src2[2];
+    {                                   \
+        Tgt[0] = Src1[0] - Src2[0];     \
+        Tgt[1] = Src1[1] - Src2[1];     \
+        Tgt[2] = Src1[2] - Src2[2];     \
+    }
 // Tgt = a * Src(3x1)
 #define RVLSCALE3VECTOR(Src, a, Tgt) \
-    Tgt[0] = a * Src[0];             \
-    Tgt[1] = a * Src[1];             \
-    Tgt[2] = a * Src[2];
+    {                                \
+        Tgt[0] = a * Src[0];         \
+        Tgt[1] = a * Src[1];         \
+        Tgt[2] = a * Src[2];         \
+    }
 // Tgt = Src(3x1) / a
 #define RVLSCALE3VECTOR2(Src, a, Tgt) \
-    Tgt[0] = Src[0] / a;              \
-    Tgt[1] = Src[1] / a;              \
-    Tgt[2] = Src[2] / a;
+    {                                 \
+        Tgt[0] = Src[0] / a;          \
+        Tgt[1] = Src[1] / a;          \
+        Tgt[2] = Src[2] / a;          \
+    }
 // Tgt = diag(a) * Src
 #define RVLSCALE3VECTOR3(Src, a, Tgt) \
     {                                 \
@@ -198,9 +232,11 @@
     }
 // TgtCol = a * SrcCol, where SrcCol and TgtCol are the i-th column of 3x3 matrices Src and Tgt respectively
 #define RVLSCALECOL3(Src, i, a, Tgt) \
-    Tgt[i] = a * Src[i];             \
-    Tgt[i + 3] = a * Src[i + 3];     \
-    Tgt[i + 6] = a * Src[i + 6];
+    {                                \
+        Tgt[i] = a * Src[i];         \
+        Tgt[i + 3] = a * Src[i + 3]; \
+        Tgt[i + 6] = a * Src[i + 6]; \
+    }
 // dot product of i-th row of A(3x3) and j-th column of B(3x3)
 #define RVLMULROWCOL3(A, B, i, j) (A[3 * i + 0] * B[3 * 0 + j] + A[3 * i + 1] * B[3 * 1 + j] + A[3 * i + 2] * B[3 * 2 + j])
 // dot product of i-th row of A(3x3) and j-th row of B(3x3)
@@ -208,25 +244,33 @@
 // dot product of i-th column of A(3x3) and j-th column of B(3x3)
 #define RVLMULCOLCOL3(A, B, i, j) (A[3 * 0 + i] * B[3 * 0 + j] + A[3 * 1 + i] * B[3 * 1 + j] + A[3 * 2 + i] * B[3 * 2 + j])
 // y = A(3x3) * x(3x1)
-#define RVLMULMX3X3VECT(A, x, y)                    \
-    y[0] = A[0] * x[0] + A[1] * x[1] + A[2] * x[2]; \
-    y[1] = A[3] * x[0] + A[4] * x[1] + A[5] * x[2]; \
-    y[2] = A[6] * x[0] + A[7] * x[1] + A[8] * x[2];
+#define RVLMULMX3X3VECT(A, x, y)                        \
+    {                                                   \
+        y[0] = A[0] * x[0] + A[1] * x[1] + A[2] * x[2]; \
+        y[1] = A[3] * x[0] + A[4] * x[1] + A[5] * x[2]; \
+        y[2] = A[6] * x[0] + A[7] * x[1] + A[8] * x[2]; \
+    }
 // y = A(3x3)' * x(3x1)
-#define RVLMULMX3X3TVECT(A, x, y)                   \
-    y[0] = A[0] * x[0] + A[3] * x[1] + A[6] * x[2]; \
-    y[1] = A[1] * x[0] + A[4] * x[1] + A[7] * x[2]; \
-    y[2] = A[2] * x[0] + A[5] * x[1] + A[8] * x[2];
+#define RVLMULMX3X3TVECT(A, x, y)                       \
+    {                                                   \
+        y[0] = A[0] * x[0] + A[3] * x[1] + A[6] * x[2]; \
+        y[1] = A[1] * x[0] + A[4] * x[1] + A[7] * x[2]; \
+        y[2] = A[2] * x[0] + A[5] * x[1] + A[8] * x[2]; \
+    }
 // invt = -R(3x3)' * t(3x1)
-#define RVLINVTRANSL(R, t, invt)                        \
-    invt[0] = -R[0] * t[0] - R[3] * t[1] - R[6] * t[2]; \
-    invt[1] = -R[1] * t[0] - R[4] * t[1] - R[7] * t[2]; \
-    invt[2] = -R[2] * t[0] - R[5] * t[1] - R[8] * t[2];
+#define RVLINVTRANSL(R, t, invt)                            \
+    {                                                       \
+        invt[0] = -R[0] * t[0] - R[3] * t[1] - R[6] * t[2]; \
+        invt[1] = -R[1] * t[0] - R[4] * t[1] - R[7] * t[2]; \
+        invt[2] = -R[2] * t[0] - R[5] * t[1] - R[8] * t[2]; \
+    }
 // y = A(3x3) * x(3x1), where A is a simetric matrix with only diagonal + upper triangle defined
-#define RVLMULCOV3VECT(A, x, y)                     \
-    y[0] = A[0] * x[0] + A[1] * x[1] + A[2] * x[2]; \
-    y[1] = A[1] * x[0] + A[4] * x[1] + A[5] * x[2]; \
-    y[2] = A[2] * x[0] + A[5] * x[1] + A[8] * x[2];
+#define RVLMULCOV3VECT(A, x, y)                         \
+    {                                                   \
+        y[0] = A[0] * x[0] + A[1] * x[1] + A[2] * x[2]; \
+        y[1] = A[1] * x[0] + A[4] * x[1] + A[5] * x[2]; \
+        y[2] = A[2] * x[0] + A[5] * x[1] + A[8] * x[2]; \
+    }
 // y = min(x(3x1))
 #define RVL3DVECTORMIN(x, y)  \
     {                         \
@@ -301,10 +345,12 @@
     }
 
 // y = A(3x3) * j-th column of B(3x3)
-#define RVLMULMXCOL3(A, B, j, y)                            \
-    y[0] = A[0] * B[j] + A[1] * B[3 + j] + A[2] * B[6 + j]; \
-    y[1] = A[3] * B[j] + A[4] * B[3 + j] + A[5] * B[6 + j]; \
-    y[2] = A[6] * B[j] + A[7] * B[3 + j] + A[8] * B[6 + j];
+#define RVLMULMXCOL3(A, B, j, y)                                \
+    {                                                           \
+        y[0] = A[0] * B[j] + A[1] * B[3 + j] + A[2] * B[6 + j]; \
+        y[1] = A[3] * B[j] + A[4] * B[3 + j] + A[5] * B[6 + j]; \
+        y[2] = A[6] * B[j] + A[7] * B[3 + j] + A[8] * B[6 + j]; \
+    }
 // C = A(3x3)*B(3x3)
 #define RVLMXMUL3X3(A, B, C)                             \
     {                                                    \
@@ -383,10 +429,12 @@
 #define RVLDOTPRODUCT3(x, y) (x[0] * y[0] + x[1] * y[1] + x[2] * y[2])
 #define RVLDOTPRODUCT3_64(x, y) ((int64)(x[0]) * (int64)(y[0]) + (int64)(x[1]) * (int64)(y[1]) + (int64)(x[2]) * (int64)(y[2]))
 // z = x(3x1) x y(3x1)
-#define RVLCROSSPRODUCT3(x, y, z)     \
-    z[0] = x[1] * y[2] - x[2] * y[1]; \
-    z[1] = x[2] * y[0] - x[0] * y[2]; \
-    z[2] = x[0] * y[1] - x[1] * y[0];
+#define RVLCROSSPRODUCT3(x, y, z)         \
+    {                                     \
+        z[0] = x[1] * y[2] - x[2] * y[1]; \
+        z[1] = x[2] * y[0] - x[0] * y[2]; \
+        z[2] = x[0] * y[1] - x[1] * y[0]; \
+    }
 // normalize vector x(3x1)
 #define RVLNORM3(x, len)                  \
     {                                     \
@@ -669,6 +717,14 @@
         t[1] = T[13];                      \
         t[2] = T[14];                      \
     }
+
+// Transformation of a 3D plane from RF A to RF B.
+#define RVLPLANETRANSF3(N_A, d_A, R_A_B, t_A_B, N_B, d_B) \
+    {                                                     \
+        RVLMULMX3X3VECT(R_A_B, N_A, N_B);                 \
+        d_B = d_A + RVLDOTPRODUCT3(N_B, t_A_B);           \
+    }
+
 // Compute s and RTgt such that RSrc = s * RTgt.
 #define RVLEXTRACTSCALEFROMROT(RSrc, s, RTgt) \
     {                                         \
@@ -713,10 +769,12 @@
     }
 // Tgt = Src(2x2)
 #define RVLCOPYMX2X2(Src, Tgt) \
-    Tgt[0] = Src[0];           \
-    Tgt[1] = Src[1];           \
-    Tgt[2] = Src[2];           \
-    Tgt[3] = Src[3];
+    {                          \
+        Tgt[0] = Src[0];       \
+        Tgt[1] = Src[1];       \
+        Tgt[2] = Src[2];       \
+        Tgt[3] = Src[3];       \
+    }
 // C = A(2x2)*B(2x2)
 #define RVLMXMUL2X2(A, B, C)                                                                                         \
     {                                                                                                                \
@@ -737,9 +795,11 @@
         COut[3] = C[0] * J[2] * J[2] + 2 * C[1] * J[2] * J[3] + C[3] * J[3] * J[3];        \
     }
 // y = A(2x2) * x(2x1), where A is a simetric matrix with only diagonal + upper triangle defined
-#define RVLMULCOV2VECT(A, x, y)       \
-    y[0] = A[0] * x[0] + A[1] * x[1]; \
-    y[1] = A[1] * x[0] + A[3] * x[1];
+#define RVLMULCOV2VECT(A, x, y)           \
+    {                                     \
+        y[0] = A[0] * x[0] + A[1] * x[1]; \
+        y[1] = A[1] * x[0] + A[3] * x[1]; \
+    }
 // invC(2x2) = inv(C(2x2)) (C is simmetric; only diagonal + upper triangle are computed)
 #define RVLINVCOV2(C, invC, detC) \
     {                             \
@@ -807,6 +867,61 @@
         R[2 * 3 + 2] = Q[0] * Q[0] - Q[1] * Q[1] - Q[2] * Q[2] + Q[3] * Q[3]; \
     }
 #define RVLROTDIFF(R) (0.5 * (R[0] + R[4] + R[8] - 1.0))
+#define RVL_PROJECT_3DPOINT_TO_PLANE(PSrc, N, d, PTgt) \
+    {                                                  \
+        fTmp = RVLDOTPRODUCT3(N, PSrc) - d;            \
+        RVLSCALE3VECTOR(N, fTmp, PTgt);                \
+        RVLDIF3VECTORS(PSrc, PTgt, PTgt);              \
+    }
+// Limit x to interval [minx, maxx].
+#define RVLLIMIT(x, minx, maxx) (x < minx ? minx : (x > maxx ? maxx : x))
+// c = (1 - s) * a + s * b
+#define RVLLERP3(a, b, s, c, fTmp)     \
+    {                                  \
+        fTmp = 1.0 - s;                \
+        c[0] = fTmp * a[0] + s * b[0]; \
+        c[1] = fTmp * a[1] + s * b[1]; \
+        c[2] = fTmp * a[2] + s * b[2]; \
+    }
+// Let a, b and c be three 3D points. The following function computes the point d on the line segment (a, b) which is closest to the point c.
+// Auxiliary variables: s, ba(3x1), ca(3x1), fTmp
+#define RVLCLOSEST_POINT_ON_3DLINE_SEGMENT(a, b, c, d, s, ba, ca, fTmp) \
+    {                                                                   \
+        RVLDIF3VECTORS(b, a, ba);                                       \
+        RVLDIF3VECTORS(c, a, ca);                                       \
+        s = RVLDOTPRODUCT3(ca, ba) / RVLDOTPRODUCT3(ba, ba);            \
+        s = RVLLIMIT(s, 0.0, 1.0);                                      \
+        RVLLERP3(a, b, s, d, fTmp);                                     \
+    }
+// The closest points E, F of two 3D line segments (A, B) and (C, D).
+// This code is adopted from https://zalo.github.io/blog/closest-point-between-segments/
+// Auxiliary variables: BA(3x1), DC(3x1), AC(3x1), BC(3x1), DCSqrMag, inPlaneA(3x1), inPlaneB(3x1), inPlaneBA(3x1), fTmp, V3Tmp(3x1)
+#define RVL3DLINE_SEGMENTS_CLOSEST_POINTS(A, B, C, D, E, F, sAB, sCD, BA, DC, AC, BC, DCSqrMag, inPlaneA, inPlaneB, inPlaneBA, fTmp, V3Tmp) \
+    {                                                                                                                                       \
+        RVLDIF3VECTORS(A, C, AC);                                                                                                           \
+        RVLDIF3VECTORS(B, C, BC);                                                                                                           \
+        RVLDIF3VECTORS(D, C, DC);                                                                                                           \
+        DCSqrMag = RVLDOTPRODUCT3(DC, DC);                                                                                                  \
+        sAB = RVLDOTPRODUCT3(AC, DC) / DCSqrMag;                                                                                            \
+        RVLSCALE3VECTOR(DC, sAB, inPlaneA);                                                                                                 \
+        RVLDIF3VECTORS(A, inPlaneA, inPlaneA);                                                                                              \
+        sAB = RVLDOTPRODUCT3(BC, DC) / DCSqrMag;                                                                                            \
+        RVLSCALE3VECTOR(DC, sAB, inPlaneB);                                                                                                 \
+        RVLDIF3VECTORS(B, inPlaneB, inPlaneB);                                                                                              \
+        RVLDIF3VECTORS(inPlaneB, inPlaneA, inPlaneBA);                                                                                      \
+        RVLDIF3VECTORS(C, inPlaneA, V3Tmp);                                                                                                 \
+        sAB = RVLDOTPRODUCT3(inPlaneBA, inPlaneBA);                                                                                         \
+        if (sAB > -1e-6 && sAB < 1e-6)                                                                                                      \
+            sAB = 0.0;                                                                                                                      \
+        else                                                                                                                                \
+        {                                                                                                                                   \
+            sAB = RVLDOTPRODUCT3(V3Tmp, inPlaneBA) / sAB;                                                                                   \
+            sAB = RVLLIMIT(sAB, 0.0, 1.0);                                                                                                  \
+        }                                                                                                                                   \
+        RVLLERP3(A, B, sAB, V3Tmp, fTmp);                                                                                                   \
+        RVLCLOSEST_POINT_ON_3DLINE_SEGMENT(C, D, V3Tmp, F, sCD, DC, BC, fTmp);                                                              \
+        RVLCLOSEST_POINT_ON_3DLINE_SEGMENT(A, B, F, E, sAB, BA, BC, fTmp);                                                                  \
+    }
 
 template <typename Type>
 struct Moments2D

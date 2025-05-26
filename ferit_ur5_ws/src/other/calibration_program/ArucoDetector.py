@@ -1,7 +1,7 @@
 import os
 import cv2 
-# import aruco
-import cv2.aruco as aruco
+import aruco
+# import cv2.aruco as aruco
 
 class ArucoDetector:
   def __init__(self, camera_params_path:str, aruco_dict_path: str):

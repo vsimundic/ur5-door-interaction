@@ -1,5 +1,5 @@
-//#include "stdafx.h"
-//#include <pcl/io/pcd_io.h>
+// #include "stdafx.h"
+// #include <pcl/io/pcd_io.h>
 #include "RVLCore2.h"
 #include "RVLVTK.h"
 #include <vtkTriangle.h>
@@ -11,12 +11,12 @@
 #else
 #include <Eigen\Eigenvalues>
 #endif
-//#include <pcl/common/common.h>
-//#include <pcl/PolygonMesh.h>
-//#include <pcl/surface/vtk_smoothing/vtk_utils.h>
-//#include "PCLTools.h"
-//#include "PCLMeshBuilder.h"
-//#include "RGBDCamera.h"
+// #include <pcl/common/common.h>
+// #include <pcl/PolygonMesh.h>
+// #include <pcl/surface/vtk_smoothing/vtk_utils.h>
+// #include "PCLTools.h"
+// #include "PCLMeshBuilder.h"
+// #include "RGBDCamera.h"
 #include "Mesh.h"
 #include "Visualizer.h"
 
@@ -41,7 +41,6 @@ Mesh::Mesh()
 	name = NULL;
 }
 
-
 Mesh::~Mesh()
 {
 	RVL_DELETE_ARRAY(mapNodesToPolyData);
@@ -52,10 +51,10 @@ Mesh::~Mesh()
 }
 
 void Mesh::LoadFromPLY(
-	char* PLYFileName,
+	char *PLYFileName,
 	float maxMeshTriangleEdgeLen,
 	bool bOrganizedPCIn,
-	Camera* pCamera)
+	Camera *pCamera)
 {
 	LoadPolyDataFromPLY(PLYFileName);
 	if (bOrganizedPCIn)
@@ -69,7 +68,7 @@ void Mesh::LoadFromPLY(
 	CreateOrderedMeshFromPolyData(NULL, NULL, maxMeshTriangleEdgeLen);
 }
 
-// Loads an ordered mesh from a PLY file. 
+// Loads an ordered mesh from a PLY file.
 // The definition of the ordered mesh is given in ARP3D.TR3.
 
 void Mesh::LoadPolyDataFromPLY(char *PLYFileName)
@@ -80,7 +79,7 @@ void Mesh::LoadPolyDataFromPLY(char *PLYFileName)
 	pPolygonData = reader->GetOutput();
 }
 
-//VIDOVIC
+// VIDOVIC
 void Mesh::SavePolyDataToPLY(char *PLYFileName)
 {
 	vtkSmartPointer<vtkPLYWriter> writer = vtkSmartPointer<vtkPLYWriter>::New();
@@ -105,12 +104,12 @@ void Mesh::SaveNoisedPolyDataToPLY(char *PLYFileName)
 
 	vtkSmartPointer<vtkPLYWriter> writer = vtkSmartPointer<vtkPLYWriter>::New();
 
-	//create noised mesh filename
+	// create noised mesh filename
 	strcpy(sceneNoisedMeshFileName, PLYFileName);
 	strcpy(sceneNoisedMeshFileName + strlen(sceneNoisedMeshFileName) - strlen(".ply"), "_noised.ply");
 
 	writer->SetFileName(sceneNoisedMeshFileName);
-	
+
 #if VTK_MAJOR_VERSION <= 5
 	writer->SetInput(pPolygonData);
 #else
@@ -121,7 +120,7 @@ void Mesh::SaveNoisedPolyDataToPLY(char *PLYFileName)
 
 	delete[] sceneNoisedMeshFileName;
 }
-//END VIDOVIC
+// END VIDOVIC
 
 bool Mesh::CreateOrderedMeshFromPolyData(
 	int *pixMap,
@@ -137,7 +136,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 	if (normalPointData == NULL)
 	{
 		normalPointData = normalPointData->SafeDownCast(pPolygonData->GetPointData()->GetNormals());
-	
+
 		if (normalPointData != NULL)
 			flags |= RVLMESH_FLAG_NORMALS;
 		else
@@ -146,36 +145,36 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 			normals->SetInputData(pPolygonData);
 
 			normals->ComputePointNormalsOn();
-			//normals->ComputeCellNormalsOff();
+			// normals->ComputeCellNormalsOff();
 			normals->SetFlipNormals(1);
 			normals->Update();
 
-			//pPolygonData = normals->GetOutput();
-			//normalPointData = vtkFloatArray::SafeDownCast(pPolygonData->GetPointData()->GetNormals());
+			// pPolygonData = normals->GetOutput();
+			// normalPointData = vtkFloatArray::SafeDownCast(pPolygonData->GetPointData()->GetNormals());
 			normalPointData = vtkFloatArray::SafeDownCast(normals->GetOutput()->GetPointData()->GetNormals());
 
 			flags |= RVLMESH_FLAG_NORMALS;
 
-			//vtkSmartPointer<vtkPLYWriter> writer = vtkSmartPointer<vtkPLYWriter>::New();
+			// vtkSmartPointer<vtkPLYWriter> writer = vtkSmartPointer<vtkPLYWriter>::New();
 
-			//writer->SetFileName("D:\\tmp.ply");
+			// writer->SetFileName("D:\\tmp.ply");
 
-			//writer->SetInputData(normals->GetOutput());
+			// writer->SetInputData(normals->GetOutput());
 
-			//writer->Write();
+			// writer->Write();
 		}
 	}
 	else
 		flags |= RVLMESH_FLAG_NORMALS;
 
-	//vtkIdType numberOfPointArrays = pPolygonData->GetPointData()->GetNumberOfArrays();
+	// vtkIdType numberOfPointArrays = pPolygonData->GetPointData()->GetNumberOfArrays();
 
-	//for (vtkIdType i = 0; i < numberOfPointArrays; i++)
+	// for (vtkIdType i = 0; i < numberOfPointArrays; i++)
 	//{
 	//	int dataTypeID = pPolygonData->GetPointData()->GetArray(i)->GetDataType();
 	//	std::cout << "Array " << i << ": " << pPolygonData->GetPointData()->GetArrayName(i)
 	//		<< " (type: " << dataTypeID << ")" << std::endl;
-	//}
+	// }
 
 	int iPt;
 	unsigned char RGB[4];
@@ -213,12 +212,12 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 			}
 			else
 			{
-				//vtkSmartPointer<vtkUnsignedCharArray> rgbPointData = vtkSmartPointer<vtkUnsignedCharArray>::New();
+				// vtkSmartPointer<vtkUnsignedCharArray> rgbPointData = vtkSmartPointer<vtkUnsignedCharArray>::New();
 				rgbPointData = vtkSmartPointer<vtkUnsignedCharArray>::New();
 				rgbPointData->SetNumberOfComponents(3);
 				rgbPointData->SetName("RGB");
 
-				unsigned char color[] = { 255, 255, 255 };
+				unsigned char color[] = {255, 255, 255};
 
 				for (iPt = 0; iPt < noPts; iPt++)
 					rgbPointData->InsertNextTypedTuple(color);
@@ -231,7 +230,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 	}
 	else
 		flags |= RVLMESH_FLAG_COLOR;
-		
+
 	// Get vertices
 
 	Clear();
@@ -241,8 +240,8 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 	else
 		NodeMem = new Point[noPts]; // VIDOVIC
 
-	//NodeArray.Element = new Point[noPts]; //VIDOVIC
-	NodeArray.Element = NodeMem; //VIDOVIC
+	// NodeArray.Element = new Point[noPts]; //VIDOVIC
+	NodeArray.Element = NodeMem; // VIDOVIC
 
 	NodeArray.n = (pixMapSize > 0 ? pixMapSize : noPts);
 
@@ -261,7 +260,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 		if (flags & RVLMESH_FLAG_COLOR)
 		{
 			rgbPointData->GetTypedTuple(iPt, RGB);
-			//RVLCONVTOINT3(RGB, pPt->RGB);
+			// RVLCONVTOINT3(RGB, pPt->RGB);
 			RVLCOPY3VECTOR(RGB, pPt->RGB);
 		}
 		else
@@ -309,13 +308,13 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 	EdgeMem = new MeshEdge[maxnEdges]; // VIDOVIC
 
-	//EdgeArray.Element = new MeshEdge[maxnEdges]; //VIDOVIC
-	EdgeArray.Element = EdgeMem; //VIDOVIC
+	// EdgeArray.Element = new MeshEdge[maxnEdges]; //VIDOVIC
+	EdgeArray.Element = EdgeMem; // VIDOVIC
 
 	MeshEdge *pEdge = EdgeArray.Element;
 
-	Array<QList<QLIST::Index>> VertexEdgeListArray;	// Each element of this array is a list of edge indices corresponding to a mesh vertex. 
-	
+	Array<QList<QLIST::Index>> VertexEdgeListArray; // Each element of this array is a list of edge indices corresponding to a mesh vertex.
+
 	VertexEdgeListArray.Element = new QList<QLIST::Index>[NodeArray.n];
 	VertexEdgeListArray.n = NodeArray.n;
 
@@ -329,23 +328,23 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 	int polyDataSize = maxnPolygonVertices + 1;
 
-	int *PolyArray = new int[polyDataSize * nPolys];	// A matrix nPolys x polyDataSize. Each row represents one polygon.
-														// The first element of each row represents the number of polygon vertices nPts.
-														// The next nPts elements of a row are indices of the polygon vertices.
-														// The remaining elements of the row are undefined.
+	int *PolyArray = new int[polyDataSize * nPolys]; // A matrix nPolys x polyDataSize. Each row represents one polygon.
+													 // The first element of each row represents the number of polygon vertices nPts.
+													 // The next nPts elements of a row are indices of the polygon vertices.
+													 // The remaining elements of the row are undefined.
 
-	int *EdgePolyAssignmentArray = new int[4 * maxnEdges];	// A matrix EdgeArray.n x 4. Each row represents one edge.
-																// The first two elements of i-th row are the indices of the polygons sharing the edge i.
-																// The first of these two elements represents the index of the polygon on the left side of the edge,
-																// while the second one represents the index of the polygon on the right side of the edge.
-																// The other two elements of i-th row are the indices of the edge in the polygon edge list.
-																// The third element is the index of the edge in the list of the polygon on the left side of the edge,
-																// while the fourth one is the index of the edge in the list of the polygon on the right side of the edge.
+	int *EdgePolyAssignmentArray = new int[4 * maxnEdges]; // A matrix EdgeArray.n x 4. Each row represents one edge.
+														   // The first two elements of i-th row are the indices of the polygons sharing the edge i.
+														   // The first of these two elements represents the index of the polygon on the left side of the edge,
+														   // while the second one represents the index of the polygon on the right side of the edge.
+														   // The other two elements of i-th row are the indices of the edge in the polygon edge list.
+														   // The third element is the index of the edge in the list of the polygon on the left side of the edge,
+														   // while the fourth one is the index of the edge in the list of the polygon on the right side of the edge.
 
 	memset(EdgePolyAssignmentArray, 0xff, 4 * maxnEdges * sizeof(int));
-	
-	int *PolyEdgeAssignmentArray = new int[maxnEdges];	// A matrix nPolys x maxnPolygonVertices. Each row contains the indices of the edges of the corresponding polygon.
-														// Only the first nPts elements of each row are defined, where nPts is the number of the polygon vertices.
+
+	int *PolyEdgeAssignmentArray = new int[maxnEdges]; // A matrix nPolys x maxnPolygonVertices. Each row contains the indices of the edges of the corresponding polygon.
+													   // Only the first nPts elements of each row are defined, where nPts is the number of the polygon vertices.
 
 	int *PolyEdge = PolyEdgeAssignmentArray;
 
@@ -369,7 +368,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 	QLIST::Index *pVertexEdgeIdx_;
 	iPoly = 0;
 	int iPoly_;
-	Point* pPt1, * pPt2;
+	Point *pPt1, *pPt2;
 	float dP[3];
 	for (iPoly_ = 0; iPoly_ < nPolys; iPoly_++)
 	{
@@ -434,19 +433,19 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 					pVertexEdgeIdx_ = pVertexEdgeIdx_->pNext;
 				}
 
-				// 
+				//
 
 				if (bAlreadyExists)
 					edgeSide = 1; // Polygon l is on the right side of edge iEdge_.
 				else
 				{
-					// Create a new edge and add it to EdgeArray. 
+					// Create a new edge and add it to EdgeArray.
 					// Add the index of the new edge to VertexEdgeListArray[iPt1] and VertexEdgeListArray[iPt2].
 
 					pEdge->iVertex[0] = iPt1_;
 					pEdge->iVertex[1] = iPt2_;
 					pEdge->idx = iEdge;
-					
+
 					RVLQLIST_ADD_ENTRY(pVertexEdgeList, pVertexEdgeIdx);
 					pVertexEdgeIdx->Idx = iEdge;
 					pVertexEdgeIdx++;
@@ -464,7 +463,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 					pEdge++;
 					iEdge++;
 				}
-				
+
 				// Store the edge index to PolyEdge.
 
 				PolyEdge[iPt] = iEdge_;
@@ -478,15 +477,15 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 				EdgePoly[edgeSide] = iPoly;
 
-				// Store the index of the edge in the polygon edge list of the polygon l in the corresponding field of EdgePoly. 
+				// Store the index of the edge in the polygon edge list of the polygon l in the corresponding field of EdgePoly.
 
 				EdgePolyIdx[edgeSide] = iPt;
 
 				iPt1_ = iPt2_;
-			}	// for each Poly vertex
+			} // for each Poly vertex
 			iPoly++;
 		}
-	}	// for each Poly
+	} // for each Poly
 
 	EdgeArray.n = pEdge - EdgeArray.Element;
 
@@ -515,7 +514,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 		pPt->bValid = true;
 	}
-		
+
 	piPtBuffFetch->n = noPts;
 
 	piPtBuffPut->n = 0;
@@ -537,7 +536,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 		{
 			iPt = piPtBuffFetch->Element[i];
 
-			//if (iPt == 45075)
+			// if (iPt == 45075)
 			//	int debug = 0;
 
 			pPt = NodeArray.Element + iPt;
@@ -572,12 +571,12 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 				pPt->bValid = false;
 
 				continue;
-			}	
+			}
 
 			// If there are more than two boundary edges connected to vertex pPt, then set position and normal of pPt to null vectors.
 			// In that case, the edge list is empty.
 			// The vertices with normal set to null vector should be rejected from any further processing, which effectively removes such vertices from the mesh.
-			// By removing all vertices with more than two boundary edges from the mesh, the 2. property of the organized mesh is preserved 
+			// By removing all vertices with more than two boundary edges from the mesh, the 2. property of the organized mesh is preserved
 			// (See the definition of the organized mesh in ARP3D.TR30).
 
 			if (nBoundaryEdges <= 2)
@@ -605,7 +604,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 						if (iPoly >= 0)
 						{
-							//if (iPoly == 43984)
+							// if (iPoly == 43984)
 							//	int debug = 0;
 
 							PolyData = PolyArray + polyDataSize * iPoly;
@@ -643,9 +642,9 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 					}
 
 					pVertexEdgeIdx = pVertexEdgeIdx->pNext;
-				}	// for every edge ending in pPt
-			}	// if (!pPt->bValid)
-		}	// for every point in piPtBuffFetch
+				} // for every edge ending in pPt
+			}	  // if (!pPt->bValid)
+		}		  // for every point in piPtBuffFetch
 
 		for (i = 0; i < piPtBuffPut->n; i++)
 			bVisited[piPtBuffPut->Element[i]] = false;
@@ -655,7 +654,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 		piPtBuffPut = piPtBuffTmp;
 
 		piPtBuffPut->n = 0;
-	}	// while (piPtBuffFetch->n > 0)
+	} // while (piPtBuffFetch->n > 0)
 
 	delete[] iPtBuff1.Element;
 	delete[] iPtBuff2.Element;
@@ -667,7 +666,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 	MeshEdgePtr *pMeshEdgePtr = EdgePtrMem;
 
-	//int watchdog;
+	// int watchdog;
 
 	nBoundaryPts = 0;
 
@@ -675,7 +674,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 	for (iPt = 0; iPt < NodeArray.n; iPt++)
 	{
-		//if (iPt == 5929)
+		// if (iPt == 5929)
 		//	int debug = 0;
 
 		pPt = NodeArray.Element + iPt;
@@ -693,7 +692,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 		// Count the boundary edges (See the definition of boundary edges in ARP3D.TR3).
 		// If there are boundary edges connected to pPt, then iEdge0 <- the first edge connected to pPt in the CCW direction.
 
-		nEdges = nBoundaryEdges = 0;		// only for debugging purpose!!!
+		nEdges = nBoundaryEdges = 0; // only for debugging purpose!!!
 
 		pVertexEdgeIdx = pVertexEdgeList->pFirst;
 
@@ -709,29 +708,29 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 			{
 				if (EdgePoly[0] < 0)
 				{
-					nBoundaryEdges++;		// only for debugging purpose!!!
+					nBoundaryEdges++; // only for debugging purpose!!!
 
 					if (pEdge->iVertex[1] == iPt)
 						iEdge0 = iEdge;
 				}
 				else if (EdgePoly[1] < 0)
 				{
-					nBoundaryEdges++;		// only for debugging purpose!!!
+					nBoundaryEdges++; // only for debugging purpose!!!
 
 					if (pEdge->iVertex[0] == iPt)
 						iEdge0 = iEdge;
 				}
 
-				nEdges++;		// only for debugging purpose!!!
+				nEdges++; // only for debugging purpose!!!
 			}
 
 			pVertexEdgeIdx = pVertexEdgeIdx->pNext;
 		}
 
-		//if (nEdges < 2)
+		// if (nEdges < 2)
 		//	int debug = 0;
 
-		//if (nBoundaryEdges > 2)
+		// if (nBoundaryEdges > 2)
 		//	int debug = 0;
 
 		// If no boundary edge is connected to vertex pPt, then the first edge in its edge list can be any edge connected to it.
@@ -741,18 +740,18 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 		else
 			iEdge0 = pVertexEdgeList->pFirst->Idx;
 
-		//watchdog = 0;
+		// watchdog = 0;
 
-		//if (iPt == 88031)
+		// if (iPt == 88031)
 		//	int debug = 0;
 
 		iEdge = iEdge0;
-		
+
 		do
 		{
 			pEdge = EdgeArray.Element + iEdge;
 
-			//if (iEdge == 265106)
+			// if (iEdge == 265106)
 			//	int debug = 0;
 
 			// Connect pEdge to the edge list of vertex pPt using the connector pMeshEdgePtr.
@@ -772,7 +771,7 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 			// iPoly <- index of the polygon in CCW direction from the edge pEdge w.r.t. vertex pPt.
 
-			iPoly = EdgePoly[edgeSide];	
+			iPoly = EdgePoly[edgeSide];
 
 			// if there is no polygon in CCW direction from the edge pEdge w.r.t. vertex pPt, then the edge list is completed.
 
@@ -791,33 +790,33 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 			//// debug
 
-			//MeshEdge *pEdge_ = EdgeArray.Element + iEdge;
+			// MeshEdge *pEdge_ = EdgeArray.Element + iEdge;
 
-			//int edgeSide_ = (pEdge_->iVertex[0] == iPt ? 0 : 1);
+			// int edgeSide_ = (pEdge_->iVertex[0] == iPt ? 0 : 1);
 
-			//Point Pt1 = NodeArray.Element[iPt];
-			//Point Pt2 = NodeArray.Element[pEdge->iVertex[1 - edgeSide]];
-			//Point Pt3 = NodeArray.Element[pEdge_->iVertex[1 - edgeSide_]];
+			// Point Pt1 = NodeArray.Element[iPt];
+			// Point Pt2 = NodeArray.Element[pEdge->iVertex[1 - edgeSide]];
+			// Point Pt3 = NodeArray.Element[pEdge_->iVertex[1 - edgeSide_]];
 
-			//float V1[3], V2[3];
+			// float V1[3], V2[3];
 
-			//RVLDIF3VECTORS(Pt2.P, Pt1.P, V1);
-			//RVLDIF3VECTORS(Pt3.P, Pt1.P, V2);
+			// RVLDIF3VECTORS(Pt2.P, Pt1.P, V1);
+			// RVLDIF3VECTORS(Pt3.P, Pt1.P, V2);
 
-			//float Z[3];
+			// float Z[3];
 
-			//RVLCROSSPRODUCT3(V1, V2, Z);
+			// RVLCROSSPRODUCT3(V1, V2, Z);
 
-			//float a = RVLDOTPRODUCT3(Pt1.P, Z);
+			// float a = RVLDOTPRODUCT3(Pt1.P, Z);
 
-			//if (a > 0.0)
+			// if (a > 0.0)
 			//	int debug = 0;
 
 			///////
 
-			//watchdog++;
+			// watchdog++;
 
-			//if (watchdog > 8)
+			// if (watchdog > 8)
 			//	break;
 		} while (iEdge != iEdge0);
 	}
@@ -843,11 +842,11 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 
 	/////
 
-	//MeshEdge* pEdgeArrayEnd = EdgeArray.Element + EdgeArray.n;
+	// MeshEdge* pEdgeArrayEnd = EdgeArray.Element + EdgeArray.n;
 
-	//int i;
+	// int i;
 
-	//for (pEdge = EdgeArray.Element; pEdge < pEdgeArrayEnd; pEdge++)
+	// for (pEdge = EdgeArray.Element; pEdge < pEdgeArrayEnd; pEdge++)
 	//{
 	//	for (i = 0; i < 2; i++)
 	//	{
@@ -874,13 +873,13 @@ bool Mesh::CreateOrderedMeshFromPolyData(
 	return true;
 }
 
-void Mesh::ComputeMoments(Array<int>& PtArray,
-	Moments<float> &moments)
+void Mesh::ComputeMoments(Array<int> &PtArray,
+						  Moments<float> &moments)
 {
 	InitMoments<float>(moments);
 
 	int i;
-	Point* pPt;
+	Point *pPt;
 
 	for (i = 0; i < PtArray.n; i++)
 	{
@@ -890,13 +889,13 @@ void Mesh::ComputeMoments(Array<int>& PtArray,
 	}
 }
 
-void Mesh::ComputeMoments(Array<int>& PtArray,
-	Moments<double>& moments)
+void Mesh::ComputeMoments(Array<int> &PtArray,
+						  Moments<double> &moments)
 {
 	InitMoments<double>(moments);
 
 	int i;
-	Point* pPt;
+	Point *pPt;
 	double P[3];
 
 	for (i = 0; i < PtArray.n; i++)
@@ -950,14 +949,14 @@ void Mesh::ComputeDistribution(
 
 	RVLSCALE3VECTOR2(RGB, moments.n, distribution.RGB);
 
-	//Eigen::EigenSolver<Eigen::Matrix3f> eigenSolver(Eigen::Map<Eigen::Matrix3f>(C));
+	// Eigen::EigenSolver<Eigen::Matrix3f> eigenSolver(Eigen::Map<Eigen::Matrix3f>(C));
 	Eigen::EigenSolver<Eigen::Matrix3f> eigenSolver;
 
 	eigenSolver.compute(Eigen::Map<Eigen::Matrix3f>(C));
 
 	Eigen::Map<Eigen::Matrix3f>(distribution.R) = eigenSolver.pseudoEigenvectors();
 
-	//Eigen::Map<Eigen::Vector3f>(distribution.var) = eigenSolver.eigenvalues();
+	// Eigen::Map<Eigen::Vector3f>(distribution.var) = eigenSolver.eigenvalues();
 
 	Eigen::Vector3cf var_ = eigenSolver.eigenvalues();
 
@@ -985,7 +984,7 @@ void Mesh::ComputeDistributionDouble(
 	for (i = 0; i < PtArray.n; i++)
 	{
 		pPt = NodeArray.Element + PtArray.Element[i];
-		
+
 		RVLCOPY3VECTOR(pPt->P, P);
 
 		UpdateMoments<double>(moments, P);
@@ -1027,7 +1026,7 @@ bool Mesh::FindBoundaryEdge(
 	return false;
 }
 
-// Given a region defined by a vertex list pInPtList and an array map (map[i] is equal for all vertices i of the mesh belonging to the region), 
+// Given a region defined by a vertex list pInPtList and an array map (map[i] is equal for all vertices i of the mesh belonging to the region),
 // the function returns an index array pOutPtArray of region boundary points.
 // The function requires a pre-allocated array QLIST::Index *pMem.
 
@@ -1059,76 +1058,76 @@ void Mesh::Boundary(
 		pPtIdx = pPtIdx->pNext;
 	}
 
-//	// Find a boundary point
-//
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//	FILE *fpDebug = fopen("C:\\RVL\\Debug\\meshdebug.txt", "w");
-//#endif
-//
-//	QLIST::Index *pPtIdx = pInPtList->pFirst;
-//
-//	int iPt;
-//	MeshEdgePtr *pEdgePtr;
-//
-//	while (FindBoundaryEdge(pInPtList, pPtIdx, map, iPt, pEdgePtr))
-//	{
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//		fprintf(fpDebug, "P %d (%d) E %d\n", iPt, map[iPt], pEdgePtr - EdgePtrMem);
-//#endif
-//
-//		RVLQLIST_INIT(pOutPtArray);
-//
-//		// Follow boundary
-//
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//		int debugState_ = 0;
-//#endif	
-//
-//		MeshEdge *pEdge = pEdgePtr->pEdge;
-//
-//		int side = (pEdge->iVertex[0] == iPt ? 0 : 1);
-//
-//		MeshEdgePtr *pEdgePtr0 = pEdgePtr;
-//
-//		int iNeighborPt;
-//		QList<MeshEdgePtr> *pEdgeList;
-//		Point *pPt;
-//
-//		do
-//		{
-//			RVLQLIST_ADD_ENTRY(pOutPtArray, pMem);
-//
-//			pMem->Idx = iPt;
-//
-//			pMem++;
-//
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//			debugState_++;
-//
-//			if (debugState_ >= debugState)
-//				break;
-//#endif
-//
-//			RVLMESH_GET_POINT(pEdge, 1 - side, iPt, pEdgePtr);
-//			RVLMESH_GET_NEXT_IN_REGION(this, iPt, pEdgePtr, side, map, iNeighborPt, pPt, pEdgeList, pEdge);
-//
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//			fprintf(fpDebug, "\nP %d (%d) E %d\n", iPt, map[iPt], pEdgePtr - EdgePtrMem);
-//#endif
-//		} while (pEdgePtr != pEdgePtr0);
-//
-//#ifdef RVLMESH_BOUNDARY_DEBUG
-//		fclose(fpDebug);
-//#endif
-//	}
+	//	// Find a boundary point
+	//
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//	FILE *fpDebug = fopen("C:\\RVL\\Debug\\meshdebug.txt", "w");
+	// #endif
+	//
+	//	QLIST::Index *pPtIdx = pInPtList->pFirst;
+	//
+	//	int iPt;
+	//	MeshEdgePtr *pEdgePtr;
+	//
+	//	while (FindBoundaryEdge(pInPtList, pPtIdx, map, iPt, pEdgePtr))
+	//	{
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//		fprintf(fpDebug, "P %d (%d) E %d\n", iPt, map[iPt], pEdgePtr - EdgePtrMem);
+	// #endif
+	//
+	//		RVLQLIST_INIT(pOutPtArray);
+	//
+	//		// Follow boundary
+	//
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//		int debugState_ = 0;
+	// #endif
+	//
+	//		MeshEdge *pEdge = pEdgePtr->pEdge;
+	//
+	//		int side = (pEdge->iVertex[0] == iPt ? 0 : 1);
+	//
+	//		MeshEdgePtr *pEdgePtr0 = pEdgePtr;
+	//
+	//		int iNeighborPt;
+	//		QList<MeshEdgePtr> *pEdgeList;
+	//		Point *pPt;
+	//
+	//		do
+	//		{
+	//			RVLQLIST_ADD_ENTRY(pOutPtArray, pMem);
+	//
+	//			pMem->Idx = iPt;
+	//
+	//			pMem++;
+	//
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//			debugState_++;
+	//
+	//			if (debugState_ >= debugState)
+	//				break;
+	// #endif
+	//
+	//			RVLMESH_GET_POINT(pEdge, 1 - side, iPt, pEdgePtr);
+	//			RVLMESH_GET_NEXT_IN_REGION(this, iPt, pEdgePtr, side, map, iNeighborPt, pPt, pEdgeList, pEdge);
+	//
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//			fprintf(fpDebug, "\nP %d (%d) E %d\n", iPt, map[iPt], pEdgePtr - EdgePtrMem);
+	// #endif
+	//		} while (pEdgePtr != pEdgePtr0);
+	//
+	// #ifdef RVLMESH_BOUNDARY_DEBUG
+	//		fclose(fpDebug);
+	// #endif
+	//	}
 }
 
 // Input:  pInPtList - list of indices of region points
 //         map - map
 // Output: BoundaryArray - array of boundary contours; each boundary contour is represented by an array of ptrs. to edge connectors;
 //                         memory for BoundaryArray must be allocated befor calling the function
-//         pBoundaryMem - ptr. to the next free allocated memory for storing ptrs. to edge connectors 
-//         edgeMarkMap - each element corresponds to a mesh edge; all elements corresponding to the edges of all region boundaries must be 
+//         pBoundaryMem - ptr. to the next free allocated memory for storing ptrs. to edge connectors
+//         edgeMarkMap - each element corresponds to a mesh edge; all elements corresponding to the edges of all region boundaries must be
 //                       set to 0 before calling the function
 
 void Mesh::Boundary(
@@ -1159,7 +1158,7 @@ void Mesh::Boundary(
 
 		// Identify the first boundary point.
 
-		//if (iPt == 45740)
+		// if (iPt == 45740)
 		//	int debug = 0;
 
 		if (IsBoundaryPoint(iPt, map, idx, pEdgePtr))
@@ -1168,7 +1167,7 @@ void Mesh::Boundary(
 
 			iPt_ = iPt;
 
-			do  // for each boundary passing through the vertex iPt
+			do // for each boundary passing through the vertex iPt
 			{
 				pEdge = pEdgePtr->pEdge;
 
@@ -1192,7 +1191,7 @@ void Mesh::Boundary(
 					{
 						edgeMarkMap[pEdgePtr->pEdge->idx] |= (1 << side);
 
-						*(pBoundaryMem++) = pEdgePtr;	// Add connector pEdgePtr to boundary.
+						*(pBoundaryMem++) = pEdgePtr; // Add connector pEdgePtr to boundary.
 
 						RVLMESH_GET_POINT(pEdge, 1 - side, iPt_, pEdgePtr);
 
@@ -1204,14 +1203,14 @@ void Mesh::Boundary(
 
 					///
 				}
-			} while (GetNextBoundaryEdge(iPt, map, pEdgePtr) && pEdgePtr != pEdgePtr0_);	 // for each boundary passing through the vertex iPt
+			} while (GetNextBoundaryEdge(iPt, map, pEdgePtr) && pEdgePtr != pEdgePtr0_); // for each boundary passing through the vertex iPt
 		}
 
 		pPtIdx = pPtIdx->pNext;
-	}	// for each surfel point
+	} // for each surfel point
 }
 
-//bool Mesh::Load(
+// bool Mesh::Load(
 //	char *FileName,
 //	PCLMeshBuilder *pMeshBuilder,
 //	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr PC,
@@ -1292,7 +1291,7 @@ void Mesh::Boundary(
 //	printf("completed.\n");
 //
 //	return true;
-//}
+// }
 
 void MESH::BoundingBox(
 	vtkSmartPointer<vtkPolyData> pPolygonData,
@@ -1315,9 +1314,288 @@ void Mesh::BoundingBox(Box<float> *pBox)
 	for (iPt = 1; iPt < NodeArray.n; iPt++)
 	{
 		P = NodeArray.Element[iPt].P;
-		
+
 		UpdateBoundingBox<float>(pBox, P);
 	}
+}
+
+// This function works only for meshes representing convex polyhedra.
+
+bool Mesh::MinBoundingBox(
+	Pose3D *pPose,
+	Vector3<float> *pSize)
+{
+	if (NodeArray.n == 0)
+		return false;
+
+	// Visualizer visualizer;
+	// visualizer.Create();
+	// RVLCOLORS
+
+	Array<Point2D> poly;
+	poly.Element = new Point2D[NodeArray.n];
+	bool *bVisited = new bool[EdgeArray.n];
+	memset(bVisited, 0, EdgeArray.n * sizeof(bool));
+	Array<int> edgeBuff;
+	edgeBuff.Element = new int[EdgeArray.n];
+	int iFace;
+	MESH::Face *pFace;
+	float *NS;
+	float NF[3];
+	Point *pVertex, *pVertex_;
+	MeshEdge *pEdge, *pEdge_;
+	MeshEdgePtr *pEdgePtr;
+	int iVertex0;
+	int iVertex, iVertex_;
+	float P[3], P_[3];
+	float RSF[9];
+	float *XFS = RSF;
+	float *YFS = RSF + 3;
+	float *ZFS = RSF + 6;
+	int i, j, k;
+	float fTmp;
+	// float PF[2], PF_[2];
+	Point2D *pP2D;
+	float x, x_, z, z_;
+	float a, b, c;
+	float maxx;
+	int iFetch;
+	int nVerticesToVisit;
+	float debugAreaDiff = 0.0f;
+	float ca, sa, area;
+	float CF[3];
+	CF[2] = 0.0f;
+	float RAF[9];
+	Pose3D poseFS;
+	float V3Tmp[3];
+	float volume;
+	float minVolume = 0.0f;
+	int debug_iFace = -1;
+	for (iFace = 0; iFace < faces.n; iFace++)
+	{
+		pFace = faces.Element[iFace];
+		NS = pFace->N;
+
+		// F - reference frame with z-axis parallel to N and arbitrary x- and y-axes.
+
+		RVLCOPY3VECTOR(NS, ZFS);
+		RVLORTHOGONAL3(ZFS, XFS, i, j, k, fTmp);
+		RVLCROSSPRODUCT3(ZFS, XFS, YFS);
+
+		// c <- the distance of the face iFace from the farthest vertex.
+
+		iVertex = 0;
+		pVertex = NodeArray.Element;
+		z = RVLDOTPRODUCT3(ZFS, pVertex->P);
+		for (iVertex_ = 1; iVertex_ < NodeArray.n; iVertex_++)
+		{
+			pVertex_ = NodeArray.Element + iVertex_;
+			z_ = RVLDOTPRODUCT3(ZFS, pVertex_->P);
+			if (z_ < z)
+				z = z_;
+		}
+		// do
+		//{
+		//	pEdgePtr = pVertex->EdgeList.pFirst;
+		//	while (pEdgePtr)
+		//	{
+		//		RVLPCSEGMENT_GRAPH_GET_NEIGHBOR(iVertex, pEdgePtr, pEdge, iVertex_);
+		//		pVertex_ = NodeArray.Element + iVertex_;
+		//		z_ = RVLDOTPRODUCT3(ZFS, pVertex_->P);
+		//		if (z_ < z)
+		//			break;
+		//		pEdgePtr = pEdgePtr->pNext;
+		//	}
+		//	if (pEdgePtr)
+		//	{
+		//		pVertex = pVertex_;
+		//		iVertex = iVertex_;
+		//		z = z_;
+		//	}
+		// } while (pEdgePtr);
+		c = -z + pFace->d;
+
+		/// poly <- polygon representing the projection of the polyhedron onto the plane with normal N.
+
+		RVLMULMX3X3VECT(RSF, NS, NF);
+
+		// Approach to the edge of the polygon.
+
+		iVertex = 0;
+		pVertex = NodeArray.Element;
+		x = RVLDOTPRODUCT3(XFS, pVertex->P);
+		do
+		{
+			pEdgePtr = pVertex->EdgeList.pFirst;
+			while (pEdgePtr)
+			{
+				RVLPCSEGMENT_GRAPH_GET_NEIGHBOR(iVertex, pEdgePtr, pEdge, iVertex_);
+				pVertex_ = NodeArray.Element + iVertex_;
+				x_ = RVLDOTPRODUCT3(XFS, pVertex_->P);
+				if (x_ > x)
+					break;
+				pEdgePtr = pEdgePtr->pNext;
+			}
+			if (pEdgePtr)
+			{
+				pVertex = pVertex_;
+				iVertex = iVertex_;
+				x = x_;
+			}
+		} while (pEdgePtr);
+		maxx = x;
+		// if (faces.n == 58 && iFace == 34)
+		//	int debug = 0;
+		edgeBuff.n = 0;
+		iFetch = -1;
+		pEdge = NULL;
+		while (iFetch < edgeBuff.n)
+		{
+			if (iFetch >= 0)
+			{
+				pEdge = EdgeArray.Element + edgeBuff.Element[iFetch];
+				nVerticesToVisit = 2;
+			}
+			else
+				nVerticesToVisit = 1;
+			iFetch++;
+			for (i = 0; i < nVerticesToVisit; i++)
+			{
+				if (pEdge)
+					iVertex = pEdge->iVertex[i];
+				pVertex = NodeArray.Element + iVertex;
+				pEdgePtr = pVertex->EdgeList.pFirst;
+				while (pEdgePtr)
+				{
+					RVLPCSEGMENT_GRAPH_GET_NEIGHBOR(iVertex, pEdgePtr, pEdge, iVertex_);
+					if (!bVisited[pEdge->idx])
+					{
+						bVisited[pEdge->idx] = true;
+						edgeBuff.Element[edgeBuff.n++] = pEdge->idx;
+						pVertex_ = NodeArray.Element + iVertex_;
+						z = RVLDOTPRODUCT3(NS, pEdge->pFace[0]->N);
+						z_ = RVLDOTPRODUCT3(NS, pEdge->pFace[1]->N);
+						// if (faces.n == 58 && iFace == 34)
+						//	printf("%d %d\n", pEdge->pFace[0]->idx, pEdge->pFace[1]->idx);
+						if (z <= 0.0f && z_ > 0.0f || z_ <= 0.0f && z > 0.0f)
+							break;
+					}
+					pEdgePtr = pEdgePtr->pNext;
+				}
+				if (pEdgePtr)
+					break;
+			}
+			if (i < nVerticesToVisit)
+				break;
+		}
+		for (i = 0; i < edgeBuff.n; i++)
+			bVisited[edgeBuff.Element[i]] = false;
+		if (iFetch >= edgeBuff.n)
+			break;
+
+		// Follow the edge of the polygon.
+
+		pP2D = poly.Element;
+		pEdge_ = NULL;
+		iVertex0 = iVertex;
+		do
+		{
+			pEdgePtr = pVertex->EdgeList.pFirst;
+			while (pEdgePtr)
+			{
+				pEdge = pEdgePtr->pEdge;
+				if (pEdge_)
+				{
+					if (pEdge == pEdge_)
+					{
+						pEdgePtr = pEdgePtr->pNext;
+						continue;
+					}
+				}
+				z = RVLDOTPRODUCT3(NS, pEdge->pFace[0]->N);
+				z_ = RVLDOTPRODUCT3(NS, pEdge->pFace[1]->N);
+				if (z <= 0.0f && z_ > 0.0f || z_ <= 0.0f && z > 0.0f)
+					break;
+				pEdgePtr = pEdgePtr->pNext;
+			}
+			pEdge_ = pEdge;
+			RVLPCSEGMENT_GRAPH_GET_NEIGHBOR(iVertex, pEdgePtr, pEdge, iVertex_);
+			pVertex_ = NodeArray.Element + iVertex_;
+			RVLMULMX2X3VECT(RSF, pVertex_->P, pP2D->P);
+			pP2D++;
+			pVertex = pVertex_;
+			iVertex = iVertex_;
+		} while (iVertex != iVertex0);
+		poly.n = pP2D - poly.Element;
+
+		///
+
+		// Only for debugging purpose!!!
+
+		// FILE* fpDebug = fopen("C:\\RVL\\Debug\\poly.txt", "w");
+		// pP2D = poly.Element;
+		// for (iVertex = 0; iVertex < poly.n; iVertex++, pP2D++)
+		//	fprintf(fpDebug, "%f\t%f\n", pP2D->P[0], pP2D->P[1]);
+		// fclose(fpDebug);
+
+		// bbox2D <- minimum bounding box of poly.
+
+		if (iFace == 33)
+			int debug = 0;
+		RVL::MinBoundingBox(poly, CF, a, b, ca, sa, area);
+		volume = area * c;
+		if (iFace == 0 || volume < minVolume)
+		{
+			minVolume = volume;
+			RVLSET3VECTOR(pSize->Element, a, b, c);
+			RVLROTZ(ca, sa, RAF);
+			RVLCOPYMX3X3T(RSF, poseFS.R);
+			RVLSCALE3VECTOR(pFace->N, pFace->d, poseFS.t);
+			fTmp = 0.5f * c;
+			RVLSCALE3VECTOR(ZFS, fTmp, V3Tmp);
+			RVLDIF3VECTORS(poseFS.t, V3Tmp, poseFS.t);
+			RVLMXMUL3X3(poseFS.R, RAF, pPose->R);
+			RVLTRANSF3(CF, poseFS.R, poseFS.t, pPose->t);
+			debug_iFace = iFace;
+		}
+
+		// visualizer.DisplayMesh(this);
+		//
+		// visualizer.DisplayBox(a, b, c, pPose, 255.0, 0.0, 0.0, true, 2.0f);
+		// visualizer.Run();
+		// visualizer.Clear();
+
+		// RVLVISUALIZER_LINES_INIT(visPts, visLines, 2 * poly.n);
+		// visPts.n = 2 * poly.n;
+		// Point* pVisPt = visPts.Element;
+		// Point* pVisPt_ = visPts.Element + poly.n;
+		// Pair<int, int>* pVisLine = visLines.Element;
+		// Pair<int, int>* pVisLine_ = visLines.Element + poly.n;
+		// float PF[3];
+		// PF[2] = 0.0f;
+		// float PF_[3];
+		// PF_[2] = -c;
+		// for (iVertex = 0; iVertex < poly.n; iVertex++, pVisPt++, pVisPt_++, pVisLine++, pVisLine_++)
+		//{
+		//	pP2D = poly.Element + iVertex;
+		//	RVLCOPY2VECTOR(pP2D->P, PF);
+		//	RVLTRANSF3(PF, poseFS.R, poseFS.t, pVisPt->P);
+		//	pVisLine->a = iVertex;
+		//	pVisLine->b = (iVertex + 1) % poly.n;
+		//	RVLCOPY2VECTOR(pP2D->P, PF_);
+		//	RVLTRANSF3(PF_, poseFS.R, poseFS.t, pVisPt_->P);
+		//	pVisLine_->a = iVertex + poly.n;
+		//	pVisLine_->b = (iVertex + 1) % poly.n + poly.n;
+		// }
+		// visualizer.DisplayLines(visPts, visLines, red);
+		// RVLVISUALIZER_LINES_FREE(visPts, visLines);
+		// visualizer.Run();
+		// visualizer.Clear();
+	}
+	delete[] poly.Element;
+	delete[] bVisited;
+	delete[] edgeBuff.Element;
+	return (iFace == faces.n);
 }
 
 bool Mesh::ConvexHull2(
@@ -1406,7 +1684,7 @@ bool Mesh::ConvexHull2(
 			maxDist = fTmp;
 
 			iPt0 = iPt;
-	}
+		}
 	}
 
 	if (iPt0 < 0)
@@ -1458,7 +1736,7 @@ bool Mesh::ConvexHull2(
 
 	RVLDIF3VECTORS(P1, P0, V01);
 
-	MeshEdgePtr *pEdgePtr;	
+	MeshEdgePtr *pEdgePtr;
 
 	// pPt2 <- the most distant point from the line defined by pPt0 and pPt1
 
@@ -1493,8 +1771,8 @@ bool Mesh::ConvexHull2(
 				maxDist = fTmp;
 
 				iPt2 = iPt;
+			}
 		}
-	}
 	}
 
 	if (iPt2 < 0)
@@ -1581,7 +1859,7 @@ bool Mesh::ConvexHull2(
 		d = -d;
 	}
 
-	int iFace = 0;		// This variable is not necessary for this algorihtm, but it facilitates debugging.
+	int iFace = 0; // This variable is not necessary for this algorihtm, but it facilitates debugging.
 
 	MESH::Face *pFace;
 
@@ -1589,7 +1867,7 @@ bool Mesh::ConvexHull2(
 
 	RVLQLIST_ADD_ENTRY(pFaceList, pFace);
 
-	pFace->idx = iFace++;		// Field idx is not necessary for this algorihtm, but it facilitates debugging.
+	pFace->idx = iFace++; // Field idx is not necessary for this algorihtm, but it facilitates debugging.
 
 	pFace->flags = 0x00;
 
@@ -1603,8 +1881,8 @@ bool Mesh::ConvexHull2(
 
 	pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(iPt_[0], iPt_[1], NodeArray, pMem);
 	pEdge->pFace[0] = pFace;
-	pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[0];		// Field pFirstEdgePtr is not necessary for the algorithm, 
-															// but it facilitate usage of the result.
+	pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[0]; // Field pFirstEdgePtr is not necessary for the algorithm,
+													 // but it facilitate usage of the result.
 	pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(iPt_[1], iPt_[2], NodeArray, pMem);
 	pEdge->pFace[0] = pFace;
 	pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(iPt_[2], iPt_[0], NodeArray, pMem);
@@ -1710,9 +1988,9 @@ bool Mesh::ConvexHull2(
 	MeshEdgePtr *pEdgePtr0;
 
 	for (iPt = 0; iPt < NodeArray.n; iPt++)
-	//for (iPt = 0; iPt < 28; iPt++)
+	// for (iPt = 0; iPt < 28; iPt++)
 	{
-		//if (iPt == 27)
+		// if (iPt == 27)
 		//	int debug = 0;
 
 		if (bInHull[iPt])
@@ -1730,19 +2008,19 @@ bool Mesh::ConvexHull2(
 
 		while (pFace)
 		{
-			//if (pFace->idx == 92 || pFace->idx == 88 || pFace->idx == 84)
+			// if (pFace->idx == 92 || pFace->idx == 88 || pFace->idx == 84)
 			//	int debug = 0;
 
 			if (!(pFace->flags & RVLMESH_FACE_FLAG_REJECTED))
 			{
 				z = RVLDOTPRODUCT3(pFace->N, P) - pFace->d;
 
-				//if (z > 1e-5)
+				// if (z > 1e-5)
 				if (z > 0.0f)
 				{
 					pFace->flags |= RVLMESH_FACE_FLAG_REJECTED;
 
-					//if (pFace->idx == 14)
+					// if (pFace->idx == 14)
 					//	int debug = 0;
 
 					bUpdateHull = true;
@@ -1781,7 +2059,7 @@ bool Mesh::ConvexHull2(
 
 			if (pEdgePtr)
 				break;
-		}	// for (iPt2 = 0; iPt2 < NodeArray.n; iPt2++)
+		} // for (iPt2 = 0; iPt2 < NodeArray.n; iPt2++)
 
 		if (iPt2 >= NodeArray.n)
 			continue;
@@ -1885,7 +2163,7 @@ bool Mesh::ConvexHull2(
 
 		// Only for debugging purpose!
 
-		//for (iPt2 = 0; iPt2 <= iPt; iPt2++)
+		// for (iPt2 = 0; iPt2 <= iPt; iPt2++)
 		//{
 		//	pPt2 = NodeArray.Element + iPt2;
 
@@ -1908,7 +2186,7 @@ bool Mesh::ConvexHull2(
 		//}
 
 		//
-	}	// for every point
+	} // for every point
 
 	///
 
@@ -1972,7 +2250,7 @@ bool Mesh::ConvexHull2(
 		}
 
 	//
-	
+
 	return true;
 }
 
@@ -2011,7 +2289,7 @@ bool Mesh::ConvexHull(
 
 		P = pPt->P;
 
-		//RVLCOPY3VECTOR(PSrc, P);
+		// RVLCOPY3VECTOR(PSrc, P);
 
 		pEdgeList = &(pPt->EdgeList);
 
@@ -2199,7 +2477,7 @@ bool Mesh::ConvexHull(
 		d0 = -d0;
 	}
 
-	int iFace = 0;		// This variable is not necessary for this algorihtm, but it facilitates debugging.
+	int iFace = 0; // This variable is not necessary for this algorihtm, but it facilitates debugging.
 
 	MESH::Face *pFace;
 
@@ -2207,7 +2485,7 @@ bool Mesh::ConvexHull(
 
 	RVLQLIST_ADD_ENTRY(pFaceList, pFace);
 
-	pFace->idx = iFace++;		// Field idx is not necessary for this algorihtm, but it facilitates debugging.
+	pFace->idx = iFace++; // Field idx is not necessary for this algorihtm, but it facilitates debugging.
 
 	pFace->flags = 0x00;
 
@@ -2225,7 +2503,7 @@ bool Mesh::ConvexHull(
 
 	pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(iPt_[0], iPt_[1], NodeArray, pMem);
 	pEdge->pFace[0] = pFace;
-	pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[0];		// Field pFirstEdgePtr is not necessary for the algorithm, 
+	pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[0]; // Field pFirstEdgePtr is not necessary for the algorithm,
 	// but it facilitate usage of the result.
 	pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(iPt_[1], iPt_[2], NodeArray, pMem);
 	pEdge->pFace[0] = pFace;
@@ -2332,9 +2610,9 @@ bool Mesh::ConvexHull(
 	MeshEdgePtr *pEdgePtr0;
 
 	for (iPt = 0; iPt < points.h; iPt++)
-		//for (iPt = 0; iPt < 28; iPt++)
+	// for (iPt = 0; iPt < 28; iPt++)
 	{
-		//if (iPt == 27)
+		// if (iPt == 27)
 		//	int debug = 0;
 
 		if (bInHull[iPt])
@@ -2350,19 +2628,19 @@ bool Mesh::ConvexHull(
 
 		while (pFace)
 		{
-			//if (pFace->idx == 92 || pFace->idx == 88 || pFace->idx == 84)
+			// if (pFace->idx == 92 || pFace->idx == 88 || pFace->idx == 84)
 			//	int debug = 0;
 
 			if (!(pFace->flags & RVLMESH_FACE_FLAG_REJECTED))
 			{
 				z = RVLDOTPRODUCT3(pFace->piPlane->N, iP) - pFace->piPlane->d;
 
-				//if (z > 1e-5)
+				// if (z > 1e-5)
 				if (z > 0)
 				{
 					pFace->flags |= RVLMESH_FACE_FLAG_REJECTED;
 
-					//if (pFace->idx == 14)
+					// if (pFace->idx == 14)
 					//	int debug = 0;
 
 					bUpdateHull = true;
@@ -2399,7 +2677,7 @@ bool Mesh::ConvexHull(
 
 			if (pEdgePtr)
 				break;
-		}	// for (iPt2 = 0; iPt2 < NodeArray.n; iPt2++)
+		} // for (iPt2 = 0; iPt2 < NodeArray.n; iPt2++)
 
 		if (iPt2 >= points.h)
 			continue;
@@ -2499,7 +2777,7 @@ bool Mesh::ConvexHull(
 
 		// Only for debugging purpose!
 
-		//for (iPt2 = 0; iPt2 <= iPt; iPt2++)
+		// for (iPt2 = 0; iPt2 <= iPt; iPt2++)
 		//{
 		//	pPt2 = NodeArray.Element + iPt2;
 
@@ -2522,7 +2800,7 @@ bool Mesh::ConvexHull(
 		//}
 
 		//
-	}	// for every point
+	} // for every point
 
 	///
 
@@ -2648,9 +2926,9 @@ void Mesh::VisibleSurface(
 		d[iFace] = pFace->d;
 	}
 
-	//N.h = iVisibleFaces.n;
+	// N.h = iVisibleFaces.n;
 
-	//return;
+	// return;
 
 	int side;
 	float *P1, *P2;
@@ -2690,7 +2968,7 @@ void Mesh::VisibleSurface(
 
 						// Only for debugging purpose!
 
-						//for (int j = 0; j < NodeArray.n; j++)
+						// for (int j = 0; j < NodeArray.n; j++)
 						//{
 						//	float e = RVLDOTPRODUCT3(N_, NodeArray.Element[j].P) - d[iFace];
 
@@ -2732,7 +3010,7 @@ void Mesh::VoxelGridFilter(
 		pPoints = pSubset;
 	else
 	{
-		pPoints = new Array < int > ;
+		pPoints = new Array<int>;
 
 		pPoints->Element = new int[points->GetNumberOfPoints()];
 		pPoints->n = points->GetNumberOfPoints();
@@ -2741,8 +3019,9 @@ void Mesh::VoxelGridFilter(
 			pPoints->Element[iPt] = iPt;
 	}
 
-	double *P = points->GetPoint(pPoints->Element[0]);;
-	
+	double *P = points->GetPoint(pPoints->Element[0]);
+	;
+
 	InitBoundingBox<double>(&boundingBox, P);
 
 	for (iPt = 1; iPt < pPoints->n; iPt++)
@@ -2847,7 +3126,7 @@ void Mesh::VoxelGridFilter(
 		}
 	}
 
-	if(pSubset == NULL)
+	if (pSubset == NULL)
 	{
 		delete[] pPoints->Element;
 		delete pPoints;
@@ -2874,7 +3153,7 @@ void Mesh::VoxelGridFilter(
 		pPoints = pSubset;
 	else
 	{
-		pPoints = new Array < int >;
+		pPoints = new Array<int>;
 
 		pPoints->Element = new int[points->GetNumberOfPoints()];
 		pPoints->n = points->GetNumberOfPoints();
@@ -2883,7 +3162,8 @@ void Mesh::VoxelGridFilter(
 			pPoints->Element[iPt] = iPt;
 	}
 
-	double *P = points->GetPoint(pPoints->Element[0]);;
+	double *P = points->GetPoint(pPoints->Element[0]);
+	;
 
 	InitBoundingBox<double>(&boundingBox, P);
 
@@ -2995,7 +3275,7 @@ void Mesh::VoxelGridFilter(
 
 			RVLQLIST_ADD_ENTRY(pPtIdxList, pNewPtIdx);
 
-			pNewPtIdx++;	
+			pNewPtIdx++;
 		}
 	}
 
@@ -3034,7 +3314,6 @@ void Mesh::DistanceTransform(
 	Box<double> boundingBox,
 	Array<int> voxels)
 {
-
 }
 
 #ifdef NEVER
@@ -3054,7 +3333,7 @@ void Mesh::CreateVTKPolyData(bool bVisibleFacesOnly)
 	for (iPt = 0; iPt < NodeArray.n; iPt++)
 	{
 		P = NodeArray.Element[iPt].P;
-		
+
 		points->InsertNextPoint(P);
 	}
 
@@ -3104,7 +3383,7 @@ void Mesh::CreateVTKPolyData(bool bVisibleFacesOnly)
 		iPt = RVLPCSEGMENT_GRAPH_GET_NODE(pEdgePtr);
 
 		do
-		{		
+		{
 			triangle->GetPointIds()->SetId(iPt_++, iPt);
 
 			pEdgePtr = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_EDGE_PTR(pEdgePtr);
@@ -3120,7 +3399,7 @@ void Mesh::CreateVTKPolyData(bool bVisibleFacesOnly)
 
 			pEdgePtr = pEdgePtr_;
 		} while (pEdgePtr != pEdgePtr0);
-		
+
 		triangles->InsertNextCell(triangle);
 	}
 
@@ -3212,6 +3491,8 @@ void Mesh::CreateVTKPolyData(
 		pFace = faces.Element[i];
 
 		pEdgePtr = pFace->pFirstEdgePtr;
+		if (pEdgePtr == NULL)
+			continue;
 
 		pEdgePtr0 = pEdgePtr;
 
@@ -3292,14 +3573,14 @@ void Mesh::Transform(
 }
 
 int Mesh::FurthestPoint(
-	float* P,
+	float *P,
 	QList<QLIST::Index2> ptList)
 {
 	float maxDist = 0.0f;
 	float dist;
-	Point* pPt;
+	Point *pPt;
 	float dP[3];
-	QLIST::Index2* pPtIdx = ptList.pFirst;
+	QLIST::Index2 *pPtIdx = ptList.pFirst;
 	int iFurthestPt;
 	while (pPtIdx)
 	{
@@ -3317,13 +3598,13 @@ int Mesh::FurthestPoint(
 }
 
 int Mesh::FurthestPoint(
-	float* P,
-	Array<MeshEdgePtr*> ptArray,
-	float* V)
+	float *P,
+	Array<MeshEdgePtr *> ptArray,
+	float *V)
 {
 	float maxDist = 0.0f;
 	float dist;
-	Point* pPt;
+	Point *pPt;
 	float dP[3], P_[3];
 	int iPt;
 	int iFurthestPt;
@@ -3349,7 +3630,7 @@ int Mesh::FurthestPoint(
 	return iFurthestPt;
 }
 
-void Mesh::GetDepth(Array2D<short>& depthImg)
+void Mesh::GetDepth(Array2D<short> &depthImg)
 {
 	depthImg.w = width;
 	depthImg.h = height;
@@ -3394,8 +3675,8 @@ void Mesh::GetBGR(cv::Mat &BGR)
 {
 	BGR.create(height, width, CV_8UC3);
 	int nPix = width * height;
-	uchar* tgtPix = BGR.data;
-	uchar* srcPix;
+	uchar *tgtPix = BGR.data;
+	uchar *srcPix;
 	for (int iPix = 0; iPix < nPix; iPix++, tgtPix += 3)
 	{
 		srcPix = NodeArray.Element[iPix].RGB;
@@ -3487,7 +3768,7 @@ void RVL::MESH::TSDF(
 
 	for (iPt = 0; iPt < nPts; iPt++)
 	{
-		//P = pMesh->NodeArray.Element[iPt].P;
+		// P = pMesh->NodeArray.Element[iPt].P;
 		pointData->GetTypedTuple(iPt, P);
 
 		i = (int)floor((P[0] - box.minx) / voxelSize);
@@ -3519,12 +3800,12 @@ void RVL::MESH::TSDF(
 	*(pPut++) = 0;
 
 	int dijk[][3] = {
-		{ -1, 0, 0 },
-		{ 1, 0, 0 },
-		{ 0, -1, 0 },
-		{ 0, 1, 0 },
-		{ 0, 0, -1 },
-		{ 0, 0, 1 } };
+		{-1, 0, 0},
+		{1, 0, 0},
+		{0, -1, 0},
+		{0, 1, 0},
+		{0, 0, -1},
+		{0, 0, 1}};
 
 	int iVoxel, iVoxel_;
 	int i_, j_, k_, l;
@@ -3584,99 +3865,99 @@ void RVL::MESH::TSDF2(
 	//// volume <- empty 3D voxel array with voxel size specified by voxelSize.
 	//// It is larger than the bounding box of pMesh for sampleVoxelDistance + 1 on each side.
 
-	//InitBoundingBox<float>(&boundingBox, tetrahedrons.vertices.Element[0].P);
+	// InitBoundingBox<float>(&boundingBox, tetrahedrons.vertices.Element[0].P);
 
-	//int iPt;
+	// int iPt;
 
-	//for (iPt = 1; iPt < tetrahedrons.vertices.n; iPt++)
+	// for (iPt = 1; iPt < tetrahedrons.vertices.n; iPt++)
 	//	UpdateBoundingBox<float>(&boundingBox, tetrahedrons.vertices.Element[iPt].P);
 
-	//float boundingBoxSizeX, boundingBoxSizeY, boundingBoxSizeZ;
+	// float boundingBoxSizeX, boundingBoxSizeY, boundingBoxSizeZ;
 
-	//BoxSize<float>(&boundingBox, boundingBoxSizeX, boundingBoxSizeY, boundingBoxSizeZ);
+	// BoxSize<float>(&boundingBox, boundingBoxSizeX, boundingBoxSizeY, boundingBoxSizeZ);
 
 	////float boundingBoxSize = BoxSize<float>(&boundingBox);
 
 	////voxelSize = resolution * boundingBoxSize;
 
-	//voxelSize = pow(resolution * resolution * resolution * boundingBoxSizeX * boundingBoxSizeY * boundingBoxSizeZ, 1.0f / 3.0f);
+	// voxelSize = pow(resolution * resolution * resolution * boundingBoxSizeX * boundingBoxSizeY * boundingBoxSizeZ, 1.0f / 3.0f);
 
-	//float fTriangleBorder = 1.0f / distanceValuePerVoxel;
+	// float fTriangleBorder = 1.0f / distanceValuePerVoxel;
 
-	//float kDistanceValue = distanceValuePerVoxel / voxelSize;
-	//float kDistanceValue2 = kDistanceValue * kDistanceValue;
+	// float kDistanceValue = distanceValuePerVoxel / voxelSize;
+	// float kDistanceValue2 = kDistanceValue * kDistanceValue;
 
-	//int triangleBorder = ceil(fTriangleBorder) + 1;
+	// int triangleBorder = ceil(fTriangleBorder) + 1;
 
-	//fTriangleBorder *= voxelSize;
+	// fTriangleBorder *= voxelSize;
 
-	//int nx = (int)floor(0.5f * boundingBoxSizeX / voxelSize) + triangleBorder;
-	//int ny = (int)floor(0.5f * boundingBoxSizeY / voxelSize) + triangleBorder;
-	//int nz = (int)floor(0.5f * boundingBoxSizeZ / voxelSize) + triangleBorder;
+	// int nx = (int)floor(0.5f * boundingBoxSizeX / voxelSize) + triangleBorder;
+	// int ny = (int)floor(0.5f * boundingBoxSizeY / voxelSize) + triangleBorder;
+	// int nz = (int)floor(0.5f * boundingBoxSizeZ / voxelSize) + triangleBorder;
 
-	//float a = voxelSize * (float)nx;
-	//float b = voxelSize * (float)ny;
-	//float c = voxelSize * (float)nz;
+	// float a = voxelSize * (float)nx;
+	// float b = voxelSize * (float)ny;
+	// float c = voxelSize * (float)nz;
 
-	//float center[3];
+	// float center[3];
 
-	//BoxCenter<float>(&boundingBox, center);
+	// BoxCenter<float>(&boundingBox, center);
 
-	//Box<float> box;
+	// Box<float> box;
 
-	//box.minx = center[0] - a;
-	//box.miny = center[1] - b;
-	//box.minz = center[2] - c;
-	//box.maxx = center[0] + a;
-	//box.maxy = center[1] + b;
-	//box.maxz = center[2] + c;
+	// box.minx = center[0] - a;
+	// box.miny = center[1] - b;
+	// box.minz = center[2] - c;
+	// box.maxx = center[0] + a;
+	// box.maxy = center[1] + b;
+	// box.maxz = center[2] + c;
 
-	//P0[0] = box.minx;
-	//P0[1] = box.miny;
-	//P0[2] = box.minz;
+	// P0[0] = box.minx;
+	// P0[1] = box.miny;
+	// P0[2] = box.minz;
 
-	//TSDF.a = 2 * nx;
-	//TSDF.b = 2 * ny;
-	//TSDF.c = 2 * nz;
+	// TSDF.a = 2 * nx;
+	// TSDF.b = 2 * ny;
+	// TSDF.c = 2 * nz;
 
 	int nVoxels = TSDF.a * TSDF.b * TSDF.c;
 
-	//TSDF.Element = new float[nVoxels];
+	// TSDF.Element = new float[nVoxels];
 
 	int iVoxel;
 
-	//for (iVoxel = 0; iVoxel < nVoxels; iVoxel++)
+	// for (iVoxel = 0; iVoxel < nVoxels; iVoxel++)
 	//	TSDF.Element[iVoxel] = 1.0f;
 
 	////// Compute TSDF in the vicinity of the object surface.
 
-	//Array<int> iPositiveY;
-	//int iPositiveYMem[2];
-	//iPositiveY.Element = iPositiveYMem;
+	// Array<int> iPositiveY;
+	// int iPositiveYMem[2];
+	// iPositiveY.Element = iPositiveYMem;
 
-	//int iCommonPt[3] = {1, 0, 2};
+	// int iCommonPt[3] = {1, 0, 2};
 
-	//int iTriangle;
+	// int iTriangle;
 	float P[4][3];
 	int i, j;
 	float X[3][3];
-	//float Y[3][3];
-	//float Z[3];
+	// float Y[3][3];
+	// float Z[3];
 	float d;
-	//float dy[3];
+	// float dy[3];
 	float fTmp;
-	//Box<float> triangleBox;
-	//Box<int> triangleVoxelBox;
+	// Box<float> triangleBox;
+	// Box<int> triangleVoxelBox;
 	int ix, iy, iz;
 	float P_[3];
-	//float x, y, xyDist2, z, zDist, dist2, dist_, dist2_;
-	//float positiveY[2];
-	//float V3Tmp[3];
+	// float x, y, xyDist2, z, zDist, dist2, dist_, dist2_;
+	// float positiveY[2];
+	// float V3Tmp[3];
 	float *P__;
-	//float L[3];
-	//MESH::Triangle *pTriangle;
+	// float L[3];
+	// MESH::Triangle *pTriangle;
 
-	//for (iTriangle = 0; iTriangle < tetrahedrons.triangles.n; iTriangle++)
+	// for (iTriangle = 0; iTriangle < tetrahedrons.triangles.n; iTriangle++)
 	//{
 	//	pTriangle = tetrahedrons.triangles.Element + iTriangle;
 
@@ -3685,161 +3966,161 @@ void RVL::MESH::TSDF2(
 
 	//	TriangleTDF(pTriangle, tetrahedrons.vertices, voxelSize, distanceValuePerVoxel, box, TSDF);
 
-		//// P[i], i = 0,1,2 <- i-th vertex of pTriangle
+	//// P[i], i = 0,1,2 <- i-th vertex of pTriangle
 
-		//for (i = 0; i < 3; i++)
-		//{
-		//	P__ = tetrahedrons.vertices.Element[pTriangle->iVertex[i]].P;
+	// for (i = 0; i < 3; i++)
+	//{
+	//	P__ = tetrahedrons.vertices.Element[pTriangle->iVertex[i]].P;
 
-		//	RVLCOPY3VECTOR(P__, P[i]);
-		//}
+	//	RVLCOPY3VECTOR(P__, P[i]);
+	//}
 
-		//// X[i] <- unit(P[i+1] - P[i]), L[i] <- length of the line (P[i+1], P[i]), i = 0,1,2
+	//// X[i] <- unit(P[i+1] - P[i]), L[i] <- length of the line (P[i+1], P[i]), i = 0,1,2
 
-		//for (i = 0; i < 3; i++)
-		//{
-		//	j = (i + 1) % 3;
+	// for (i = 0; i < 3; i++)
+	//{
+	//	j = (i + 1) % 3;
 
-		//	RVLDIF3VECTORS(P[j], P[i], X[i]);
-		//	RVLNORM3(X[i], L[i]);
-		//}
+	//	RVLDIF3VECTORS(P[j], P[i], X[i]);
+	//	RVLNORM3(X[i], L[i]);
+	//}
 
-		//// Z <- -unit(X[0] x X[2])
+	//// Z <- -unit(X[0] x X[2])
 
-		//RVLCROSSPRODUCT3(X[0], X[2], Z);
-		//RVLNEGVECT3(Z, Z);
-		//RVLNORM3(Z, fTmp);
+	// RVLCROSSPRODUCT3(X[0], X[2], Z);
+	// RVLNEGVECT3(Z, Z);
+	// RVLNORM3(Z, fTmp);
 
-		//// d <- Z' * P[0]
+	//// d <- Z' * P[0]
 
-		//d = RVLDOTPRODUCT3(Z, P[0]);
+	// d = RVLDOTPRODUCT3(Z, P[0]);
 
-		//// Y[i] <- X[i] x Z, dy[i] <- Y[i]' * P[i], i = 0,1,2
+	//// Y[i] <- X[i] x Z, dy[i] <- Y[i]' * P[i], i = 0,1,2
 
-		//for (i = 0; i < 3; i++)
-		//{
-		//	RVLCROSSPRODUCT3(X[i], Z, Y[i]);
-		//	RVLNORM3(Y[i], fTmp);
-		//	dy[i] = RVLDOTPRODUCT3(Y[i], P[i]);
-		//}
+	// for (i = 0; i < 3; i++)
+	//{
+	//	RVLCROSSPRODUCT3(X[i], Z, Y[i]);
+	//	RVLNORM3(Y[i], fTmp);
+	//	dy[i] = RVLDOTPRODUCT3(Y[i], P[i]);
+	// }
 
-		//// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder
+	//// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder
 
-		//InitBoundingBox<float>(&triangleBox, P[0]);
-		//UpdateBoundingBox<float>(&triangleBox, P[1]);
-		//UpdateBoundingBox<float>(&triangleBox, P[2]);
+	// InitBoundingBox<float>(&triangleBox, P[0]);
+	// UpdateBoundingBox<float>(&triangleBox, P[1]);
+	// UpdateBoundingBox<float>(&triangleBox, P[2]);
 
-		//ExpandBox<float>(&triangleBox, fTriangleBorder);
+	// ExpandBox<float>(&triangleBox, fTriangleBorder);
 
-		//// triangleVoxelBox <- box of voxels containing triangleBox
-		//
-		//triangleVoxelBox.minx = floor((triangleBox.minx - P0[0]) / voxelSize);
-		//triangleVoxelBox.maxx = ceil((triangleBox.maxx - P0[0]) / voxelSize);
-		//triangleVoxelBox.miny = floor((triangleBox.miny - P0[1]) / voxelSize);
-		//triangleVoxelBox.maxy = ceil((triangleBox.maxy - P0[1]) / voxelSize);
-		//triangleVoxelBox.minz = floor((triangleBox.minz - P0[2]) / voxelSize);
-		//triangleVoxelBox.maxz = ceil((triangleBox.maxz - P0[2]) / voxelSize);
+	//// triangleVoxelBox <- box of voxels containing triangleBox
+	//
+	// triangleVoxelBox.minx = floor((triangleBox.minx - P0[0]) / voxelSize);
+	// triangleVoxelBox.maxx = ceil((triangleBox.maxx - P0[0]) / voxelSize);
+	// triangleVoxelBox.miny = floor((triangleBox.miny - P0[1]) / voxelSize);
+	// triangleVoxelBox.maxy = ceil((triangleBox.maxy - P0[1]) / voxelSize);
+	// triangleVoxelBox.minz = floor((triangleBox.minz - P0[2]) / voxelSize);
+	// triangleVoxelBox.maxz = ceil((triangleBox.maxz - P0[2]) / voxelSize);
 
-		///// Compute distance value for every voxel in the vicinity of pTriangle.
+	///// Compute distance value for every voxel in the vicinity of pTriangle.
 
-		//for (iz = triangleVoxelBox.minz; iz <= triangleVoxelBox.maxz; iz++)
-		//	for (iy = triangleVoxelBox.miny; iy <= triangleVoxelBox.maxy; iy++)
-		//		for (ix = triangleVoxelBox.minx; ix <= triangleVoxelBox.maxx; ix++)
-		//		{
-		//			//if (ix == 3 && iy == 3 && iz == 104)
-		//			//	int debug = 0;
+	// for (iz = triangleVoxelBox.minz; iz <= triangleVoxelBox.maxz; iz++)
+	//	for (iy = triangleVoxelBox.miny; iy <= triangleVoxelBox.maxy; iy++)
+	//		for (ix = triangleVoxelBox.minx; ix <= triangleVoxelBox.maxx; ix++)
+	//		{
+	//			//if (ix == 3 && iy == 3 && iz == 104)
+	//			//	int debug = 0;
 
-		//			// iVoxel <- index of the voxel with indices (ix, iy, iz)
+	//			// iVoxel <- index of the voxel with indices (ix, iy, iz)
 
-		//			iVoxel = RVL3DARRAY_INDEX(TSDF, ix, iy, iz);
+	//			iVoxel = RVL3DARRAY_INDEX(TSDF, ix, iy, iz);
 
-		//			if (iVoxel >= nVoxels)
-		//				int debug = 0;
+	//			if (iVoxel >= nVoxels)
+	//				int debug = 0;
 
-		//			// P_ <- coordinates of the voxel with indices (ix, iy, iz)
+	//			// P_ <- coordinates of the voxel with indices (ix, iy, iz)
 
-		//			P_[0] = (float)ix * voxelSize + P0[0];
-		//			P_[1] = (float)iy * voxelSize + P0[1];
-		//			P_[2] = (float)iz * voxelSize + P0[2];
+	//			P_[0] = (float)ix * voxelSize + P0[0];
+	//			P_[1] = (float)iy * voxelSize + P0[1];
+	//			P_[2] = (float)iz * voxelSize + P0[2];
 
-		//			// z <- Z' * P_ - d
+	//			// z <- Z' * P_ - d
 
-		//			z = (RVLDOTPRODUCT3(Z, P_) - d);
+	//			z = (RVLDOTPRODUCT3(Z, P_) - d);
 
-		//			// zDist <- kDistanceValue * |z|
+	//			// zDist <- kDistanceValue * |z|
 
-		//			zDist = kDistanceValue * RVLABS(z);
+	//			zDist = kDistanceValue * RVLABS(z);
 
-		//			// If zDist < 1.0f, then compute the distance value of voxel (ix, iy, iz) and store it in TSDF.Element[iVoxel].
+	//			// If zDist < 1.0f, then compute the distance value of voxel (ix, iy, iz) and store it in TSDF.Element[iVoxel].
 
-		//			if (zDist < 1.0f)
-		//			{
-		//				iPositiveY.n = 0;
+	//			if (zDist < 1.0f)
+	//			{
+	//				iPositiveY.n = 0;
 
-		//				for (i = 0; i < 3; i++)
-		//				{
-		//					y = RVLDOTPRODUCT3(Y[i], P_) - dy[i];
+	//				for (i = 0; i < 3; i++)
+	//				{
+	//					y = RVLDOTPRODUCT3(Y[i], P_) - dy[i];
 
-		//					if (y > 0.0f)
-		//					{
-		//						iPositiveY.Element[iPositiveY.n] = i;
-		//						positiveY[iPositiveY.n] = y;
-		//						iPositiveY.n++;
-		//					}
-		//				}
+	//					if (y > 0.0f)
+	//					{
+	//						iPositiveY.Element[iPositiveY.n] = i;
+	//						positiveY[iPositiveY.n] = y;
+	//						iPositiveY.n++;
+	//					}
+	//				}
 
-		//				if (iPositiveY.n == 0)
-		//					xyDist2 = 0.0f;
-		//				else
-		//				{
-		//					RVLSCALE3VECTOR(Z, z, V3Tmp);
-		//					RVLDIF3VECTORS(P_, V3Tmp, V3Tmp);
+	//				if (iPositiveY.n == 0)
+	//					xyDist2 = 0.0f;
+	//				else
+	//				{
+	//					RVLSCALE3VECTOR(Z, z, V3Tmp);
+	//					RVLDIF3VECTORS(P_, V3Tmp, V3Tmp);
 
-		//					if (iPositiveY.n == 1)
-		//					{
-		//						iPt = iPositiveY.Element[0];
-		//						P__ = P[iPt];
-		//						RVLDIF3VECTORS(V3Tmp, P__, V3Tmp);
+	//					if (iPositiveY.n == 1)
+	//					{
+	//						iPt = iPositiveY.Element[0];
+	//						P__ = P[iPt];
+	//						RVLDIF3VECTORS(V3Tmp, P__, V3Tmp);
 
-		//						x = RVLDOTPRODUCT3(X[iPt], V3Tmp);
+	//						x = RVLDOTPRODUCT3(X[iPt], V3Tmp);
 
-		//						y = positiveY[0];
+	//						y = positiveY[0];
 
-		//						if (x < 0.0f)
-		//							xyDist2 = kDistanceValue2 * (x * x + y * y);
-		//						else if (x < L[iPt])
-		//							xyDist2 = kDistanceValue2 * y * y;
-		//						else
-		//						{
-		//							x -= L[iPt];
-		//							xyDist2 = kDistanceValue2 * (x * x + y * y);
-		//						}
-		//					}
-		//					else
-		//					{
-		//						iPt = iCommonPt[iPositiveY.Element[0] + iPositiveY.Element[1] - 1];
-		//						P__ = P[iPt];
-		//						RVLDIF3VECTORS(V3Tmp, P__, V3Tmp);
-		//						xyDist2 = kDistanceValue2 * RVLDOTPRODUCT3(V3Tmp, V3Tmp);
-		//					}
-		//				}
+	//						if (x < 0.0f)
+	//							xyDist2 = kDistanceValue2 * (x * x + y * y);
+	//						else if (x < L[iPt])
+	//							xyDist2 = kDistanceValue2 * y * y;
+	//						else
+	//						{
+	//							x -= L[iPt];
+	//							xyDist2 = kDistanceValue2 * (x * x + y * y);
+	//						}
+	//					}
+	//					else
+	//					{
+	//						iPt = iCommonPt[iPositiveY.Element[0] + iPositiveY.Element[1] - 1];
+	//						P__ = P[iPt];
+	//						RVLDIF3VECTORS(V3Tmp, P__, V3Tmp);
+	//						xyDist2 = kDistanceValue2 * RVLDOTPRODUCT3(V3Tmp, V3Tmp);
+	//					}
+	//				}
 
-		//				dist2 = xyDist2 + zDist * zDist;
+	//				dist2 = xyDist2 + zDist * zDist;
 
-		//				//dist2 = zDist * zDist;
+	//				//dist2 = zDist * zDist;
 
-		//				if (dist2 < 1.0f)
-		//				{
-		//					dist_ = TSDF.Element[iVoxel];
+	//				if (dist2 < 1.0f)
+	//				{
+	//					dist_ = TSDF.Element[iVoxel];
 
-		//					dist2_ = dist_ * dist_;
+	//					dist2_ = dist_ * dist_;
 
-		//					if (dist2 < dist2_)
-		//						TSDF.Element[iVoxel] = sqrt(dist2);
-		//				}
-		//			}	// if (zDist < 1.0f)
-		//		}	// for every voxel
-		///// END: Compute distance function value for every voxel in the vicinity of pTriangle.
+	//					if (dist2 < dist2_)
+	//						TSDF.Element[iVoxel] = sqrt(dist2);
+	//				}
+	//			}	// if (zDist < 1.0f)
+	//		}	// for every voxel
+	///// END: Compute distance function value for every voxel in the vicinity of pTriangle.
 	//}	// for every triangle
 
 	//// END: Compute TSDF in the vicinity of the object surface.
@@ -3882,7 +4163,7 @@ void RVL::MESH::TSDF2(
 			RVLCOPY3VECTOR(P__, P[i]);
 		}
 
-		// ZTe[i], dTe[i] <- normal and offset of the i-th side of pTetrahedron, i = 0,1,2,3 
+		// ZTe[i], dTe[i] <- normal and offset of the i-th side of pTetrahedron, i = 0,1,2,3
 
 		for (i = 0; i < 4; i++)
 		{
@@ -3912,11 +4193,11 @@ void RVL::MESH::TSDF2(
 		// tetrahedronVoxelBox <- box of voxels containing tetrahedronBox
 
 		tetrahedronVoxelBox.minx = floor((tetrahedronBox.minx - P0[0]) / voxelSize);
-		tetrahedronVoxelBox.maxx = ceil(( tetrahedronBox.maxx - P0[0]) / voxelSize);
+		tetrahedronVoxelBox.maxx = ceil((tetrahedronBox.maxx - P0[0]) / voxelSize);
 		tetrahedronVoxelBox.miny = floor((tetrahedronBox.miny - P0[1]) / voxelSize);
-		tetrahedronVoxelBox.maxy = ceil(( tetrahedronBox.maxy - P0[1]) / voxelSize);
+		tetrahedronVoxelBox.maxy = ceil((tetrahedronBox.maxy - P0[1]) / voxelSize);
 		tetrahedronVoxelBox.minz = floor((tetrahedronBox.minz - P0[2]) / voxelSize);
-		tetrahedronVoxelBox.maxz = ceil(( tetrahedronBox.maxz - P0[2]) / voxelSize);
+		tetrahedronVoxelBox.maxz = ceil((tetrahedronBox.maxz - P0[2]) / voxelSize);
 
 		/// Compute distance sign for every voxel in pTetrahedron.
 
@@ -3946,14 +4227,14 @@ void RVL::MESH::TSDF2(
 
 					// If P_ contained inside pTetrahedron, then TSDF.Element[iVoxel] has a negative value.
 
-					if (i >= 4)	// If P_ contained inside pTetrahedron
+					if (i >= 4) // If P_ contained inside pTetrahedron
 						TSDF.Element[iVoxel] = -TSDF.Element[iVoxel];
 				}
-	}	// for every tetrahedron
+	} // for every tetrahedron
 
 	// Only for debugging purpose!
 
-	//for (iz = triangleVoxelBox.minz; iz <= triangleVoxelBox.maxz; iz++)
+	// for (iz = triangleVoxelBox.minz; iz <= triangleVoxelBox.maxz; iz++)
 	//	for (iy = triangleVoxelBox.miny; iy <= triangleVoxelBox.maxy; iy++)
 	//		for (ix = triangleVoxelBox.minx; ix <= triangleVoxelBox.maxx; ix++)
 	//		{
@@ -4008,7 +4289,7 @@ void RVL::MESH::TSDF2(
 
 	// Compute the remaining TSDF values.
 
-	//int dxyz[][3] = {
+	// int dxyz[][3] = {
 	//	{ -1, 0, 0 },
 	//	{ 1, 0, 0 },
 	//	{ 0, -1, 0 },
@@ -4016,14 +4297,14 @@ void RVL::MESH::TSDF2(
 	//	{ 0, 0, -1 },
 	//	{ 0, 0, 1 } };
 
-	//int *RGBuff = new int[nVoxels];
+	// int *RGBuff = new int[nVoxels];
 
-	//int *pPut = RGBuff;
-	//int *pFetch = RGBuff;
+	// int *pPut = RGBuff;
+	// int *pFetch = RGBuff;
 
-	//int ix_, iy_, iz_, iVoxel_;
+	// int ix_, iy_, iz_, iVoxel_;
 
-	//for (iVoxel = 0; iVoxel < nVoxels; iVoxel++)
+	// for (iVoxel = 0; iVoxel < nVoxels; iVoxel++)
 	//	if (TSDF.Element[iVoxel] < 1.5f)
 	//	{
 	//		RVL3DARRAY_INDICES(TSDF, iVoxel, ix, iy, iz);
@@ -4047,7 +4328,7 @@ void RVL::MESH::TSDF2(
 	//			*(pPut++) = iVoxel;
 	//	}
 
-	//while (pPut > pFetch)
+	// while (pPut > pFetch)
 	//{
 	//	iVoxel = (*pFetch++);
 
@@ -4075,7 +4356,7 @@ void RVL::MESH::TSDF2(
 	//	}
 	//}
 
-	//delete[] RGBuff;
+	// delete[] RGBuff;
 }
 
 void RVL::MESH::TSDF3(
@@ -4171,12 +4452,12 @@ void RVL::MESH::TSDF3(
 	TSDF.Element[0] = -TSDF.Element[0];
 
 	int dijk[][3] = {
-		{ -1, 0, 0 },
-		{ 1, 0, 0 },
-		{ 0, -1, 0 },
-		{ 0, 1, 0 },
-		{ 0, 0, -1 },
-		{ 0, 0, 1 } };
+		{-1, 0, 0},
+		{1, 0, 0},
+		{0, -1, 0},
+		{0, 1, 0},
+		{0, 0, -1},
+		{0, 0, 1}};
 
 	int iVoxel_;
 	int j, k, l;
@@ -4242,7 +4523,7 @@ void RVL::MESH::CreateVoxelGrid(
 
 	BoxSize<float>(&boundingBox, boundingBoxSizeX, boundingBoxSizeY, boundingBoxSizeZ);
 
-	//float boundingBoxSize = BoxSize<float>(&boundingBox);
+	// float boundingBoxSize = BoxSize<float>(&boundingBox);
 
 	voxelSize = pow(resolution * resolution * resolution * boundingBoxSizeX * boundingBoxSizeY * boundingBoxSizeZ, 1.0f / 3.0f);
 
@@ -4313,26 +4594,26 @@ void RVL::MESH::TriangleTDF(
 	int iPositiveYMem[2];
 	iPositiveY.Element = iPositiveYMem;
 
-	int iCommonPt[3] = { 1, 0, 2 };
+	int iCommonPt[3] = {1, 0, 2};
 
 	int iTriangle;
 	float P[4][3];
 	int i, j;
 	float X[3][3];
-	//float Y[3][3];
-	//float Z[3];
+	// float Y[3][3];
+	// float Z[3];
 	float d;
-	//float dy[3];
+	// float dy[3];
 	float fTmp;
-	//Box<float> triangleBox;
-	//Box<int> triangleVoxelBox;
+	// Box<float> triangleBox;
+	// Box<int> triangleVoxelBox;
 	int ix, iy, iz;
 	float P_[3];
-	//float x, y, xyDist2, z, zDist, dist2, dist_, dist2_;
-	//float positiveY[2];
-	//float V3Tmp[3];
+	// float x, y, xyDist2, z, zDist, dist2, dist_, dist2_;
+	// float positiveY[2];
+	// float V3Tmp[3];
 	float *P__;
-	//float L[3];
+	// float L[3];
 	MESH::Triangle *pTriangle;
 
 	for (iTriangle = 0; iTriangle < triangles.n; iTriangle++)
@@ -4444,7 +4725,7 @@ void RVL::MESH::TriangleTDF(
 	Array<int> iPositiveY;
 	int iPositiveYMem[2];
 	iPositiveY.Element = iPositiveYMem;
-	int iCommonPt[3] = { 1, 0, 2 };
+	int iCommonPt[3] = {1, 0, 2};
 	int ix, iy, iz, iVoxel, iPt;
 	float P_[3];
 	float x, y, xyDist2, z, zDist, dist2, dist_, dist2_;
@@ -4455,14 +4736,14 @@ void RVL::MESH::TriangleTDF(
 		for (iy = triangleVoxelBox.miny; iy <= triangleVoxelBox.maxy; iy++)
 			for (ix = triangleVoxelBox.minx; ix <= triangleVoxelBox.maxx; ix++)
 			{
-				//if (ix == 3 && iy == 3 && iz == 104)
+				// if (ix == 3 && iy == 3 && iz == 104)
 				//	int debug = 0;
 
 				// iVoxel <- index of the voxel with indices (ix, iy, iz)
 
 				iVoxel = RVL3DARRAY_INDEX(TSDF, ix, iy, iz);
 
-				//if (iVoxel >= nVoxels)
+				// if (iVoxel >= nVoxels)
 				//	int debug = 0;
 
 				// P_ <- coordinates of the voxel with indices (ix, iy, iz)
@@ -4535,7 +4816,7 @@ void RVL::MESH::TriangleTDF(
 
 					dist2 = xyDist2 + zDist * zDist;
 
-					//dist2 = zDist * zDist;
+					// dist2 = zDist * zDist;
 
 					if (dist2 < 1.0f)
 					{
@@ -4546,9 +4827,9 @@ void RVL::MESH::TriangleTDF(
 						if (dist2 < dist2_)
 							TSDF.Element[iVoxel] = sqrt(dist2);
 					}
-				}	// if (zDist < 1.0f)
-			}	// for every voxel in triangleVoxelBox
-	/// END: Compute distance function value for every voxel in the vicinity of pTriangle.
+				} // if (zDist < 1.0f)
+			}	  // for every voxel in triangleVoxelBox
+				  /// END: Compute distance function value for every voxel in the vicinity of pTriangle.
 }
 
 void RVL::MESH::OrientedPCFromDepthImage(
@@ -4572,12 +4853,12 @@ void RVL::MESH::OrientedPCFromDepthImage(
 	// Create oriented point cloud.
 
 	int iPix, u, v, i, j;
-	short* d = depthImage.Element;
+	short *d = depthImage.Element;
 	Rect<int> ROI;
-	//ROI.minx = halfWinSize;
-	//ROI.maxx = w - halfWinSize - 1;
-	//ROI.miny = halfWinSize;
-	//ROI.maxy = h - halfWinSize - 1;
+	// ROI.minx = halfWinSize;
+	// ROI.maxx = w - halfWinSize - 1;
+	// ROI.miny = halfWinSize;
+	// ROI.maxy = h - halfWinSize - 1;
 	ROI.minx = 0;
 	ROI.maxx = w - 1;
 	ROI.miny = 0;
@@ -4586,8 +4867,8 @@ void RVL::MESH::OrientedPCFromDepthImage(
 	PC.w = w;
 	PC.h = h;
 	memset(PC.Element, 0, nPix * sizeof(OrientedPoint));
-	OrientedPoint* pPt;
-	float* P;
+	OrientedPoint *pPt;
+	float *P;
 	float z;
 	for (v = ROI.miny; v <= ROI.maxy; v++)
 		for (u = ROI.minx; u <= ROI.maxx; u++)
@@ -4606,26 +4887,26 @@ void RVL::MESH::OrientedPCFromDepthImage(
 	// Normals.
 
 	int u_, v_, iPix_;
-	OrientedPoint* pPt_;
-	float* P_;
+	OrientedPoint *pPt_;
+	float *P_;
 	Moments<float> M;
 	float dz;
 	float c[3];
 	cv::Mat cvC(3, 3, CV_32FC1);
-	float* C = (float*)(cvC.data);
+	float *C = (float *)(cvC.data);
 	cv::Mat cvEigVC;
-	float* eigVC;
+	float *eigVC;
 	cv::Mat cvEigC;
-	float* eigC;
-	float* minEigVC;
+	float *eigC;
+	float *minEigVC;
 	bool bEig;
 	Rect<int> neig;
 	for (v = ROI.miny; v <= ROI.maxy; v++)
 		for (u = ROI.minx; u <= ROI.maxx; u++)
 		{
 			iPix = u + v * w;
-			if (iPix == 26388)
-				int debug = 0;
+			// if (iPix == 26388)
+			//	int debug = 0;
 			pPt = PC.Element + iPix;
 			P = pPt->P;
 			if (P[2] == 0.0f)
@@ -4636,13 +4917,13 @@ void RVL::MESH::OrientedPCFromDepthImage(
 			neig.miny = v - halfWinSize;
 			neig.maxy = v + halfWinSize;
 			CropRect<int>(neig, ROI);
-			//for (j = -halfWinSize; j <= halfWinSize; j++)
+			// for (j = -halfWinSize; j <= halfWinSize; j++)
 			//	for (i = -halfWinSize; i <= halfWinSize; i++)
 			for (v_ = neig.miny; v_ <= neig.maxy; v_++)
 				for (u_ = neig.minx; u_ <= neig.maxx; u_++)
 				{
-					//u_ = u + i;
-					//v_ = v + j;
+					// u_ = u + i;
+					// v_ = v + j;
 					iPix_ = u_ + v_ * w;
 					pPt_ = PC.Element + iPix_;
 					P_ = pPt_->P;
@@ -4655,9 +4936,9 @@ void RVL::MESH::OrientedPCFromDepthImage(
 				}
 			GetCovMatrix3<float>(&M, C, c);
 			cv::eigen(cvC, cvEigC, cvEigVC);
-			eigVC = (float*)(cvEigVC.data);
-			eigC = (float*)(cvEigC.data);
-			//if (eigC[1] >= 1e-6 && eigC[2] >= 0.0f)
+			eigVC = (float *)(cvEigVC.data);
+			eigC = (float *)(cvEigC.data);
+			// if (eigC[1] >= 1e-6 && eigC[2] >= 0.0f)
 			if (eigC[1] >= 1e-6)
 			{
 				minEigVC = eigVC + 6;
@@ -4694,12 +4975,12 @@ void RVL::MESH::OrientedPCFromRGBD(
 	// Create oriented point cloud.
 
 	int iPix, u, v, i, j;
-	short* d = depthImage.Element;
+	short *d = depthImage.Element;
 	Rect<int> ROI;
-	//ROI.minx = halfWinSize;
-	//ROI.maxx = w - halfWinSize - 1;
-	//ROI.miny = halfWinSize;
-	//ROI.maxy = h - halfWinSize - 1;
+	// ROI.minx = halfWinSize;
+	// ROI.maxx = w - halfWinSize - 1;
+	// ROI.miny = halfWinSize;
+	// ROI.maxy = h - halfWinSize - 1;
 	ROI.minx = 0;
 	ROI.maxx = w - 1;
 	ROI.miny = 0;
@@ -4708,8 +4989,8 @@ void RVL::MESH::OrientedPCFromRGBD(
 	PC.w = w;
 	PC.h = h;
 	memset(PC.Element, 0, nPix * sizeof(OrientedPoint));
-	OrientedPoint* pPt;
-	float* P;
+	OrientedPoint *pPt;
+	float *P;
 	float z;
 	for (v = ROI.miny; v <= ROI.maxy; v++)
 		for (u = ROI.minx; u <= ROI.maxx; u++)
@@ -4728,18 +5009,18 @@ void RVL::MESH::OrientedPCFromRGBD(
 	// Normals.
 
 	int u_, v_, iPix_;
-	OrientedPoint* pPt_;
-	float* P_;
+	OrientedPoint *pPt_;
+	float *P_;
 	Moments<float> M;
 	float dz;
 	float c[3];
 	cv::Mat cvC(3, 3, CV_32FC1);
-	float* C = (float*)(cvC.data);
+	float *C = (float *)(cvC.data);
 	cv::Mat cvEigVC;
-	float* eigVC;
+	float *eigVC;
 	cv::Mat cvEigC;
-	float* eigC;
-	float* minEigVC;
+	float *eigC;
+	float *minEigVC;
 	bool bEig;
 	Rect<int> neig;
 	for (v = ROI.miny; v <= ROI.maxy; v++)
@@ -4758,13 +5039,13 @@ void RVL::MESH::OrientedPCFromRGBD(
 			neig.miny = v - halfWinSize;
 			neig.maxy = v + halfWinSize;
 			CropRect<int>(neig, ROI);
-			//for (j = -halfWinSize; j <= halfWinSize; j++)
+			// for (j = -halfWinSize; j <= halfWinSize; j++)
 			//	for (i = -halfWinSize; i <= halfWinSize; i++)
 			for (v_ = neig.miny; v_ <= neig.maxy; v_++)
 				for (u_ = neig.minx; u_ <= neig.maxx; u_++)
 				{
-					//u_ = u + i;
-					//v_ = v + j;
+					// u_ = u + i;
+					// v_ = v + j;
 					iPix_ = u_ + v_ * w;
 					pPt_ = PC.Element + iPix_;
 					P_ = pPt_->P;
@@ -4777,9 +5058,9 @@ void RVL::MESH::OrientedPCFromRGBD(
 				}
 			GetCovMatrix3<float>(&M, C, c);
 			cv::eigen(cvC, cvEigC, cvEigVC);
-			eigVC = (float*)(cvEigVC.data);
-			eigC = (float*)(cvEigC.data);
-			//if (eigC[1] >= 1e-6 && eigC[2] >= 0.0f)
+			eigVC = (float *)(cvEigVC.data);
+			eigC = (float *)(cvEigC.data);
+			// if (eigC[1] >= 1e-6 && eigC[2] >= 0.0f)
 			if (eigC[1] >= 1e-6)
 			{
 				minEigVC = eigVC + 6;
@@ -4807,7 +5088,7 @@ void RVL::MESH::PointTDF(
 {
 	// Copy vertices from pPolyData to vertices.
 
-	Array<Point> vertices; 
+	Array<Point> vertices;
 
 	vertices.n = pPolyData->GetNumberOfPoints();
 
@@ -4866,7 +5147,7 @@ void RVL::MESH::PointTDF(
 	{
 		P = vertices.Element[iPt].P;
 
-		// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder		
+		// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder
 
 		InitBoundingBox<float>(&ptBox, P);
 
@@ -4886,38 +5167,38 @@ void RVL::MESH::PointTDF(
 		for (iz = ptVoxelBoxCropped.minz; iz <= ptVoxelBoxCropped.maxz; iz++)
 			for (iy = ptVoxelBoxCropped.miny; iy <= ptVoxelBoxCropped.maxy; iy++)
 				for (ix = ptVoxelBoxCropped.minx; ix <= ptVoxelBoxCropped.maxx; ix++)
-			{
-				//if (ix == 3 && iy == 3 && iz == 104)
-				//	int debug = 0;
+				{
+					// if (ix == 3 && iy == 3 && iz == 104)
+					//	int debug = 0;
 
-				// iVoxel <- index of the voxel with indices (ix, iy, iz)
+					// iVoxel <- index of the voxel with indices (ix, iy, iz)
 
-				iVoxel = RVL3DARRAY_INDEX(TDF, ix, iy, iz);
+					iVoxel = RVL3DARRAY_INDEX(TDF, ix, iy, iz);
 
-				//if (iVoxel >= nVoxels)
-				//	int debug = 0;
+					// if (iVoxel >= nVoxels)
+					//	int debug = 0;
 
-				// P_ <- coordinates of the voxel with indices (ix, iy, iz)
+					// P_ <- coordinates of the voxel with indices (ix, iy, iz)
 
-				P_[0] = (float)ix * voxelSize + P0[0];
-				P_[1] = (float)iy * voxelSize + P0[1];
-				P_[2] = (float)iz * voxelSize + P0[2];
+					P_[0] = (float)ix * voxelSize + P0[0];
+					P_[1] = (float)iy * voxelSize + P0[1];
+					P_[2] = (float)iz * voxelSize + P0[2];
 
-				//dP <- P_ - P;
+					// dP <- P_ - P;
 
-				RVLDIF3VECTORS(P_, P, dP);
+					RVLDIF3VECTORS(P_, P, dP);
 
-				// w <- exp(-||P_ - P||^2/sigp^2)
+					// w <- exp(-||P_ - P||^2/sigp^2)
 
-				dist = RVLDOTPRODUCT3(dP, dP);
+					dist = RVLDOTPRODUCT3(dP, dP);
 
-				w = exp(-dist / sigp2);
+					w = exp(-dist / sigp2);
 
-				// TDF.Element[iVoxel] <- TDF.Element[iVoxel] + w;
+					// TDF.Element[iVoxel] <- TDF.Element[iVoxel] + w;
 
-				TDF.Element[iVoxel] += w;
-			}	// for every voxel in ptVoxelBox
-	}	// for every vertex
+					TDF.Element[iVoxel] += w;
+				} // for every voxel in ptVoxelBox
+	}			  // for every vertex
 
 	///
 
@@ -5020,7 +5301,7 @@ void RVL::MESH::OrientedPointDF(
 	{
 		pPt = vertices.Element + iPt;
 
-		// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder		
+		// triangleBox <- bounding box of pTriangle expanded for fTriangleBorder
 
 		InitBoundingBox<float>(&ptBox, pPt->P);
 
@@ -5041,14 +5322,14 @@ void RVL::MESH::OrientedPointDF(
 			for (iy = ptVoxelBoxCropped.miny; iy <= ptVoxelBoxCropped.maxy; iy++)
 				for (ix = ptVoxelBoxCropped.minx; ix <= ptVoxelBoxCropped.maxx; ix++)
 				{
-					//if (ix == 3 && iy == 3 && iz == 104)
+					// if (ix == 3 && iy == 3 && iz == 104)
 					//	int debug = 0;
 
 					// iVoxel <- index of the voxel with indices (ix, iy, iz)
 
 					iVoxel = RVL3DARRAY_INDEX(DF, ix, iy, iz);
 
-					//if (iVoxel >= nVoxels)
+					// if (iVoxel >= nVoxels)
 					//	int debug = 0;
 
 					// P_ <- coordinates of the voxel with indices (ix, iy, iz)
@@ -5057,7 +5338,7 @@ void RVL::MESH::OrientedPointDF(
 					P_[1] = (float)iy * voxelSize + P0[1];
 					P_[2] = (float)iz * voxelSize + P0[2];
 
-					//dP <- P_ - P;
+					// dP <- P_ - P;
 
 					RVLDIF3VECTORS(P_, pPt->P, dP);
 
@@ -5069,15 +5350,15 @@ void RVL::MESH::OrientedPointDF(
 
 					W[iVoxel] += w;
 
-					// planeDist <- pPt->N' * (P_ - pPt->P)					
+					// planeDist <- pPt->N' * (P_ - pPt->P)
 
 					planeDist = RVLDOTPRODUCT3(pPt->N, dP);
 
 					// TDF.Element[iVoxel] <- TDF.Element[iVoxel] + w;
 
 					DF.Element[iVoxel] += (w * planeDist);
-				}	// for every voxel in ptVoxelBox
-	}	// for every vertex
+				} // for every voxel in ptVoxelBox
+	}			  // for every vertex
 
 	for (iVoxel = 0; iVoxel < nVoxels; iVoxel++)
 	{
@@ -5107,7 +5388,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::CreateVisibleSurfaceMesh(
 	Array3D<float> SDF;
 
 	TSDF(pPolygonDataSrc, voxelSize, 1, volume, P0, boundingBox, zeroDistanceVoxelArray, PtMem);
-	
+
 	if (nFilter > 0)
 	{
 		Array3D<float> filter;
@@ -5198,16 +5479,16 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 	int u, v;
 	int maxu = w - 2;
 	int maxv = h - 2;
-	OrientedPoint* pPt_[4];
+	OrientedPoint *pPt_[4];
 	int iPix_[4];
 	int iiPix[3];
 	int iPix;
 	float dP[3];
 	float l2_[6];
-	int i, j;	
+	int i, j;
 	Array<Vector3<int>> triangles;
 	triangles.Element = new Vector3<int>[2 * (w - 1) * (h - 1)];
-	Vector3<int>* pTriangle = triangles.Element;
+	Vector3<int> *pTriangle = triangles.Element;
 	int nPixPts;
 	bool bPixPt[4];
 	for (v = 0; v <= maxv; v++)
@@ -5237,9 +5518,12 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 						iiPix[j] = i;
 						j++;
 					}
-				RVLDIF3VECTORS(pPt_[iiPix[1]]->P, pPt_[iiPix[0]]->P, dP); l2_[0] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[iiPix[2]]->P, pPt_[iiPix[1]]->P, dP); l2_[1] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[iiPix[0]]->P, pPt_[iiPix[2]]->P, dP); l2_[2] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[iiPix[1]]->P, pPt_[iiPix[0]]->P, dP);
+				l2_[0] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[iiPix[2]]->P, pPt_[iiPix[1]]->P, dP);
+				l2_[1] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[iiPix[0]]->P, pPt_[iiPix[2]]->P, dP);
+				l2_[2] = RVLDOTPRODUCT3(dP, dP);
 				for (i = 0; i < 3; i++)
 					if (l2_[i] > maxTriangleEdgeLen2)
 						break;
@@ -5249,12 +5533,18 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 			}
 			else if (nPixPts == 4)
 			{
-				RVLDIF3VECTORS(pPt_[1]->P, pPt_[0]->P, dP); l2_[0] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[2]->P, pPt_[1]->P, dP); l2_[1] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[3]->P, pPt_[2]->P, dP); l2_[2] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[0]->P, pPt_[3]->P, dP); l2_[3] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[2]->P, pPt_[0]->P, dP); l2_[4] = RVLDOTPRODUCT3(dP, dP);
-				RVLDIF3VECTORS(pPt_[3]->P, pPt_[1]->P, dP); l2_[5] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[1]->P, pPt_[0]->P, dP);
+				l2_[0] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[2]->P, pPt_[1]->P, dP);
+				l2_[1] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[3]->P, pPt_[2]->P, dP);
+				l2_[2] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[0]->P, pPt_[3]->P, dP);
+				l2_[3] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[2]->P, pPt_[0]->P, dP);
+				l2_[4] = RVLDOTPRODUCT3(dP, dP);
+				RVLDIF3VECTORS(pPt_[3]->P, pPt_[1]->P, dP);
+				l2_[5] = RVLDOTPRODUCT3(dP, dP);
 				for (i = 0; i < 6; i++)
 					if (l2_[i] > maxTriangleEdgeLen2)
 						break;
@@ -5290,13 +5580,13 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 	diPixLT[6] = w;
 	diPixLT[7] = w + 1;
 	int *angleBinLTMem = new int[2 * w + 3];
-	int* angleBinLT = angleBinLTMem + w + 1;
+	int *angleBinLT = angleBinLTMem + w + 1;
 	for (i = 0; i < 8; i++)
 		angleBinLT[diPixLT[i]] = i;
-	int* pointTriangles = new int[8 * nPix];
+	int *pointTriangles = new int[8 * nPix];
 	memset(pointTriangles, 0xff, 8 * nPix * sizeof(int));
 	int iTriangle;
-	int* pointTriangles_;
+	int *pointTriangles_;
 	int iPix1, iPix2, diPix;
 	int iAngleBin1, iAngleBin2;
 	for (iTriangle = 0; iTriangle < triangles.n; iTriangle++)
@@ -5314,7 +5604,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 			pointTriangles_ = pointTriangles + 8 * iPix;
 			pointTriangles_[iAngleBin1] = iTriangle;
 			pointTriangles_[iAngleBin2] = iTriangle;
-			//if (iAngleBin1 < 0 || iAngleBin1 >= 8 || iAngleBin2 < 0 || iAngleBin2 >= 8)
+			// if (iAngleBin1 < 0 || iAngleBin1 >= 8 || iAngleBin2 < 0 || iAngleBin2 >= 8)
 			//	int debug = 0;
 		}
 	}
@@ -5322,7 +5612,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 
 	// Detect and destroy butterflies.
 
-	bool* bDeleteTriangle = new bool[triangles.n];
+	bool *bDeleteTriangle = new bool[triangles.n];
 	memset(bDeleteTriangle, 0, triangles.n * sizeof(bool));
 	Array<Pair<int, int>> wings;
 	Pair<int, int> wingMem[4];
@@ -5330,7 +5620,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 	bool bWing;
 	Pair<int, int> wing;
 	int iStrongestWing;
-	OrientedPoint* pPt, *pPt1;
+	OrientedPoint *pPt, *pPt1;
 	float l2;
 	float minl2;
 	int j_;
@@ -5379,7 +5669,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 				for (i = 0; i < wings.n; i++)
 				{
 					wing = wings.Element[i];
-					for (j = wing.a; j <= wing.b+1; j++)
+					for (j = wing.a; j <= wing.b + 1; j++)
 					{
 						j_ = j % 8;
 						iPix1 = iPix + diPixLT[j_];
@@ -5399,7 +5689,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 						continue;
 					wing = wings.Element[i];
 					for (j = wing.a; j <= wing.b; j++)
-						if(pointTriangles_[j] >= 0)
+						if (pointTriangles_[j] >= 0)
 							bDeleteTriangle[pointTriangles_[j]] = true;
 				}
 			}
@@ -5412,7 +5702,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 	for (iTriangle = 0; iTriangle < triangles.n; iTriangle++)
 	{
 		pTriangle = triangles.Element + iTriangle;
-		if(!bDeleteTriangle[iTriangle])
+		if (!bDeleteTriangle[iTriangle])
 			finalTriangles.Element[finalTriangles.n++] = *pTriangle;
 	}
 	delete[] triangles.Element;
@@ -5434,7 +5724,7 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 	for (iTriangle = 0; iTriangle < finalTriangles.n; iTriangle++)
 	{
 		pTriangle = finalTriangles.Element + iTriangle;
-		for(i = 0; i < 3; i++)
+		for (i = 0; i < 3; i++)
 			VTKTriangle->GetPointIds()->SetId(i, pTriangle->Element[i]);
 		VTKTriangles->InsertNextCell(VTKTriangle);
 	}
@@ -5458,25 +5748,25 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::VTKPolyDataFromOrganizedOrientedPC(
 }
 
 void RVL::MESH::MapRGBImageToVTKPolyData(
-			vtkSmartPointer<vtkPolyData> pPolygonData,
-			char* rgbImageData,
-			int rgbImageWidth,
-			int rgbImageHeight)
+	vtkSmartPointer<vtkPolyData> pPolygonData,
+	char *rgbImageData,
+	int rgbImageWidth,
+	int rgbImageHeight)
 {
 	vtkSmartPointer<vtkUnsignedCharArray> rgbPointData = vtkSmartPointer<vtkUnsignedCharArray>::New();
 	rgbPointData->SetNumberOfComponents(3);
 	rgbPointData->SetName("Colors");
-	char* bgr = rgbImageData;
+	char *bgr = rgbImageData;
 	int nPix = rgbImageWidth * rgbImageHeight;
 	for (int iPt = 0; iPt < nPix; iPt++, bgr += 3)
 		rgbPointData->InsertNextTuple3(bgr[2], bgr[1], bgr[0]);
-	pPolygonData->GetPointData()->SetScalars(rgbPointData);	
+	pPolygonData->GetPointData()->SetScalars(rgbPointData);
 }
 
 void RVL::MESH::MapRGBImageToVTKPolyData(
 	vtkSmartPointer<vtkPolyData> pPolygonData,
-	IplImage* rgbImagePNG)
-{	
+	IplImage *rgbImagePNG)
+{
 	RVL::MESH::MapRGBImageToVTKPolyData(pPolygonData, rgbImagePNG->imageData, rgbImagePNG->width, rgbImagePNG->height);
 }
 
@@ -5490,14 +5780,14 @@ vtkSmartPointer<vtkPolyData> RVL::MESH::RGBD2VTKPolyData(
 	cv::Mat depthImagePNG = cv::imread(depthFileName, CV_LOAD_IMAGE_ANYDEPTH);
 	depthImage.w = depthImagePNG.cols;
 	depthImage.h = depthImagePNG.rows;
-	depthImage.Element = (short int*)(depthImagePNG.data);
-	IplImage* rgbImagePNG = cvLoadImage(RGBFileName.data());
+	depthImage.Element = (short int *)(depthImagePNG.data);
+	IplImage *rgbImagePNG = cvLoadImage(RGBFileName.data());
 	Array2D<OrientedPoint> PC;
 	MESH::OrientedPCFromDepthImage(depthImage, camera, PC);
-	//Visualizer visualizer;
-	//visualizer.Create();
-	//visualizer.DisplayOrganizedOrientedPC(PC, rgbImagePNG);
-	//visualizer.Run();
+	// Visualizer visualizer;
+	// visualizer.Create();
+	// visualizer.DisplayOrganizedOrientedPC(PC, rgbImagePNG);
+	// visualizer.Run();
 	vtkSmartPointer<vtkPolyData> pPolygonData = MESH::VTKPolyDataFromOrganizedOrientedPC(PC, maxTriangleEdgeLen);
 	delete[] PC.Element;
 	RVL::MESH::MapRGBImageToVTKPolyData(pPolygonData, rgbImagePNG);
@@ -5513,11 +5803,11 @@ void RVL::MESH::RGBD2PLY(
 	std::string PLYFileName)
 {
 	vtkSmartPointer<vtkPolyData> pPolygonData = MESH::RGBD2VTKPolyData(RGBFileName, depthFileName, camera, maxTriangleEdgeLen);
-	//vtkSmartPointer<vtkPLYWriter> pPLYWriter;
-	//pPLYWriter->SetFileName((char*)(PLYFileName.data()));
+	// vtkSmartPointer<vtkPLYWriter> pPLYWriter;
+	// pPLYWriter->SetFileName((char*)(PLYFileName.data()));
 	vtkSmartPointer<RVLVTKPLYWriter> pPLYWriter = vtkSmartPointer<RVLVTKPLYWriter>::New();
 	pPLYWriter->WritePolyData(PLYFileName, pPolygonData);
-	//int debug = 0;
+	// int debug = 0;
 }
 #endif
 
@@ -5549,14 +5839,14 @@ void MESH::CreatePointArrayFromOrientedPointArray(
 
 void MESH::CreateOrientedPointArrayFromPointArray(
 	Array<Point> PtArraySrc,
-	Array<OrientedPoint>& PtArrayTgt)
+	Array<OrientedPoint> &PtArrayTgt)
 {
 	if (PtArrayTgt.Element == NULL)
 		PtArrayTgt.Element = new OrientedPoint[PtArraySrc.n];
 	PtArrayTgt.n = PtArraySrc.n;
 	int iPt;
-	OrientedPoint* pPtTgt;
-	Point* pPtSrc;
+	OrientedPoint *pPtTgt;
+	Point *pPtSrc;
 	for (iPt = 0; iPt < PtArraySrc.n; iPt++)
 	{
 		pPtSrc = PtArraySrc.Element + iPt;
@@ -5569,14 +5859,14 @@ void MESH::CreateOrientedPointArrayFromPointArray(
 void MESH::CreateOrientedPointArrayFromPointArray(
 	Array<Point> PtArraySrc,
 	Array<int> PtIdx,
-	Array<OrientedPoint>& PtArrayTgt)
+	Array<OrientedPoint> &PtArrayTgt)
 {
 	if (PtArrayTgt.Element == NULL)
 		PtArrayTgt.Element = new OrientedPoint[PtIdx.n];
 	PtArrayTgt.n = PtIdx.n;
 	int iPt;
-	OrientedPoint* pPtTgt = PtArrayTgt.Element;
-	Point* pPtSrc;
+	OrientedPoint *pPtTgt = PtArrayTgt.Element;
+	Point *pPtSrc;
 	for (int i = 0; i < PtIdx.n; i++, pPtTgt++)
 	{
 		iPt = PtIdx.Element[i];
@@ -5602,7 +5892,7 @@ void MESH::LoadTetrahedrons(
 	QList<MeshEdgePtr> *pEdgeList;
 
 	for (i = 0; i < tetrahedrons.vertices.n; i++, pPt++)
-	{		
+	{
 		fscanf(fp, "%f %f %f\n", pPt->P, pPt->P + 1, pPt->P + 2);
 
 		pEdgeList = &(pPt->EdgeList);
@@ -5688,9 +5978,9 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 					{
 						pVertex_ = tetrahedrons.vertices.Element + iVertex_;
 
-						pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(pVertex, pVertex_, iVertex, iVertex_, pMem);		
+						pEdge = ConnectNodes<Point, MeshEdge, MeshEdgePtr>(pVertex, pVertex_, iVertex, iVertex_, pMem);
 
-						pEdge->idx = iEdge++;						
+						pEdge->idx = iEdge++;
 					}
 				}
 			}
@@ -5748,9 +6038,9 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 
 	memset(bVertexBelongsToTetrahedron, 0, tetrahedrons.vertices.n * sizeof(bool));
 
-	//bool *bTriangleBelongsToTetrahedron = new bool[4 * tetrahedrons.tetrahedrons.n];
+	// bool *bTriangleBelongsToTetrahedron = new bool[4 * tetrahedrons.tetrahedrons.n];
 
-	//memset(bTriangleBelongsToTetrahedron, 0, 4 * tetrahedrons.tetrahedrons.n * sizeof(bool));
+	// memset(bTriangleBelongsToTetrahedron, 0, 4 * tetrahedrons.tetrahedrons.n * sizeof(bool));
 
 	int k;
 	int iTetrahedron_;
@@ -5762,7 +6052,7 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 
 	for (iTetrahedron = 0; iTetrahedron < tetrahedrons.tetrahedrons.n; iTetrahedron++)
 	{
-		//if (iTetrahedron == 8167)
+		// if (iTetrahedron == 8167)
 		//	int debug = 0;
 
 		pTetrahedron = tetrahedrons.tetrahedrons.Element + iTetrahedron;
@@ -5770,7 +6060,7 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 		for (i = 0; i < 4; i++)
 			bVertexBelongsToTetrahedron[pTetrahedron->iVertex[i]] = true;
 
-		//for (i = 0; i < 4; i++)
+		// for (i = 0; i < 4; i++)
 		//	if (pTetrahedron->iTriangle[i] >= 0)
 		//		bTriangleBelongsToTetrahedron[pTetrahedron->iTriangle[i]] = true;
 		//	else
@@ -5829,7 +6119,7 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 								if (pTetrahedron_->iTriangle[j] < 0)
 									break;
 
-							//if (j < 4 && iTriangle == 4)
+							// if (j < 4 && iTriangle == 4)
 							//	int debug = 0;
 
 							if (j < 4)
@@ -5841,12 +6131,12 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 				}
 
 				pTetrahedronIdx = pTetrahedronIdx->pNext;
-			}	// for every tetrahedron that shares vertex iVertex with pTetrahedron
-		}	// for every vertex of pTetrahedron
+			} // for every tetrahedron that shares vertex iVertex with pTetrahedron
+		}	  // for every vertex of pTetrahedron
 
 		for (i = 0; i < 4; i++)
 		{
-			bVertexBelongsToTetrahedron[pTetrahedron->iVertex[i]] = false;	// Unmark the i-th vertex (the others remain marked).
+			bVertexBelongsToTetrahedron[pTetrahedron->iVertex[i]] = false; // Unmark the i-th vertex (the others remain marked).
 
 			for (j = 0; j < 4; j++)
 			{
@@ -5861,11 +6151,11 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 					if (!bVertexBelongsToTetrahedron[pTriangle_->iVertex[k]])
 						break;
 
-				if (k >= 3)	// if pTriangle has all marked vertices
+				if (k >= 3) // if pTriangle has all marked vertices
 					break;
 			}
 
-			if (j >= 4 || iTriangle < 0)	// if there is no triangle belonging to pTetrahedron which is defined by the marked vertices
+			if (j >= 4 || iTriangle < 0) // if there is no triangle belonging to pTetrahedron which is defined by the marked vertices
 			{
 				k = 0;
 
@@ -5894,15 +6184,15 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 		for (i = 0; i < 4; i++)
 			bVertexBelongsToTetrahedron[pTetrahedron->iVertex[i]] = false;
 
-		//for (i = 0; i < 4; i++)
+		// for (i = 0; i < 4; i++)
 		//	bTriangleBelongsToTetrahedron[pTetrahedron->iTriangle[i]] = false;
-	}	// for every tetrahedron
+	} // for every tetrahedron
 
 	tetrahedrons.triangles.n = pTriangle - tetrahedrons.triangles.Element;
 
 	// Identify surface triangles.
 
-	//int debug = 0;
+	// int debug = 0;
 
 	int nInternalTetrahedrons, nExternalTetrahedrons;
 
@@ -5927,7 +6217,7 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 
 		pTriangle->bSurface = (nInternalTetrahedrons == 1 && nExternalTetrahedrons == 1);
 
-		//if (pTriangle->bSurface)
+		// if (pTriangle->bSurface)
 		//	debug++;
 	}
 
@@ -5936,7 +6226,7 @@ void MESH::ComputeTetrahedronData(RVL::MESH::Tetrahedrons &tetrahedrons)
 	delete[] vertexTetrahedronList;
 	delete[] pVertexTetrahedronMem;
 	delete[] bVertexBelongsToTetrahedron;
-	//delete[] bTriangleBelongsToTetrahedron;
+	// delete[] bTriangleBelongsToTetrahedron;
 }
 
 void MESH::ClearTetrahedronData(RVL::MESH::Tetrahedrons tetrahedrons)
@@ -5948,14 +6238,14 @@ void MESH::ClearTetrahedronData(RVL::MESH::Tetrahedrons tetrahedrons)
 	tetrahedrons.mem.Clear();
 }
 
-void MESH::MouseRButtonDown(vtkObject* caller, unsigned long eid, void* clientdata, void *calldata)
+void MESH::MouseRButtonDown(vtkObject *caller, unsigned long eid, void *clientdata, void *calldata)
 {
-	vtkSmartPointer<vtkRenderWindowInteractor> interactor = reinterpret_cast<vtkRenderWindowInteractor*>(caller);
+	vtkSmartPointer<vtkRenderWindowInteractor> interactor = reinterpret_cast<vtkRenderWindowInteractor *>(caller);
 
 	Visualizer *pVisualizer = (Visualizer *)clientdata;
 
 	pVisualizer->pointPicker->Pick(interactor->GetEventPosition()[0], interactor->GetEventPosition()[1], 0,
-		interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer());
+								   interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer());
 	vtkIdType selectedPoint = pVisualizer->pointPicker->GetPointId();
 
 	printf("Selected point: %d\n", selectedPoint);
@@ -5991,7 +6281,7 @@ void MESH::LabelParts(
 
 	int iPt;
 
-	//load sparse labels from file
+	// load sparse labels from file
 	FILE *fp = fopen(labelFileName, "r");
 
 	if (fp)
@@ -6000,7 +6290,7 @@ void MESH::LabelParts(
 			fscanf(fp, "%d\n", &sparseLabels.Element[iPt]);
 
 		fclose(fp);
-	}	
+	}
 
 	fp = fopen("densePoints.txt", "w");
 
@@ -6019,7 +6309,7 @@ void MESH::LabelParts(
 	float minDistance, distance;
 	float V3Tmp[3];
 
-	//find minimum distance for each point from denceVertices
+	// find minimum distance for each point from denceVertices
 	for (idPt = 0; idPt < denseVertices.n; idPt++)
 	{
 		minDistance = LONG_MAX;
@@ -6031,16 +6321,15 @@ void MESH::LabelParts(
 			if (distance < minDistance)
 			{
 				minDistance = distance;
- 				denseLabels.Element[idPt] = sparseLabels.Element[isPt];
+				denseLabels.Element[idPt] = sparseLabels.Element[isPt];
 
 				if (minDistance == 0.0)
 					break;
-			}			
+			}
 		}
 	}
 
-
-	//save dense labels to file
+	// save dense labels to file
 	char *denseLabelFileName = RVLCreateFileName(labelFileName, ".seg", -1, "_.seg");
 
 	fp = fopen(denseLabelFileName, "w");
@@ -6104,7 +6393,7 @@ void MESH::SparsePointsCorrespondences(
 	float minDistance, distance;
 	float V3Tmp[3];
 
-	//find minimum distance for each point from sparceVertices
+	// find minimum distance for each point from sparceVertices
 	for (isPt = 0; isPt < sparseVertices.n; isPt++)
 	{
 		minDistance = LONG_MAX;
@@ -6124,7 +6413,7 @@ void MESH::SparsePointsCorrespondences(
 		}
 	}
 
-	//save dense labels to file
+	// save dense labels to file
 	char *sparseCorrespondancesLabelFileName = RVLCreateFileName(labelFileName, ".seg", -1, ".cor");
 
 	fp = fopen(sparseCorrespondancesLabelFileName, "w");
@@ -6195,11 +6484,649 @@ void MESH::ComputePlaneParameters(
 	d = RVLDOTPRODUCT3(N, distribution.t);
 }
 
+bool MESH::LoadFromOFF(
+	char *OFFFileName,
+	Mesh *pMesh)
+{
+	// Open OFF file.
+
+	FILE *fp = fopen(OFFFileName, "r");
+
+	// Read header.
+
+	fscanf(fp, "OFF\n");
+	fscanf(fp, "%d %d 0\n", &(pMesh->NodeArray.n), &(pMesh->faces.n));
+
+	// Load vertices.
+
+	RVL_DELETE_ARRAY(pMesh->NodeMem);
+	pMesh->NodeMem = new Point[pMesh->NodeArray.n];
+	pMesh->NodeArray.Element = pMesh->NodeMem;
+	Point *pVertex = pMesh->NodeArray.Element;
+	QList<MeshEdgePtr> *pEdgeList;
+	int iVertex;
+	for (iVertex = 0; iVertex < pMesh->NodeArray.n; iVertex++, pVertex++)
+	{
+		fscanf(fp, "%f %f %f \n", pVertex->P, pVertex->P + 1, pVertex->P + 2);
+		pVertex->flags = 0x00;
+		pEdgeList = &(pVertex->EdgeList);
+		RVLQLIST_INIT(pEdgeList);
+	}
+
+	// Load face data.
+
+	Vector3<int> *face = new Vector3<int>[pMesh->faces.n];
+	Vector3<int> *pFace_ = face;
+	int nFaceVertices;
+	for (int iFace = 0; iFace < pMesh->faces.n; iFace++, pFace_++)
+	{
+		fscanf(fp, "%d %d %d %d\n", &nFaceVertices, pFace_->Element, pFace_->Element + 1, pFace_->Element + 2);
+		if (nFaceVertices != 3)
+		{
+			printf("ERROR: Face %d has %d vertices. Only triangular faces are allowed!\n", iFace, nFaceVertices);
+			delete[] face;
+			return false;
+		}
+	}
+	fclose(fp);
+
+	/// Extract edge data from faces.
+
+	int maxnEdges = 3 * pMesh->faces.n;
+	pMesh->EdgeMem = new MeshEdge[maxnEdges];
+	pMesh->EdgeArray.Element = pMesh->EdgeMem;
+	MeshEdge *pEdge = pMesh->EdgeArray.Element;
+	Array<QList<QLIST::Index>> VertexEdgeListArray; // Each element of this array is a list of edge indices corresponding to a mesh vertex.
+	VertexEdgeListArray.Element = new QList<QLIST::Index>[pMesh->NodeArray.n];
+	VertexEdgeListArray.n = pMesh->NodeArray.n;
+	QList<QLIST::Index> *pVertexEdgeList;
+	RVLQLIST_ARRAY_INIT(VertexEdgeListArray, pVertexEdgeList);
+	QLIST::Index *VertexEdgeMem = new QLIST::Index[2 * maxnEdges];
+	QLIST::Index *pVertexEdgeIdx = VertexEdgeMem;
+	int *PolyArray = new int[3 * pMesh->faces.n];		   // A matrix nPolys x 3. Each row represents one polygon.
+														   // The elements of a row are indices of the polygon vertices.
+	int *EdgePolyAssignmentArray = new int[4 * maxnEdges]; // A matrix EdgeArray.n x 4. Each row represents one edge.
+														   // The first two elements of i-th row are the indices of the polygons sharing the edge i.
+														   // The first of these two elements represents the index of the polygon on the left side of the edge,
+														   // while the second one represents the index of the polygon on the right side of the edge.
+														   // The other two elements of i-th row are the indices of the edges in the polygon edge list.
+														   // The third element is the index of the edge in the list of the polygon on the left side of the edge,
+														   // while the fourth one is the index of the edge in the list of the polygon on the right side of the edge.
+	memset(EdgePolyAssignmentArray, 0xff, 4 * maxnEdges * sizeof(int));
+	int *PolyEdgeAssignmentArray = new int[maxnEdges]; // A matrix nPolys x 3. Each row contains the indices of the edges of the corresponding polygon.
+	int *PolyEdge = PolyEdgeAssignmentArray;
+	int edgeSide;
+	int *EdgePoly;
+	int *EdgePolyIdx;
+	int iEdge = 0;
+	int iVertex1, iVertex2;
+	int iEdge_;
+	int *PolyVertex;
+	bool bAlreadyExists;
+	MeshEdge *pEdge_;
+	QLIST::Index *pVertexEdgeIdx_;
+	int iFace = 0;
+	int iFace_;
+	Point *pPt1, *pPt2;
+	float dP[3];
+	pFace_ = face;
+	int i;
+	for (iFace_ = 0; iFace_ < pMesh->faces.n; iFace_++, pFace_++)
+	{
+		PolyVertex = PolyArray + 3 * iFace;
+		PolyEdge = PolyEdgeAssignmentArray + 3 * iFace;
+		iVertex1 = pFace_->Element[2];
+		for (i = 0; i < 3; i++)
+		{
+			iVertex2 = pFace_->Element[i];
+			PolyVertex[i] = iVertex2;
+
+			// bAlreadyExists <- edge connecting the vertices iVertex1 and iVertex2 already exists in the list of VertexEdgeListArray[iVertex1].
+
+			bAlreadyExists = false;
+			pVertexEdgeList = VertexEdgeListArray.Element + iVertex1;
+			pVertexEdgeIdx_ = pVertexEdgeList->pFirst;
+			while (pVertexEdgeIdx_)
+			{
+				iEdge_ = pVertexEdgeIdx_->Idx;
+				pEdge_ = pMesh->EdgeArray.Element + iEdge_;
+				if (bAlreadyExists = (pEdge_->iVertex[0] == iVertex2))
+					break;
+				pVertexEdgeIdx_ = pVertexEdgeIdx_->pNext;
+			}
+
+			//
+
+			if (bAlreadyExists)
+				edgeSide = 1; // Polygon l is on the right side of edge iEdge_.
+			else
+			{
+				// Create a new edge and add it to EdgeArray.
+				// Add the index of the new edge to VertexEdgeListArray[iVertex1] and VertexEdgeListArray[iVertex2].
+
+				pEdge->iVertex[0] = iVertex1;
+				pEdge->iVertex[1] = iVertex2;
+				pEdge->idx = iEdge;
+				pEdge->pVertexEdgePtr[0] = pEdge->pVertexEdgePtr[1] = NULL;
+				RVLQLIST_ADD_ENTRY(pVertexEdgeList, pVertexEdgeIdx);
+				pVertexEdgeIdx->Idx = iEdge;
+				pVertexEdgeIdx++;
+				pVertexEdgeList = VertexEdgeListArray.Element + iVertex2;
+				RVLQLIST_ADD_ENTRY(pVertexEdgeList, pVertexEdgeIdx);
+				pVertexEdgeIdx->Idx = iEdge;
+				pVertexEdgeIdx++;
+				edgeSide = 0; // Polygon l is on the left side of edge iEdge_.
+				iEdge_ = iEdge;
+				pEdge_ = pEdge;
+				pEdge++;
+				iEdge++;
+			}
+
+			// if (iEdge_ == 3661)
+			//	int debug = 0;
+
+			// Store the edge index to PolyEdge.
+
+			PolyEdge[i] = iEdge_;
+
+			// EdgePoly <- four element vector corresponding to the edge iEdge_
+
+			EdgePoly = EdgePolyAssignmentArray + 4 * iEdge_;
+			EdgePolyIdx = EdgePoly + 2;
+
+			// Store the index of the polygon l on the side edgeSide of the edge iEdge_ in the corresponding field of EdgePoly.
+
+			EdgePoly[edgeSide] = iFace;
+
+			// Store the index of the edge in the polygon edge list of the polygon l in the corresponding field of EdgePoly.
+
+			EdgePolyIdx[edgeSide] = i;
+
+			//
+
+			iVertex1 = iVertex2;
+		} // for each face vertex
+		iFace++;
+	} // for each face
+	pMesh->EdgeArray.n = pEdge - pMesh->EdgeArray.Element;
+
+	/// Remove invalid points.
+
+	Array<int> iPtBuff1;
+	iPtBuff1.Element = new int[pMesh->NodeArray.n];
+	Array<int> iPtBuff2;
+	iPtBuff2.Element = new int[pMesh->NodeArray.n];
+	Array<int> *piPtBuffPut = &iPtBuff1;
+	Array<int> *piPtBuffFetch = &iPtBuff2;
+	int iVertex_;
+	for (iVertex = 0; iVertex < pMesh->NodeArray.n; iVertex++)
+	{
+		piPtBuffFetch->Element[iVertex] = iVertex;
+		pVertex = pMesh->NodeArray.Element + iVertex;
+		pVertex->bValid = true;
+	}
+	piPtBuffFetch->n = pMesh->NodeArray.n;
+	piPtBuffPut->n = 0;
+	bool *bVisited = new bool[pMesh->NodeArray.n];
+	memset(bVisited, 0, pMesh->NodeArray.n * sizeof(bool));
+
+	int j, k;
+	int nEdges;
+	int nBoundaryEdges;
+	Array<int> *piPtBuffTmp;
+	Point *pPt_;
+	int *EdgePoly_;
+	while (piPtBuffFetch->n > 0)
+	{
+		for (i = 0; i < piPtBuffFetch->n; i++)
+		{
+			iVertex = piPtBuffFetch->Element[i];
+
+			// if (iVertex == 45075)
+			//	int debug = 0;
+
+			pVertex = pMesh->NodeArray.Element + iVertex;
+			pVertexEdgeList = VertexEdgeListArray.Element + iVertex;
+			nEdges = nBoundaryEdges = 0;
+			pVertexEdgeIdx = pVertexEdgeList->pFirst;
+			while (pVertexEdgeIdx)
+			{
+				iEdge = pVertexEdgeIdx->Idx;
+				EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+				if (EdgePoly[0] >= 0 || EdgePoly[1] >= 0)
+				{
+					if (EdgePoly[0] < 0 || EdgePoly[1] < 0)
+						nBoundaryEdges++;
+					nEdges++;
+				}
+				pVertexEdgeIdx = pVertexEdgeIdx->pNext;
+			}
+
+			// If there is less than two edges connected to vertex pVertex, then don't generate the edge list for that vertex.
+
+			if (nEdges < 2)
+			{
+				pVertex->bValid = false;
+				continue;
+			}
+
+			// If there are more than two boundary edges connected to vertex pVertex, then set position and normal of pVertex to null vectors.
+			// In that case, the edge list is empty.
+			// The vertices with normal set to null vector should be rejected from any further processing, which effectively removes such vertices from the mesh.
+			// By removing all vertices with more than two boundary edges from the mesh, the 2. property of the organized mesh is preserved
+			// (See the definition of the organized mesh in ARP3D.TR30).
+
+			if (nBoundaryEdges <= 2)
+				pVertex->bBoundary = (nBoundaryEdges > 0);
+			else
+			{
+				pVertex->bValid = false;
+				RVLNULL3VECTOR(pVertex->P);
+				RVLNULL3VECTOR(pVertex->N);
+				pVertexEdgeIdx = pVertexEdgeList->pFirst;
+				while (pVertexEdgeIdx)
+				{
+					iEdge = pVertexEdgeIdx->Idx;
+					pEdge = pMesh->EdgeArray.Element + iEdge;
+					EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+					for (j = 0; j < 2; j++)
+					{
+						iFace = EdgePoly[j];
+
+						if (iFace >= 0)
+						{
+							// if (iFace == 43984)
+							//	int debug = 0;
+							PolyVertex = PolyArray + 3 * iFace;
+							PolyEdge = PolyEdgeAssignmentArray + 3 * iFace;
+							for (k = 0; k < 3; k++)
+							{
+								iEdge_ = PolyEdge[k];
+								EdgePoly_ = EdgePolyAssignmentArray + 4 * iEdge_;
+								if (EdgePoly_[0] == iFace)
+									EdgePoly_[0] = -1;
+								else
+									EdgePoly_[1] = -1;
+							}
+						}
+					}
+					iVertex_ = (pEdge->iVertex[0] == iVertex ? pEdge->iVertex[1] : pEdge->iVertex[0]);
+					if (!bVisited[iVertex_])
+					{
+						pPt_ = pMesh->NodeArray.Element + iVertex_;
+						if (pPt_->bValid)
+						{
+							bVisited[iVertex_] = true;
+							piPtBuffPut->Element[piPtBuffPut->n++] = iVertex_;
+						}
+					}
+					pVertexEdgeIdx = pVertexEdgeIdx->pNext;
+				} // for every edge ending in pVertex
+			}	  // if (!pVertex->bValid)
+		}		  // for every point in piPtBuffFetch
+		for (i = 0; i < piPtBuffPut->n; i++)
+			bVisited[piPtBuffPut->Element[i]] = false;
+		piPtBuffTmp = piPtBuffFetch;
+		piPtBuffFetch = piPtBuffPut;
+		piPtBuffPut = piPtBuffTmp;
+		piPtBuffPut->n = 0;
+	} // while (piPtBuffFetch->n > 0)
+	delete[] iPtBuff1.Element;
+	delete[] iPtBuff2.Element;
+	delete[] bVisited;
+
+	/// Arrange edge lists of vertices according to the 2. property of Organized mesh (See the definition of organized mesh in ARP3D.TR3).
+
+	pMesh->EdgePtrMem = new MeshEdgePtr[2 * pMesh->EdgeArray.n];
+	MeshEdgePtr *pMeshEdgePtr = pMesh->EdgePtrMem;
+	// int nBoundaryPts = 0;
+	int iEdge0;
+	// int nVertexEdges;
+	for (iVertex = 0; iVertex < pMesh->NodeArray.n; iVertex++)
+	{
+		// if (iVertex == 298 || iVertex == 6472)
+		//	int debug = 0;
+		pVertex = pMesh->NodeArray.Element + iVertex;
+		if (!pVertex->bValid)
+			continue;
+		pEdgeList = &(pVertex->EdgeList);
+		pVertexEdgeList = VertexEdgeListArray.Element + iVertex;
+
+		// If there are boundary edges connected to pVertex, then iEdge0 <- the first edge connected to pVertex in the CCW direction.
+
+		// nVertexEdges = nBoundaryEdges = 0;		// only for debugging purpose!!!
+		pVertexEdgeIdx = pVertexEdgeList->pFirst;
+		while (pVertexEdgeIdx)
+		{
+			iEdge = pVertexEdgeIdx->Idx;
+			pEdge = pMesh->EdgeArray.Element + iEdge;
+			EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+			if (EdgePoly[0] >= 0 || EdgePoly[1] >= 0)
+			{
+				if (EdgePoly[0] < 0)
+				{
+					// nBoundaryEdges++;		// only for debugging purpose!!!
+					if (pEdge->iVertex[1] == iVertex)
+						iEdge0 = iEdge;
+				}
+				else if (EdgePoly[1] < 0)
+				{
+					// nBoundaryEdges++;		// only for debugging purpose!!!
+					if (pEdge->iVertex[0] == iVertex)
+						iEdge0 = iEdge;
+				}
+				// nVertexEdges++;		// only for debugging purpose!!!
+			}
+			pVertexEdgeIdx = pVertexEdgeIdx->pNext;
+		}
+
+		// if (nVertexEdges < 2)
+		//	int debug = 0;
+
+		// if (nBoundaryEdges > 2)
+		//	int debug = 0;
+
+		// If no boundary edge is connected to vertex pVertex, then the first edge in its edge list can be any edge connected to it.
+
+		if (!pVertex->bBoundary)
+			iEdge0 = pVertexEdgeList->pFirst->Idx;
+		// else
+		//	nBoundaryPts++;
+
+		// watchdog = 0;
+
+		// if (iVertex == 88031)
+		//	int debug = 0;
+
+		iEdge = iEdge0;
+		do
+		{
+			pEdge = pMesh->EdgeArray.Element + iEdge;
+
+			// if (iEdge == 265106)
+			//	int debug = 0;
+
+			// Connect pEdge to the edge list of vertex pVertex using the connector pMeshEdgePtr.
+
+			RVLQLIST_ADD_ENTRY(pEdgeList, pMeshEdgePtr);
+			pMeshEdgePtr->pEdge = pEdge;
+			EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+			EdgePolyIdx = EdgePoly + 2;
+			edgeSide = (pEdge->iVertex[0] == iVertex ? 0 : 1);
+			pEdge->pVertexEdgePtr[edgeSide] = pMeshEdgePtr;
+			pMeshEdgePtr++;
+
+			// iFace <- index of the polygon in CCW direction from the edge pEdge w.r.t. vertex pVertex.
+
+			iFace = EdgePoly[edgeSide];
+
+			// if there is no polygon in CCW direction from the edge pEdge w.r.t. vertex pVertex, then the edge list is completed.
+
+			if (iFace < 0)
+				break;
+
+			// iEdge <- the preceding edge of iEdge in the edge list of the polygon iFace.
+
+			PolyVertex = PolyArray + 3 * iFace;
+			PolyEdge = PolyEdgeAssignmentArray + 3 * iFace;
+			iEdge = PolyEdge[(EdgePolyIdx[edgeSide] + 2) % 3];
+
+			//// debug
+
+			// MeshEdge *pEdge_ = EdgeArray.Element + iEdge;
+			// int edgeSide_ = (pEdge_->iVertex[0] == iVertex ? 0 : 1);
+			// Point Pt1 = NodeArray.Element[iVertex];
+			// Point Pt2 = NodeArray.Element[pEdge->iVertex[1 - edgeSide]];
+			// Point Pt3 = NodeArray.Element[pEdge_->iVertex[1 - edgeSide_]];
+			// float V1[3], V2[3];
+			// RVLDIF3VECTORS(Pt2.P, Pt1.P, V1);
+			// RVLDIF3VECTORS(Pt3.P, Pt1.P, V2);
+			// float Z[3];
+			// RVLCROSSPRODUCT3(V1, V2, Z);
+			// float a = RVLDOTPRODUCT3(Pt1.P, Z);
+			// if (a > 0.0)
+			//	int debug = 0;
+
+			///////
+
+			// watchdog++;
+
+			// if (watchdog > 8)
+			//	break;
+		} while (iEdge != iEdge0);
+	}
+
+	delete[] VertexEdgeListArray.Element;
+	delete[] VertexEdgeMem;
+	delete[] PolyArray;
+
+	// Validate edges.
+
+	for (iEdge = 0; iEdge < pMesh->EdgeArray.n; iEdge++)
+	{
+		EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+		if (EdgePoly[0] < 0 && EdgePoly[1] < 0)
+			continue;
+		pEdge = pMesh->EdgeArray.Element + iEdge;
+		if (pEdge->pVertexEdgePtr[0] == NULL || pEdge->pVertexEdgePtr[1] == NULL)
+		{
+			printf("ERROR: Mesh invalid!\n");
+			delete[] EdgePolyAssignmentArray;
+			delete[] PolyEdgeAssignmentArray;
+			return false;
+		}
+	}
+
+	///
+
+	// Faces.
+
+	RVL_DELETE_ARRAY(pMesh->faceMem);
+	pMesh->faceMem = new MESH::Face[pMesh->faces.n];
+	MESH::Face *pFace = pMesh->faceMem;
+	RVL_DELETE_ARRAY(pMesh->faces.Element);
+	pMesh->faces.Element = new MESH::Face *[pMesh->faces.n];
+	Point *pVertex_[3];
+	int nVertices;
+	float V1[3], V2[3];
+	float fTmp;
+	for (iFace = 0; iFace < pMesh->faces.n; iFace++, pFace++)
+	{
+		pMesh->faces.Element[iFace] = pFace;
+		pFace->idx = iFace;
+		pFace->flags = 0x00;
+		pFace->pFirstEdgePtr = NULL;
+		for (i = 0; i < 3; i++)
+		{
+			iEdge = PolyEdgeAssignmentArray[3 * iFace + i];
+			EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+			pEdge = pMesh->EdgeArray.Element + iEdge;
+			if (EdgePoly[0] == iFace)
+			{
+				pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[0];
+				break;
+			}
+			else if (EdgePoly[1] == iFace)
+			{
+				pFace->pFirstEdgePtr = pEdge->pVertexEdgePtr[1];
+				break;
+			}
+		}
+		if (pFace->pFirstEdgePtr)
+		{
+			pMeshEdgePtr = pFace->pFirstEdgePtr;
+			nVertices = 0;
+			do
+			{
+				iVertex = RVLPCSEGMENT_GRAPH_GET_NODE(pMeshEdgePtr);
+				if (nVertices < 3)
+					pVertex_[nVertices++] = pMesh->NodeArray.Element + iVertex;
+				pMeshEdgePtr = pMeshEdgePtr->pNext;
+				if (pMeshEdgePtr == NULL)
+					pMeshEdgePtr = pMesh->NodeArray.Element[iVertex].EdgeList.pFirst;
+				pMeshEdgePtr = RVLPCSEGMENT_GRAPH_GET_OPPOSITE_EDGE_PTR(pMeshEdgePtr);
+			} while (pMeshEdgePtr != pFace->pFirstEdgePtr);
+			RVLDIF3VECTORS(pVertex_[2]->P, pVertex_[0]->P, V1);
+			RVLDIF3VECTORS(pVertex_[1]->P, pVertex_[0]->P, V2);
+			RVLCROSSPRODUCT3(V1, V2, pFace->N);
+			RVLNORM3(pFace->N, pFace->Area);
+			pFace->Area *= 0.5f;
+			pFace->d = RVLDOTPRODUCT3(pFace->N, pVertex_[0]->P);
+		}
+		else
+		{
+			RVLNULL3VECTOR(pFace->N);
+			pFace->d = 0.0f;
+			pFace->Area = 0.0f;
+		}
+	}
+
+	// Assign faces to edges.
+
+	for (iEdge = 0; iEdge < pMesh->EdgeArray.n; iEdge++)
+	{
+		pEdge = pMesh->EdgeArray.Element + iEdge;
+		EdgePoly = EdgePolyAssignmentArray + 4 * iEdge;
+		pEdge->pFace[0] = (EdgePoly[0] >= 0 ? pMesh->faces.Element[EdgePoly[0]] : NULL);
+		pEdge->pFace[1] = (EdgePoly[1] >= 0 ? pMesh->faces.Element[EdgePoly[1]] : NULL);
+	}
+
+	//
+
+	delete[] EdgePolyAssignmentArray;
+	delete[] PolyEdgeAssignmentArray;
+
+#ifdef NEVER
+	// Faces.
+	// nEdges <- total number of edges.
+
+	RVL_DELETE_ARRAY(pMesh->faceMem);
+	pMesh->faceMem = new MESH::Face[pMesh->faces.n];
+	MESH::Face *pFace = pMesh->faceMem;
+
+	RVL_DELETE_ARRAY(pMesh->faces.Element);
+	pMesh->faces.n = pMesh->pPolygonData->GetPolys()->GetNumberOfCells();
+	pMesh->faces.Element = new MESH::Face *[pMesh->faces.n];
+	RVL_DELETE_ARRAY(pMesh->faceMem);
+	pMesh->faceMem = new MESH::Face[pMesh->faces.n];
+	MESH::Face *pFace = pMesh->faceMem;
+	vtkSmartPointer<vtkCellArray> Polys = pMesh->pPolygonData->GetPolys();
+	Polys->InitTraversal();
+	vtkSmartPointer<vtkIdList> l = vtkSmartPointer<vtkIdList>::New();
+	int iFace;
+	pMesh->EdgeArray.n = 0;
+	vtkCell *pFace_;
+	vtkPoints *pPoints;
+	double N[3];
+	for (iFace = 0; iFace < pMesh->faces.n; iFace++, pFace++)
+	{
+		pMesh->faces.Element[iFace] = pFace;
+		pFace_ = pMesh->pPolygonData->GetCell(iFace);
+		pPoints = pFace_->GetPoints();
+		vtkPolygon::ComputeNormal(pPoints, N);
+		RVLCOPY3VECTOR(N, pFace->N);
+		double *P = pPoints->GetPoint(0);
+		pFace->d = RVLDOTPRODUCT3(pFace->N, P);
+		pFace->idx = iFace;
+		if (Polys->GetNextCell(l))
+			pMesh->EdgeArray.n += l->GetNumberOfIds();
+	}
+	pMesh->EdgeArray.n /= 2;
+
+	// Edges.
+
+	int hashTableAddressCoeff = 1000000000 / pMesh->EdgeArray.n;
+	EdgeHashTableEntry *hashTableMem = new EdgeHashTableEntry[pMesh->EdgeArray.n];
+	EdgeHashTableEntry *pEdgeData = hashTableMem;
+	Array<int> activeHashTableAddresses;
+	activeHashTableAddresses.Element = new int[pMesh->EdgeArray.n];
+	activeHashTableAddresses.n = 0;
+	QList<EdgeHashTableEntry> *pHashTableBin;
+	pMesh->EdgeMem = new MeshEdge[pMesh->EdgeArray.n];
+	MeshEdge *pEdge = pMesh->EdgeMem;
+	pMesh->EdgeArray.Element = pMesh->EdgeMem;
+	Polys->InitTraversal();
+	int nVertices;
+	int i;
+	int iVertex1, iVertex2;
+	int iHashTableBin;
+	for (iFace = 0; iFace < pMesh->faces.n; iFace++)
+	{
+		if (Polys->GetNextCell(l))
+		{
+			pFace = pMesh->faces.Element[iFace];
+			nVertices = l->GetNumberOfIds();
+			iVertex1 = l->GetId(nVertices - 1);
+			for (i = 0; i < nVertices; i++)
+			{
+				iVertex2 = l->GetId(i);
+				if (iVertex1 < iVertex2)
+				{
+					pEdge->iVertex[0] = iVertex1;
+					pEdge->iVertex[1] = iVertex2;
+					pEdge->pFace[0] = pFace;
+				}
+				else
+				{
+					iHashTableBin = (iVertex1 * hashTableAddressCoeff + iVertex2) % pHashTable->n;
+					pHashTableBin = pHashTable->Element + iHashTableBin;
+					RVLQLIST_ADD_ENTRY(pHashTableBin, pEdgeData);
+					pEdgeData->iVertex[0] = iVertex1;
+					pEdgeData->iVertex[1] = iVertex2;
+					pEdgeData->pFace = pFace;
+					pEdgeData++;
+					activeHashTableAddresses.Element[activeHashTableAddresses.n++] = iHashTableBin;
+				}
+				iVertex1 = iVertex2;
+			}
+		}
+	}
+
+	// Create graph by connecting vertices by edges.
+	// Assign the second polygon to edges.
+
+	pMesh->EdgePtrMem = new MeshEdgePtr[2 * pMesh->EdgeArray.n];
+	MeshEdgePtr *pEdgePtr = pMesh->EdgePtrMem;
+	int iEdge;
+	pEdge = pMesh->EdgeMem;
+	for (iEdge = 0; iEdge < pMesh->EdgeArray.n; iEdge++, pEdge++, pEdgePtr += 2)
+	{
+		iHashTableBin = (pEdge->iVertex[1] * hashTableAddressCoeff + pEdge->iVertex[0]) % pHashTable->n;
+		pHashTableBin = pHashTable->Element + iHashTableBin;
+		pEdgeData = pHashTableBin->pFirst;
+		while (pEdgeData)
+		{
+			if (pEdgeData->iVertex[0] == pEdge->iVertex[1] && pEdgeData->iVertex[1] == pEdge->iVertex[0])
+			{
+				pEdge->pFace[1] = pEdgeData->pFace;
+				break;
+			}
+			pEdgeData = pEdgeData->pNext;
+		}
+		ConnectNodes<Point, MeshEdge, MeshEdgePtr>(pMesh->NodeArray, pEdge, pEdgePtr);
+	}
+
+	// Clear the hash table.
+
+	for (i = 0; i < activeHashTableAddresses.n; i++)
+	{
+		iHashTableBin = activeHashTableAddresses.Element[i];
+		pHashTableBin = pHashTable->Element + iHashTableBin;
+		RVLQLIST_INIT(pHashTableBin);
+	}
+	delete[] hashTableMem;
+	delete[] activeHashTableAddresses.Element;
+	delete[] face;
+#endif
+
+	return true;
+}
+
 void RVL::FilterSDF(
 	Array3D<float> SDFSrc,
 	Array3D<float> filter,
 	int n,
-	Array3D<float>& SDF)
+	Array3D<float> &SDF)
 {
 	int nVoxels = SDFSrc.a * SDFSrc.b * SDFSrc.c;
 
@@ -6210,7 +7137,7 @@ void RVL::FilterSDF(
 	if (SDF.Element == NULL)
 		SDF.Element = new float[nVoxels];
 
-	float* SDFBuff = new float[nVoxels];
+	float *SDFBuff = new float[nVoxels];
 
 	memcpy(SDFBuff, SDFSrc.Element, nVoxels * sizeof(float));
 	memcpy(SDF.Element, SDFBuff, nVoxels * sizeof(float));
@@ -6281,14 +7208,14 @@ void RVL::FilterSDF(
 }
 
 void RVL::CreateMeanFilter(
-	Array3D<float>& filter,
+	Array3D<float> &filter,
 	int n)
 {
 	filter.a = filter.b = filter.c = n;
 
 	int nf = filter.a * filter.b * filter.c;
 
-	if(filter.Element == NULL)
+	if (filter.Element == NULL)
 		filter.Element = new float[nf];
 
 	float w = 1.0f / (float)nf;
@@ -6331,4 +7258,3 @@ float RVL::PointSetToPlaneDistance(
 
 	return minDistance;
 }
-

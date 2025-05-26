@@ -50,10 +50,10 @@ def rotz_multiple(theta_arr):
     return Rz
 
 def generate_tool_line_poses(height, T_TCP_G=np.ndarray, R_TCP_D=np.ndarray):
-    sample_dist = 0.02
-    top_offset = 0.01
-    side_offset = 0.01
-    z_offset = 0.01
+    sample_dist = 0.015
+    top_offset = 0.005
+    side_offset = 0.005
+    z_offset = 0.007
 
     num_samples = int(height / sample_dist)
     
@@ -68,8 +68,8 @@ def generate_tool_line_poses(height, T_TCP_G=np.ndarray, R_TCP_D=np.ndarray):
     T_TCP_D[:, :3, 3] = sample_pts_D.copy()
 
     # Rotations around the X axis of G
-    min_rotx_deg = -35.
-    max_rotx_deg = 35.
+    min_rotx_deg = -30.
+    max_rotx_deg = 30.
     num_rot_samples = int((max_rotx_deg - min_rotx_deg)/5) + 1
     angles_deg = np.linspace(min_rotx_deg, max_rotx_deg, num_rot_samples)
     angles_rad = np.radians(angles_deg)
@@ -405,7 +405,8 @@ def generate_trajectories_and_approach2(
     init_state: float,
     goal_state: float,
     cabinet_model: Cabinet,
-    rvl_ddmanipulator_config: str,
+    # rvl_ddmanipulator_config: str,
+    rvl_manipulator: rvlpy.PYDDManipulator,
     T_0_W: np.ndarray,
     controller: Union[UR5Commander, UR5Controller]
 ):
@@ -418,21 +419,6 @@ def generate_trajectories_and_approach2(
     """
     states = np.linspace(init_state, goal_state, num_states)
     states_rad = np.radians(states)
-
-    rvl_manipulator = rvlpy.PYDDManipulator()
-    rvl_manipulator.create(rvl_ddmanipulator_config)
-    rvl_manipulator.set_robot_pose(T_0_W)
-    rvl_manipulator.set_door_model_params(
-        cabinet_model.d_door,
-        cabinet_model.w_door,
-        cabinet_model.h_door,
-        cabinet_model.rx,
-        cabinet_model.ry,
-        cabinet_model.axis_pos,
-        cabinet_model.static_side_width,
-        cabinet_model.moving_to_static_part_distance)
-    rvl_manipulator.set_door_pose(cabinet_model.T_A_S)
-
     all_trajectories = []
     traj_arrays = []
 
@@ -473,43 +459,52 @@ def generate_trajectories_and_approach2(
         T_G_W_contact = T_0_W @ T_6_0_contact @ T_G_6
 
         rvl_manipulator.set_environment_state(np.rad2deg(states_rad[0]))
-        q = rvl_manipulator.inv_kinematics_all_sols_prev(T_6_0_contact)[0][0]
 
+        # Get approach path
         T_G_0_via, ik_solutions, paths, error_code = rvl_manipulator.approach_path(T_G_W_contact.copy())
-
         if T_G_0_via.shape[0] < 1 or len(paths) < 1:
             num_failed_approach[error_code] += 1
             pose_logged = True
             continue
+        
+        # Adjust IK solutions to ROS and limit ranges
+        for ik_sols in ik_solutions:
+            ik_sols[:, 0] -= np.pi
+            ik_sols[:, 5] -= np.pi
+            ik_sols[ik_sols > np.pi] -= (2.0 * np.pi)
+            ik_sols[ik_sols < -np.pi] += (2.0 * np.pi)
 
+        # Check for paths in the approach path and add them to the root waypoints
         for path in paths:
             ik0 = np.array(ik_solutions[0][path[0]])
             ik1 = np.array(ik_solutions[1][path[1]])
+
             for i_sol in range(len(ik_solutions[2])):
                 ik2 = np.array(ik_solutions[2][i_sol])
-                if chebyshev_distance(ik2, ik1) <= 0.5 * np.pi:
+                if chebyshev_distance(ik2, ik1) <= 0.5 * np.pi and \
+                    controller.is_state_valid(ik2.tolist()) and \
+                    controller.is_state_valid(ik1.tolist()) and \
+                    controller.is_state_valid(ik0.tolist()):
                     wp_root = Waypoint(ik0)
                     wp_mid = wp_root.add_child(ik1)
                     wp_mid.add_child(ik2)
                     root_waypoints.append(wp_root)
 
+        # If no root waypoints were found, skip this pose
         if len(root_waypoints) == 0:
             if not pose_logged:
                 num_failed_root_init += 1
                 pose_logged = True
             continue
 
-        for i_state in range(num_states):
-            if i_state == 0:
-                continue
+        # Iterate through the states and try to grow the tree
+        for i_state in range(1, num_states):
             state_rad = states_rad[i_state]
             rvl_manipulator.set_environment_state(np.rad2deg(state_rad))
 
             T_A_A = np.eye(4)
             T_A_A[:3, :3] = rot_z(state_rad)
-
             T_6_0 = T_W_0 @ cabinet_model.T_A_S @ T_A_A @ cabinet_model.T_D_A @ T_G_D @ T_6_G
-            T_G_W = T_0_W @ T_6_0 @ T_G_6
 
             joints, n_sol, _ = rvl_manipulator.inv_kinematics_all_sols_prev(T_6_0)
             if n_sol < 1:
@@ -518,7 +513,17 @@ def generate_trajectories_and_approach2(
                     pose_logged = True
                 pose_failed = True
                 break
+            
+            joints_rvl = joints.copy()
+            for i_sol in range(n_sol):
+                q = joints[i_sol, :]
+                q[0] -= np.pi
+                q[5] -= np.pi
+                q[q > np.pi] -= (2.0 * np.pi)
+                q[q < -np.pi] += (2.0 * np.pi)
 
+            # For each root waypoint, try to grow the tree
+            # If the root is a leaf, we can add the new state directly
             for root in root_waypoints:
                 leaves = [root] if root.is_leaf() else get_all_leaves(root)
                 for leaf in leaves:
@@ -526,10 +531,12 @@ def generate_trajectories_and_approach2(
                     min_dist = np.inf
                     for i_sol in range(n_sol):
                         q = joints[i_sol, :]
+                        q_rvl = joints_rvl[i_sol, :]
                         dist = chebyshev_distance(q, leaf.q)
-                        if dist > 0.5 * np.pi:
+                        if np.isnan(dist) or dist > 0.5 * np.pi:
                             continue
-                        if dist < min_dist and rvl_manipulator.free(q) and controller.is_state_valid(q.tolist()):
+                        # rvl_manipulator.visualize_current_state(q_rvl, T_6_0 @ T_G_6)
+                        if dist < min_dist and rvl_manipulator.free(q_rvl) and controller.is_state_valid(q.tolist()):
                             best_q = q
                             min_dist = dist
                     if best_q is not None:
@@ -537,7 +544,7 @@ def generate_trajectories_and_approach2(
 
         if not pose_failed:
             any_valid = False
-            for root in root_waypoints:
+            for i_root, root in enumerate(root_waypoints):
                 trajectory = []
                 node = root
                 while node:

@@ -130,6 +130,7 @@ namespace RVL
 			bool InvKinematicsPrev(
 				Pose3D pose_6_0,
 				Array2D<float> &qOut);
+
 		public:
 			CRVLMem *pMem0;
 			CRVLParameterList paramList;
@@ -200,6 +201,14 @@ namespace RVL
 			Vector3<float> *c_S,
 			Pose3D *pPose_G_S);
 		bool FeasiblePose(
+			Pose3D *pPose_G_0,
+			float *SDF,
+			MOTION::NodeJS *nodesJS,
+			Array<int> &IKSolutionIdxs,
+			bool bApproach = false,
+			Array<MOTION::IKSolution> *pAapproachPathJS = NULL,
+			int *pnViaPts = NULL);
+		bool FeasiblePose2( // This function is created only for the purpose of the computational complexity analysis.
 			Pose3D *pPose_G_0,
 			float *SDF,
 			MOTION::NodeJS *nodesJS,
@@ -283,17 +292,17 @@ namespace RVL
 		void SetVisualizeVNEnvironmentModel();
 
 		// FCL
-		void RVLPose2FCLPose(Pose3D poseRVL, fcl::Transform3<double>& poseFCL);
+		void RVLPose2FCLPose(Pose3D poseRVL, fcl::Transform3<double> &poseFCL);
 		void LoadToolModelFCL();
 		void LoadCabinetStaticFCL(std::string cabinetStaticFilename_, Pose3D pose_A_S);
 		void LoadCabinetPanelFCL(std::string cabinetPanelFilename_);
 		void CreateRobotCylindersFCL();
 		void CreateGndFCL();
 		void GetVerticesFromPolyData(
-			vtkSmartPointer<vtkPolyData> &vtkPolyData, 
+			vtkSmartPointer<vtkPolyData> &vtkPolyData,
 			std::vector<fcl::Vector3<double>> &vertices);
 		void GetTrianglesFromPolyData(
-			vtkSmartPointer<vtkPolyData> &vtkPolyData, 
+			vtkSmartPointer<vtkPolyData> &vtkPolyData,
 			std::vector<fcl::Triangle> &triangles);
 		bool FreeFCL(Pose3D *pPose_G_S);
 		bool FreeFCL(Pose3D *pPose_G_S_start, Pose3D *pPose_G_S_end);
@@ -308,6 +317,7 @@ namespace RVL
 			Pose3D *pPose_G_S_contact,
 			Array<Pose3D> &poses_G_0_via,
 			float *SDF);
+
 	private:
 		void SetDoorReferenceFrames();
 		void UpdateVNClusterOrientations();
@@ -376,7 +386,6 @@ namespace RVL
 		float PRTCP_G[3];
 		Array<int> tool_contact_spheres;
 
-
 		// debug vars
 		bool bCountPoses;
 		int numExploredPoses_debug;
@@ -391,7 +400,8 @@ namespace RVL
 		bool bVisualizeApproachCollision;
 		int last_approach_error_code;
 
-		enum ApproachPathError {
+		enum ApproachPathError
+		{
 			APPROACH_SUCCESS = 0,
 			APPROACH_NO_IK_FOR_CONTACT = 1,
 			APPROACH_INVALID_SPHERE_POSE = 2,
@@ -409,7 +419,7 @@ namespace RVL
 		std::shared_ptr<fcl::BVHModel<fcl::OBBRSS<double>>> fclCabinetStaticMesh, fclCabinetPanelMesh, fclGndMesh;
 		std::shared_ptr<fcl::CollisionObject<double>> collisionCabinetObj, collisionGndObj;
 		fcl::CollisionRequest<double> requestFCL;
-	    fcl::Transform3d TArot_S;
+		fcl::Transform3d TArot_S;
 		Pose3D pose_A_S_FCL, poseArot_A_FCL, poseArot_S_FCL;
 		float csFCL;
 		float snFCL;
@@ -421,7 +431,7 @@ namespace RVL
 		// Pose3D pose_A_S;
 		char *cabinetStaticDirPath;
 		fcl::Vector3d contact_pos;
-	
+
 		// Path planning.
 
 		int maxnSE3Points;

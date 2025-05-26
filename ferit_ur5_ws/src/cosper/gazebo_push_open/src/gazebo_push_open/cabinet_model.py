@@ -137,10 +137,15 @@ class Cabinet():
         self.T_D_A[:3, :3] = np.array([[0, 0, -self.axis_pos],
                                       [self.axis_pos, 0, 0],
                                       [0, -1, 0]])
-        self.T_D_A[:3, 3] = np.array([self.axis_pos*self.d_door*0.5,
+        self.T_D_A[:3, 3] = np.array([self.rx - self.axis_pos*self.d_door*0.5,
                                       -self.w_door,
-                                    #   self.ry,
                                       self.h_door*0.5])
+        
+        self.T_D_A_init = self.T_D_A.copy()
+        self.T_D_A_init[:3, 3] = np.array([-self.axis_pos*self.d_door*0.5,
+                                      -self.w_door,
+                                      self.h_door*0.5])
+        
         # self.T_D_A[:3, :3] = rot_y(np.radians(-self.axis_pos*90.)) @ rot_z(np.radians(self.axis_pos*90.))
 
         # self.T_D_A[:3, 3] = np.array([-self.axis_pos*(self.d_door/2.),
@@ -808,15 +813,14 @@ class Cabinet():
             else:
                 self.dd_plate_mesh.translate((-self.w_door + self.axis_distance, 0.0, -self.d_door))
 
-        self.dd_plate_mesh.transform(self.T_A_O @ self.T_D_A)
+        self.dd_plate_mesh.transform(self.T_A_O @ self.T_D_A_init)
         self.dd_plate_mesh.paint_uniform_color([0.7, 0.7, 0.7])
         self.dd_plate_mesh.compute_vertex_normals()
 
         self.dd_plate_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
-        self.dd_plate_rf.transform(self.T_A_O @ self.T_D_A)
+        self.dd_plate_rf.transform(self.T_A_O @ self.T_D_A_init)
 
-
-        # Handle 
+        # Handle
         self.handle_mesh = o3d.geometry.TriangleMesh()
         if self.has_handle:
             self.handle_main_cyl_mesh = o3d.geometry.TriangleMesh.create_cylinder(radius=self.handle_radius, height=self.handle_length)

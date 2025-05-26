@@ -6,9 +6,9 @@
 #include "Mesh.h"
 #include "Visualizer.h"
 #include "SceneSegFile.hpp"
-//#include "ReconstructionEval.h"
+// #include "ReconstructionEval.h"
 #include "SurfelGraph.h"
-//#include "ObjectGraph.h"
+// #include "ObjectGraph.h"
 #include "PlanarSurfelDetector.h"
 #include "RVLRecognition.h"
 #include "RVLRecognitionCommon.h"
@@ -32,7 +32,7 @@ BranchMatcher::~BranchMatcher()
 	Clear();
 }
 
-void BranchMatcher::Create(char* cfgFileNameIn)
+void BranchMatcher::Create(char *cfgFileNameIn)
 {
 	cfgFileName = cfgFileNameIn;
 	CreateParamList();
@@ -50,15 +50,14 @@ void BranchMatcher::Clear()
 
 void BranchMatcher::CreateParamList()
 {
-
 }
 
 void BranchMatcher::Detect(Array2D<short int> depthImage)
 {
 	// Parameters.
 
-	int depthDiscontinuityThr = 20;		// mm
-	float maxParticleDist = 0.2f;		// m
+	int depthDiscontinuityThr = 20; // mm
+	float maxParticleDist = 0.2f;	// m
 	float particleDistResolution = 0.001f;
 
 	// Constants.
@@ -70,14 +69,17 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	bool *bDepthDiscontinuity = new bool[nPix];
 	memset(bDepthDiscontinuity, 0, nPix * sizeof(bool));
 	int neighborhood4[4];
-	neighborhood4[0] = 1; neighborhood4[1] = -depthImage.w; neighborhood4[2] = -1; neighborhood4[3] = depthImage.w;
+	neighborhood4[0] = 1;
+	neighborhood4[1] = -depthImage.w;
+	neighborhood4[2] = -1;
+	neighborhood4[3] = depthImage.w;
 	int iPix, iPix_;
 	int u, v;
 	int iNeighbor;
 	ushort d, d_;
 	int dd;
 	int absdd;
-	uchar* visPix;
+	uchar *visPix;
 	for (v = 1; v < depthImage.h - 1; v++)
 		for (u = 1; u < depthImage.w - 1; u++)
 		{
@@ -86,7 +88,7 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 			if (d == 0)
 				continue;
 			for (iNeighbor = 0; iNeighbor < 4; iNeighbor++)
-			{				
+			{
 				iPix_ = iPix + neighborhood4[iNeighbor];
 				d_ = depthImage.Element[iPix_];
 				if (d_ == 0)
@@ -105,13 +107,13 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 
 	// Depth discontinuity map visualization.
 
-	//cv::Mat depthDiscontinuityDisplay;
-	//depthDiscontinuityDisplay.create(depthImage.h, depthImage.w, CV_8UC1);
-	//visPix = depthDiscontinuityDisplay.data;
-	//for (iPix = 0; iPix < nPix; iPix++, visPix++)
+	// cv::Mat depthDiscontinuityDisplay;
+	// depthDiscontinuityDisplay.create(depthImage.h, depthImage.w, CV_8UC1);
+	// visPix = depthDiscontinuityDisplay.data;
+	// for (iPix = 0; iPix < nPix; iPix++, visPix++)
 	//	*visPix = (bDepthDiscontinuity[iPix] ? 255 : 0);
-	//cv::imshow("depth discontinuity map", depthDiscontinuityDisplay);
-	//cv::waitKey();
+	// cv::imshow("depth discontinuity map", depthDiscontinuityDisplay);
+	// cv::waitKey();
 
 	// EDT.
 
@@ -121,21 +123,21 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	EDTImage.Width = depthImage.w;
 	EDTImage.Height = depthImage.h;
 	EDTImage.pPix = new RVLEDT_PIX[nPix];
-	RVLEDT_BUCKET_ENTRY* EDTBucketMem = new RVLEDT_BUCKET_ENTRY[4 * nPix];
+	RVLEDT_BUCKET_ENTRY *EDTBucketMem = new RVLEDT_BUCKET_ENTRY[4 * nPix];
 	WORD iBucket;
 	for (iBucket = 0; iBucket < 4; iBucket++)
 		EDT.m_BucketPtrArray[iBucket] = EDTBucketMem + iBucket * nPix;
 	EDT.Border(&EDTImage);
 	EDT.CreateRTSqrtLUT();
 	CRVLBuffer EDTBuff;
-	EDTBuff.DataBuff = new void* [2 * nPix];
+	EDTBuff.DataBuff = new void *[2 * nPix];
 	EDTBuff.m_bOwnData = FALSE;
 	EDT.m_maxd2 = depthImage.w * depthImage.w + depthImage.h * depthImage.h;
 	CRVLMem mem;
 	mem.Create(nPix * sizeof(RVLPTRCHAIN_ELEMENT));
 	CRVLMPtrChain boundary;
 	boundary.m_pMem = &mem;
-	RVLEDT_PIX* pEDTPix;
+	RVLEDT_PIX *pEDTPix;
 	for (v = 1; v < depthImage.h - 1; v++)
 		for (u = 1; u < depthImage.w - 1; u++)
 		{
@@ -143,9 +145,9 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 			if (depthImage.Element[iPix] > 0 && bDepthDiscontinuity[iPix])
 			{
 				EDTImage.pPix[iPix].d2 = 0;
-				boundary.Add((void*)(EDTImage.pPix + iPix));
+				boundary.Add((void *)(EDTImage.pPix + iPix));
 			}
-			else if(depthImage.Element[iPix] == 0)
+			else if (depthImage.Element[iPix] == 0)
 				EDTImage.pPix[iPix].d2 = 0;
 		}
 	EDT.Apply(&boundary, NULL, &EDTImage, &EDTBuff);
@@ -154,11 +156,11 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 
 	// Visualize EDT.
 
-	//cv::Mat EDTDisplayImageHSV(depthImage.h, depthImage.w, CV_8UC3);
-	//visPix = EDTDisplayImageHSV.data;
-	//pEDTPix = EDTImage.pPix;
-	//int maxd2 = 140;
-	//for (iPix = 0; iPix < nPix; iPix++, visPix += 3, pEDTPix++)
+	// cv::Mat EDTDisplayImageHSV(depthImage.h, depthImage.w, CV_8UC3);
+	// visPix = EDTDisplayImageHSV.data;
+	// pEDTPix = EDTImage.pPix;
+	// int maxd2 = 140;
+	// for (iPix = 0; iPix < nPix; iPix++, visPix += 3, pEDTPix++)
 	//	if (pEDTPix->d2 == 0 && !bDepthDiscontinuity[iPix])
 	//	{
 	//		RVLNULL3VECTOR(visPix);
@@ -168,22 +170,30 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	//		visPix[0] = (pEDTPix->d2 <= maxd2 ? pEDTPix->d2+1 : maxd2);
 	//		visPix[1] = visPix[2] = 255;
 	//	}
-	//cv::Mat EDTDisplayImageBGR(depthImage.h, depthImage.w, CV_8UC3);
-	//cv::cvtColor(EDTDisplayImageHSV, EDTDisplayImageBGR, CV_HSV2RGB);
-	//cv::imshow("EDT", EDTDisplayImageBGR);
-	//cv::waitKey(); 
+	// cv::Mat EDTDisplayImageBGR(depthImage.h, depthImage.w, CV_8UC3);
+	// cv::cvtColor(EDTDisplayImageHSV, EDTDisplayImageBGR, CV_HSV2RGB);
+	// cv::imshow("EDT", EDTDisplayImageBGR);
+	// cv::waitKey();
 
 	// Particles.
 
 	int neighborhood8[8][2];
-	neighborhood8[0][0] = 1; neighborhood8[0][1] = 0;
-	neighborhood8[1][0] = 1; neighborhood8[1][1] = -1;
-	neighborhood8[2][0] = 0; neighborhood8[2][1] = -1;
-	neighborhood8[3][0] = -1; neighborhood8[3][1] = -1;
-	neighborhood8[4][0] = -1; neighborhood8[4][1] = 0;
-	neighborhood8[5][0] = -1; neighborhood8[5][1] = 1;
-	neighborhood8[6][0] = 0; neighborhood8[6][1] = 1;
-	neighborhood8[7][0] = 1; neighborhood8[7][1] = 1;
+	neighborhood8[0][0] = 1;
+	neighborhood8[0][1] = 0;
+	neighborhood8[1][0] = 1;
+	neighborhood8[1][1] = -1;
+	neighborhood8[2][0] = 0;
+	neighborhood8[2][1] = -1;
+	neighborhood8[3][0] = -1;
+	neighborhood8[3][1] = -1;
+	neighborhood8[4][0] = -1;
+	neighborhood8[4][1] = 0;
+	neighborhood8[5][0] = -1;
+	neighborhood8[5][1] = 1;
+	neighborhood8[6][0] = 0;
+	neighborhood8[6][1] = 1;
+	neighborhood8[7][0] = 1;
+	neighborhood8[7][1] = 1;
 	int neighborhood8_[8];
 	float fNeighborhood8[8][2];
 	for (iNeighbor = 0; iNeighbor < 8; iNeighbor++)
@@ -192,11 +202,11 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 		fNeighborhood8[iNeighbor][0] = (float)(neighborhood8[iNeighbor][0]);
 		fNeighborhood8[iNeighbor][1] = (float)(neighborhood8[iNeighbor][1]);
 	}
-	int *particleMap = new int[nPix];	
+	int *particleMap = new int[nPix];
 	memset(particleMap, 0xff, nPix * sizeof(int));
-	bool* bNMS = new bool[nPix];
+	bool *bNMS = new bool[nPix];
 	memset(bNMS, 0, nPix * sizeof(bool));
-	RVLEDT_PIX* pEDTPix_;
+	RVLEDT_PIX *pEDTPix_;
 	int nCorePixels;
 	float fnCorePixels;
 	float du, dv;
@@ -209,12 +219,12 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	Rect<int> imageRect;
 	imageRect.minx = 0;
 	imageRect.maxx = depthImage.w - 1;
-	imageRect.miny = 0; 
+	imageRect.miny = 0;
 	imageRect.maxy = depthImage.h - 1;
 	int rNeighborhood, rNeighborhood2;
 	int u_, v_, du_, dv_;
-	RECOG::BM::Particle* particleMem = new RECOG::BM::Particle[nPix];
-	RECOG::BM::Particle* pParticle = particleMem;
+	RECOG::BM::Particle *particleMem = new RECOG::BM::Particle[nPix];
+	RECOG::BM::Particle *pParticle = particleMem;
 	for (v = 1; v < depthImage.h - 1; v++)
 		for (u = 1; u < depthImage.w - 1; u++)
 		{
@@ -252,7 +262,8 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 				}
 			}
 			fnCorePixels = (float)nCorePixels;
-			cImg[0] /= fnCorePixels; cImg[1] /= fnCorePixels;
+			cImg[0] /= fnCorePixels;
+			cImg[1] /= fnCorePixels;
 			du = (float)(pEDTPix->dx) + cImg[0];
 			dv = (float)(pEDTPix->dz) + cImg[1];
 			rImg = sqrt(du * du + dv * dv) + 0.5f;
@@ -272,7 +283,7 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 			neighborhood.miny = v - rNeighborhood;
 			neighborhood.maxy = v + rNeighborhood;
 			CropRect<int>(neighborhood, imageRect);
-			for(v_ = neighborhood.miny; v_ <= neighborhood.maxy; v_++)
+			for (v_ = neighborhood.miny; v_ <= neighborhood.maxy; v_++)
 				for (u_ = neighborhood.minx; u_ <= neighborhood.maxx; u_++)
 				{
 					du_ = u_ - u;
@@ -297,28 +308,28 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 
 	// Visualize particle map.
 
-	//cv::Mat particleMapDisplay;
-	//particleMapDisplay.create(depthImage.h, depthImage.w, CV_8UC3);
-	//DisplayDisparityMap(depthImage, (unsigned char*)(particleMapDisplay.data), true, RVLRGB_DEPTH_FORMAT_1MM);
-	//for (iParticle = 0; iParticle < particles.n; iParticle++)
-	//{
-	//	pParticle = particles.Element + iParticle;
-	//	visPix = particleMapDisplay.data + 3 * pParticle->iPix;
-	//	RVLSET3VECTOR(visPix, 0, 255, 0);
-	//}
-	//cv::imshow("Particle map", particleMapDisplay);
-	//cv::waitKey();
+	cv::Mat particleMapDisplay;
+	particleMapDisplay.create(depthImage.h, depthImage.w, CV_8UC3);
+	DisplayDisparityMap(depthImage, (unsigned char *)(particleMapDisplay.data), true, RVLRGB_DEPTH_FORMAT_1MM);
+	for (iParticle = 0; iParticle < particles.n; iParticle++)
+	{
+		pParticle = particles.Element + iParticle;
+		visPix = particleMapDisplay.data + 3 * pParticle->iPix;
+		RVLSET3VECTOR(visPix, 0, 255, 0);
+	}
+	cv::imshow("Particle map", particleMapDisplay);
+	cv::waitKey();
 
 	// Edges.
 
 	Array<GRAPH::MSTreeEdge> edges;
 	edges.Element = new GRAPH::MSTreeEdge[particles.n * particles.n];
 	edges.n = 0;
-	GRAPH::MSTreeEdge* pEdge;
+	GRAPH::MSTreeEdge *pEdge;
 	int iParticle_;
-	RECOG::BM::Particle* pParticle_;
+	RECOG::BM::Particle *pParticle_;
 	float dP[3];
-	//int* sortKey = new int[particles.n * (particles.n + 1) / 2];
+	// int* sortKey = new int[particles.n * (particles.n + 1) / 2];
 	for (iParticle = 0; iParticle < particles.n; iParticle++)
 	{
 		pParticle = particles.Element + iParticle;
@@ -329,17 +340,18 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 			pEdge->iVertex[0] = iParticle;
 			pEdge->iVertex[1] = iParticle_;
 			RVLDIF3VECTORS(pParticle_->c, pParticle->c, dP);
+			// fTmp = RVLMIN(pParticle_->r, pParticle->r);
 			pEdge->cost = sqrt(RVLDOTPRODUCT3(dP, dP));
 			if (pEdge->cost > maxParticleDist)
 				continue;
-			//sortKey[edges.n] = (int)floor(pEdge->cost / particleDistResolution);
+			// sortKey[edges.n] = (int)floor(pEdge->cost / particleDistResolution);
 			edges.n++;
 		}
 	}
-	//int* sortIdx = new int[particles.n * (particles.n + 1) / 2];
-	//QuickSort(sortKey, sortIdx, edges.n);
-	//delete[] sortKey;
-	//delete[] sortIdx;
+	// int* sortIdx = new int[particles.n * (particles.n + 1) / 2];
+	// QuickSort(sortKey, sortIdx, edges.n);
+	// delete[] sortKey;
+	// delete[] sortIdx;
 
 	// Minimum spanning tree.
 
@@ -362,9 +374,9 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	Array<Pair<int, int>> visEdges;
 	visEdges.Element = new Pair<int, int>[particles.n - 1];
 	visEdges.n = 0;
-	GRAPH::Node* pMSTNode;
-	GRAPH::EdgePtr<GRAPH::Edge>* pMSTEdgePtr;
-	Pair<int, int>* pVisEdge;
+	GRAPH::Node *pMSTNode;
+	GRAPH::EdgePtr<GRAPH::Edge> *pMSTEdgePtr;
+	Pair<int, int> *pVisEdge;
 	for (iParticle = 0; iParticle < particles.n; iParticle++)
 	{
 		pMSTNode = MST.T.NodeArray.Element + iParticle;
@@ -394,7 +406,7 @@ void BranchMatcher::Detect(Array2D<short int> depthImage)
 	delete[] edges.Element;
 }
 
-void BranchMatcher::InitVisualizer(Visualizer* pVisualizerIn)
+void BranchMatcher::InitVisualizer(Visualizer *pVisualizerIn)
 {
 	if (pVisualizationData == NULL)
 		pVisualizationData = new RECOG::BM::DisplayCallbackData;
@@ -409,9 +421,8 @@ void BranchMatcher::InitVisualizer(Visualizer* pVisualizerIn)
 		pVisualizationData->bOwnVisualizer = true;
 	}
 	pVisualizationData->paramList.m_pMem = pMem0;
-	RVLPARAM_DATA* pParamData;
+	RVLPARAM_DATA *pParamData;
 	pVisualizationData->paramList.Init();
-	//pParamData = pVisualizationData->paramList.AddParam("DDD.visualizeSurfels", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bVisualizeSurfels));
-	pVisualizationData->paramList.LoadParams((char*)(cfgFileName.data()));
+	// pParamData = pVisualizationData->paramList.AddParam("DDD.visualizeSurfels", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bVisualizeSurfels));
+	pVisualizationData->paramList.LoadParams((char *)(cfgFileName.data()));
 }
-

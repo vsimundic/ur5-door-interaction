@@ -69,6 +69,7 @@ namespace RVL
 	/////
 
 	struct MeshEdgePtr;
+	class Mesh;
 
 	namespace MESH
 	{
@@ -104,6 +105,10 @@ namespace RVL
 			IntPlane *piPlane;
 			Face *pNext;
 		};
+
+		bool LoadFromOFF(
+			char *OFFFileName,
+			Mesh *pMesh);
 	}
 
 	struct MeshEdge
@@ -447,6 +452,9 @@ namespace RVL
 			MeshEdgePtr **&pBoundaryMem,
 			unsigned char *edgeMarkMap);
 		void BoundingBox(Box<float> *pBox);
+		bool MinBoundingBox(
+			Pose3D *pPose,
+			Vector3<float> *pSize);
 		bool ConvexHull(
 			Array2D<float> points,
 			CRVLMem *pMem,

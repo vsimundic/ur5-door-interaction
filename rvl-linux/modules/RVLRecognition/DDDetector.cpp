@@ -183,8 +183,8 @@ void DDDetector::CreateParamList()
 	pParamData = paramList.AddParam("DDD.no_RANSAC_iterations", RVLPARAM_TYPE_INT, &nRANSACIterations);
 	pParamData = paramList.AddParam("DDD.pointAssociationGridCellSize", RVLPARAM_TYPE_INT, &pointAssociationGridCellSize);
 	pParamData = paramList.AddParam("DDD.maxCoPlanarSurfelRefPtDist", RVLPARAM_TYPE_FLOAT, &maxCoPlanarSurfelRefPtDist);
-    pParamData = paramList.AddParam("DDD.orthogonalView.maskedThr", RVLPARAM_TYPE_INT, &orthogonalViewMaskedThr);
-    pParamData = paramList.AddParam("DDD.orthogonalView.wTexture", RVLPARAM_TYPE_FLOAT, &orthogonalViewwTexture);
+	pParamData = paramList.AddParam("DDD.orthogonalView.maskedThr", RVLPARAM_TYPE_INT, &orthogonalViewMaskedThr);
+	pParamData = paramList.AddParam("DDD.orthogonalView.wTexture", RVLPARAM_TYPE_FLOAT, &orthogonalViewwTexture);
 }
 
 // #define RVLDDD_DETECTRGBEDGES_VISUALIZE
@@ -480,16 +480,16 @@ void DDDetector::DetectRGBEdgeLineSegments(
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE
 #ifdef RVLDDD_DETECTRGBEDGES_VISUALIZE_LINES
 	cv::cvtColor(edges, pVisualizationData->displayImg, cv::COLOR_GRAY2BGR);
-    pVisualizationData->displayImg.create(h, w, CV_8UC3);
-    pVisualizationData->displayImg.setTo(cv::Scalar(255, 255, 255));
+	pVisualizationData->displayImg.create(h, w, CV_8UC3);
+	pVisualizationData->displayImg.setTo(cv::Scalar(255, 255, 255));
 	for (iLineSegment = 0; iLineSegment < lineSegmentsOut.n; iLineSegment++)
 	{
 		pLineSegment = lineSegmentsOut.Element + iLineSegment;
 		cv::line(pVisualizationData->displayImg,
 				 cv::Point(pLineSegment->P[0][0], pLineSegment->P[0][1]),
 				 cv::Point(pLineSegment->P[1][0], pLineSegment->P[1][1]),
-                 // cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
-                 cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
+				 // cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
+				 cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
 	}
 	cv::imshow("Hough Lines", pVisualizationData->displayImg);
 	cv::waitKey();
@@ -3448,8 +3448,8 @@ void DDDetector::Detect3(
 				iUDD_ = interpretation.Element[j];
 				iPair = iUDD * uniqueDDs.n + iUDD_;
 				if (bWithin[iPair])
-				break;
-		}
+					break;
+			}
 
 			// If it is not, then decrease dCost by the normalized area of this rectangle.
 
@@ -3528,7 +3528,7 @@ void DDDetector::Detect3(
 			iPair = iUDD * uniqueDDs.n + iUDD_;
 			if (bWithin[iPair])
 				break;
-	}
+		}
 		if (j < bestInterpretation.n)
 			continue;
 		pDDRects->Element[pDDRects->n++] = pRect->rect;
@@ -3590,33 +3590,33 @@ void DDDetector::Detect3(
 	{
 		uchar *edgeImg = new uchar[3 * nPix];
 		uchar *visPix = edgeImg;
-	for (iPix = 0; iPix < nPix; iPix++, visPix += 3)
+		for (iPix = 0; iPix < nPix; iPix++, visPix += 3)
 			if (iHEdge[iPix] >= 0 || iVEdge[iPix] >= 0)
-            RVLSET3VECTOR(visPix, 0, 0, 0)
-        else
-			RVLSET3VECTOR(visPix, 255, 255, 255)
+				RVLSET3VECTOR(visPix, 0, 0, 0)
+			else
+				RVLSET3VECTOR(visPix, 255, 255, 255)
 		cv::Mat displayImg(h, w, CV_8UC3);
 		memcpy(displayImg.data, edgeImg, 3 * nPix);
 		cv::imshow("detected door/drawer", displayImg);
 		cv::waitKey();
 		cv::destroyWindow("detected door/drawer");
 		Rect<int> *pRect__;
-	for (iDD = 0; iDD < pDDRects->n; iDD++)
-	{
+		for (iDD = 0; iDD < pDDRects->n; iDD++)
+		{
 			memcpy(displayImg.data, edgeImg, 3 * nPix);
 			for (iDD_ = 0; iDD_ < pDDRects->n; iDD_++)
 			{
 				pRect__ = pDDRects->Element + iDD_;
 				if (iDD_ != iDD)
 					cv::rectangle(displayImg, cv::Point(pRect__->minx, pRect__->miny), cv::Point(pRect__->maxx, pRect__->maxy), cv::Scalar(0, 255, 0));
-	}
+			}
 			pRect__ = pDDRects->Element + iDD;
 			cv::rectangle(displayImg, cv::Point(pRect__->minx, pRect__->miny), cv::Point(pRect__->maxx, pRect__->maxy), cv::Scalar(0, 0, 255));
 			printf("rectangle %d\n", bestInterpretation.Element[iDD]);
 			// printf("rectangle %d\n", iDD);
-	cv::imshow("detected door/drawer", displayImg);
-	cv::waitKey();
-    cv::destroyWindow("detected door/drawer");
+			cv::imshow("detected door/drawer", displayImg);
+			cv::waitKey();
+			cv::destroyWindow("detected door/drawer");
 		}
 		delete[] edgeImg;
 	}
@@ -3690,9 +3690,9 @@ bool DDDetector::GenerateHypotheses(
 	//	pVisualizationData->pVisualizer->Run();
 	// }
 
-	// Only for purpose of testing PlanarSurfelDetector::CreatePolygons()!!!
+	// Only for purpose of testing PlanarSurfelDetector::CreatePolygons2()!!!
 
-	// pSurfelDetector->CreatePolygons(pMesh, pSurfels, NULL);
+	// pSurfelDetector->CreatePolygons2(pMesh, pSurfels, NULL);
 
 	// Sample Image.
 
@@ -6057,7 +6057,7 @@ void DDDetector::DDOrthogonalView(
 				cv::line(displayImg, cv::Point(pEdgeLineF->P[0][0], pEdgeLineF->P[0][1]), cv::Point(pEdgeLineF->P[1][0], pEdgeLineF->P[1][1]), cv::Scalar(0, 255, 0));
 			cv::imshow(displayName, displayImg);
 			cv::waitKey();
-            cv::destroyWindow(displayName);
+			cv::destroyWindow(displayName);
 		}
 	}
 }
@@ -7778,12 +7778,12 @@ bool DDDetector::RectangularStructures(
 		planarSurfaces.InitDisplay(pVisualizationData->pVisualizer, pMesh, pSurfelDetector);
 		planarSurfaces.Display(pVisualizationData->pVisualizer, pMesh);
 		pVisualizationData->pVisualizer->Run();
-        pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
-        cv::Mat displayImg(pMesh->height, pMesh->width, CV_8UC3);
-        displayImg.setTo(cv::Scalar(0, 0, 0));
-        planarSurfaces.DisplayRGB(displayImg);
-        cv::imshow("Surfels", displayImg);
-        cv::waitKey();
+		pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
+		cv::Mat displayImg(pMesh->height, pMesh->width, CV_8UC3);
+		displayImg.setTo(cv::Scalar(0, 0, 0));
+		planarSurfaces.DisplayRGB(displayImg);
+		cv::imshow("Surfels", displayImg);
+		cv::waitKey();
 	}
 
 	// Sort planar surfaces according to their size.
@@ -7920,7 +7920,7 @@ bool DDDetector::RectangularStructures(
 			// RectangularStructure(-1, -1, false, surfelRefPtMem, beta, pRectStruct, false);
 			pVisualizationData->pVisualizer->SetMesh(pMesh);
 			VisualizeRectangularStructure(pMesh, pRectStruct);
-            // VisualizeRectangularStructure(NULL, pRectStruct);
+			// VisualizeRectangularStructure(NULL, pRectStruct);
 			pVisualizationData->pVisualizer->Run();
 			pVisualizationData->pVisualizer->renderer->RemoveAllViewProps();
 		}
@@ -11815,7 +11815,7 @@ void DDDetector::VisualizeArticulatedObject(
 
 void DDDetector::Get2DObjectPoints(
 	RECOG::DDD::HypothesisDoorDrawer movingPart,
-	PSD::Point2D *&pts)
+	Point2D *&pts)
 {
 	int iMovingPart;
 	Pose3D poseBC;
@@ -11843,7 +11843,7 @@ void DDDetector::Get2DObjectPoints(
 	}
 }
 
-float DDDetector::CalculateArea(std::vector<PSD::Point2D> ptsIn)
+float DDDetector::CalculateArea(std::vector<Point2D> ptsIn)
 {
 	float area = 0;
 	int ptsSize = ptsIn.size();
@@ -11858,24 +11858,24 @@ float DDDetector::CalculateArea(std::vector<PSD::Point2D> ptsIn)
 
 void DDDetector::IoUHypothesisEvaluation(
 	RECOG::DDD::HypothesisDoorDrawer movingPart,
-	std::vector<std::vector<PSD::Point2D>> gtPoints,
+	std::vector<std::vector<Point2D>> gtPoints,
 	float *&iouResults,
 	cv::Mat *pRGBDisplay)
 {
 	float detectedArea, gtArea, overlapArea, unionArea, iou;
 
-	PSD::Point2D *detPtsArr = new PSD::Point2D[4];
+	Point2D *detPtsArr = new Point2D[4];
 	Get2DObjectPoints(movingPart, detPtsArr);
 
-	std::vector<PSD::Point2D> detectedPts, detectedPtsOut;
-	detectedPts = std::vector<PSD::Point2D>(detPtsArr, detPtsArr + 4);
+	std::vector<Point2D> detectedPts, detectedPtsOut;
+	detectedPts = std::vector<Point2D>(detPtsArr, detPtsArr + 4);
 	GetConvexPoints(detectedPts, detectedPtsOut);
 	detectedArea = pSurfelDetector->Area(detectedPtsOut);
 	cout << "detectedArea: " << detectedArea << endl;
 	// cout << "detectedArea2: " << CalculateArea(detectedPts) << endl;
 
-	std::vector<PSD::Point2D> gtPointsOut;
-	std::vector<PSD::Point2D> allPts, allPtsOut;
+	std::vector<Point2D> gtPointsOut;
+	std::vector<Point2D> allPts, allPtsOut;
 	for (int iGT = 0; iGT < gtPoints.size(); iGT++)
 	{
 		gtPointsOut.clear();
@@ -11907,18 +11907,18 @@ void DDDetector::IoUHypothesisEvaluation(
 
 void DDDetector::cvIoUHypothesisEvaluation(
 	RECOG::DDD::HypothesisDoorDrawer movingPart,
-	std::vector<std::vector<PSD::Point2D>> gtPoints,
+	std::vector<std::vector<Point2D>> gtPoints,
 	float *&iouResults,
 	cv::Mat *pRGBDisplay)
 {
 	float detectedArea, gtArea, cvIntersectionArea, unionArea, iou;
 
-	PSD::Point2D *detPtsArr = new PSD::Point2D[4];
-	std::vector<PSD::Point2D> detectedPts;
+	Point2D *detPtsArr = new Point2D[4];
+	std::vector<Point2D> detectedPts;
 	std::vector<cv::Point> cvDetectedPts, cvGTPts, cvAllPts;
 
 	Get2DObjectPoints(movingPart, detPtsArr);
-	detectedPts = std::vector<PSD::Point2D>(detPtsArr, detPtsArr + 4);
+	detectedPts = std::vector<Point2D>(detPtsArr, detPtsArr + 4);
 	VectorPSDPoin2DToVectorCvPoint(&detectedPts, cvDetectedPts);
 	detectedArea = cv::contourArea(cvDetectedPts);
 
@@ -11943,13 +11943,13 @@ void DDDetector::cvIoUHypothesisEvaluation(
 	delete[] detPtsArr;
 }
 
-void DDDetector::VectorPSDPoin2DToVectorCvPoint(std::vector<PSD::Point2D> *ptsIn, std::vector<cv::Point> &ptsOut)
+void DDDetector::VectorPSDPoin2DToVectorCvPoint(std::vector<Point2D> *ptsIn, std::vector<cv::Point> &ptsOut)
 {
 	for (int i = 0; i < ptsIn->size(); i++)
 		ptsOut.push_back(cv::Point(ptsIn->at(i).P[0], ptsIn->at(i).P[1]));
 }
 
-float DDDetector::GetIntersectionConvexSet(std::vector<PSD::Point2D> poly1, std::vector<PSD::Point2D> poly2, std::vector<PSD::Point2D> *outPoly)
+float DDDetector::GetIntersectionConvexSet(std::vector<Point2D> poly1, std::vector<Point2D> poly2, std::vector<Point2D> *outPoly)
 {
 	std::vector<cv::Point> cvPoly1;
 	std::vector<cv::Point> cvPoly2;
@@ -11965,7 +11965,7 @@ float DDDetector::GetIntersectionConvexSet(std::vector<PSD::Point2D> poly1, std:
 	cvDetectedArea = cv::contourArea(cvPoly1);
 	cvGTArea = cv::contourArea(cvPoly2);
 
-	PSD::Point2D pt;
+	Point2D pt;
 	for (int i = 0; i < cvOutPoly.size(); i++)
 	{
 		pt.P[0] = cvOutPoly[i].x;
@@ -11980,8 +11980,8 @@ float DDDetector::GetIntersectionConvexSet(std::vector<PSD::Point2D> poly1, std:
 
 void DDDetector::VisualizeHypothesisGT(
 	cv::Mat pRGBDisplay,
-	std::vector<PSD::Point2D> detectedPts,
-	std::vector<PSD::Point2D> gtPts)
+	std::vector<Point2D> detectedPts,
+	std::vector<Point2D> gtPts)
 {
 	for (int iPt = 0; iPt < detectedPts.size(); iPt++)
 	{
@@ -12002,7 +12002,7 @@ void DDDetector::VisualizeHypothesisGT(
 	cv::waitKey(0);
 }
 
-void DDDetector::GetConvexPoints(std::vector<PSD::Point2D> ptsIn, std::vector<PSD::Point2D> &ptsOut)
+void DDDetector::GetConvexPoints(std::vector<Point2D> ptsIn, std::vector<Point2D> &ptsOut)
 {
 	float N[2];
 	float d;
@@ -12021,14 +12021,15 @@ void DDDetector::GetConvexPoints(std::vector<PSD::Point2D> ptsIn, std::vector<PS
 		N[0] = -dy;
 		N[1] = dx;
 		d = N[0] * ptsIn[iPt].P[0] + N[1] * ptsIn[iPt].P[1];
-		pSurfelDetector->UpdateConvexSet(ptsOut, N, d, ptsOut);
+		// pSurfelDetector->UpdateConvexSet(ptsOut, N, d, ptsOut);
+		PSD::UpdateConvexSet(ptsOut, N, d, ptsOut);
 	}
 }
 
-void DDDetector::GetGTPointsFromCSV(std::vector<std::vector<std::string>> csvContent, std::vector<std::vector<PSD::Point2D>> &allGTPoints)
+void DDDetector::GetGTPointsFromCSV(std::vector<std::vector<std::string>> csvContent, std::vector<std::vector<Point2D>> &allGTPoints)
 {
-	std::vector<PSD::Point2D> gtPoints;
-	PSD::Point2D gtPoint;
+	std::vector<Point2D> gtPoints;
+	Point2D gtPoint;
 	allGTPoints.clear();
 	for (int iGT = 0; iGT < csvContent.size(); iGT++)
 	{
@@ -12493,11 +12494,11 @@ void RECOG::DDD::Detect3CallBackFunc(int event, int x, int y, int flags, void *u
 				imgVertex[2][1] = imgVertex[1][1];
 				imgVertex[3][0] = imgVertex[2][0];
 				imgVertex[3][1] = 0.0f;
-				PSD::Point2D imgVertexF[4];
+				Point2D imgVertexF[4];
 				Pose3D *pPoseFC = &(pFrontSurface->poseFC);
 				RVLINVTRANSF3D(pPoseFC->R, pPoseFC->t, poseCF.R, poseCF.t);
 				float rectVertexF[4][2];
-				std::vector<PSD::Point2D> imgRectIS;
+				std::vector<Point2D> imgRectIS;
 				for (i = 0; i < 4; i++)
 				{
 					pDetector->ProjectImgPtToPlanarSurface(imgVertex[i], &poseCF, pDetector->orthogonalViewPixSize, imgVertexF[i].P);
@@ -12511,7 +12512,7 @@ void RECOG::DDD::Detect3CallBackFunc(int event, int x, int y, int flags, void *u
 				float N[4][2];
 				float fTmp;
 				float d[4];
-				std::vector<PSD::Point2D> imgRectIS_;
+				std::vector<Point2D> imgRectIS_;
 				for (i = 0; i < 4; i++)
 				{
 					iPrev = (i + 3) % 4;
@@ -12536,7 +12537,7 @@ void RECOG::DDD::Detect3CallBackFunc(int event, int x, int y, int flags, void *u
 					float e;
 					// float eNext, ePrev;
 					float eMax = 0.0f;
-					PSD::Point2D imgRectISVertex;
+					Point2D imgRectISVertex;
 					bool bFirst;
 					int iClosest;
 					for (i = 0; i < 4; i++)
@@ -13516,7 +13517,7 @@ void DDDetector::DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int
 	RVLCOPY3VECTOR(t, pose.t);
 	RVLCOPYMX3X3(R, pose.R);
 
-// pMeshM = meshSeq.Element + meshSeq.n - 1;
+	// pMeshM = meshSeq.Element + meshSeq.n - 1;
 	// MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsM);
 	MeshSubsample(pMeshM, &pointsMSubsampledIdx);
 	MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, pointsMSubsampledIdx, pointsMSubsampled);
@@ -13545,7 +13546,7 @@ void DDDetector::DetectDominantShiftPoints(Mesh *pMeshM, Mesh *pMeshQ, Array<int
 		MESH::CreateOrientedPointArrayFromPointArray(pMeshM->NodeArray, *dominantShiftPointsIdx, dominantShiftPoints);
 
 		// Visualization.
-		
+
 		if (bVisualize && pVisualizationData->bVisualizeROIDetection)
 		{
 			Visualizer *pVisualizer;
@@ -14487,7 +14488,7 @@ void DDDetector::SetPointsForPointToPointAssociationVisualization(Array<Oriented
 	// delete[] associationLines2.Element;
 }
 
-//Simundic
+// Simundic
 void DDDetector::SegmentPlanarSurfaces(Mesh *pMesh)
 {
 	pMem->Clear();
@@ -14500,7 +14501,6 @@ void DDDetector::SegmentPlanarSurfaces(Mesh *pMesh)
 	printf("No. of surfels = %d\n", nSurfels);
 	pSurfelDetector->MergeSurfels(pMesh, pSurfels, minSurfelSize, minEdgeSize, maxCoPlanarSurfelNormalAngle, maxCoPlanarSurfelRefPtDist, &planarSurfaces);
 	printf("No. of planar surfaces = %d\n", planarSurfaces.NodeArray.n);
-
 }
 
 void DDDetector::SetShiftVectorForVisualization(float *firstPoint, Vector3<float> shift, uchar *color)

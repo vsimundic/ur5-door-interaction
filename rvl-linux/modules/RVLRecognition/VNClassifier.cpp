@@ -1,12 +1,12 @@
 // #include "stdafx.h"
 
 #include "RVLCore2.h"
-// #define RVLVN_TIME_MESUREMENT // Vidovic
-#ifdef RVLVN_TIME_MESUREMENT
-#define RVLVN_RECORD_RESULTS
-#undef RVLVN_VERBOSE
-#endif
 #ifndef RVLLINUX
+#define RVLVN_TIME_MESUREMENT // Vidovic
+#endif
+#define RVLVN_RECORD_RESULTS
+#ifdef RVLVN_TIME_MESUREMENT
+#undef RVLVN_VERBOSE
 #include <Windows.h>
 #endif
 #include <algorithm>
@@ -19,6 +19,8 @@
 #include "Mesh.h"
 #include "MSTree.h"
 #include "Visualizer.h"
+#include "AccuSphere.h"
+#include "ConvexHullCreator.h"
 #include "SceneSegFile.hpp"
 #include "ReconstructionEval.h"
 #include "SurfelGraph.h"
@@ -6526,7 +6528,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
         printf("surfelTime2=%lf\n", surfelTime2);
 
         QueryPerformanceCounter((LARGE_INTEGER *)&start_);
-	}
+    }
 #endif
 
     //// Detection of planar and convex surfaces
@@ -6586,7 +6588,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
         printf("planarAndConvexSurfacesTime2=%lf\n", planarAndConvexSurfacesTime2);
 
         QueryPerformanceCounter((LARGE_INTEGER *)&start_);
-	}
+    }
 #endif
 
     //// Hypothesis generation and LEVEL 1 evaluation.
@@ -7059,7 +7061,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
         hypGenAndLEVEL1Time2 = (end_.QuadPart - start_.QuadPart) * 1000.0 / frequency.QuadPart;
 
         QueryPerformanceCounter((LARGE_INTEGER *)&start_);
-	}
+    }
 #endif
 
     //// LEVEL2 Evaluation:
@@ -7267,7 +7269,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
 
             nLevel2Hypotheses = RVLMIN(nHypothesesLevel2, superSegmentHypothesesBuff.n);
 
-			pHypothesisSupesegmentPtr += nLevel2Hypotheses;		// NEW
+            pHypothesisSupesegmentPtr += nLevel2Hypotheses;     // NEW
             pHypothesisSupesegmentSortPtr += nLevel2Hypotheses; // NEW
 
             sortedSuperSegmentHypotheses[iSuperSegment].n += nLevel2Hypotheses; // NEW
@@ -7408,7 +7410,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
         LEVEL2Time2 = (end_.QuadPart - start_.QuadPart) * 1000.0 / frequency.QuadPart;
 
         QueryPerformanceCounter((LARGE_INTEGER *)&start_);
-	}
+    }
 #endif
 
     //// LEVEL3 Evaluation:
@@ -7580,7 +7582,7 @@ void VNClassifier::Interpret3(Mesh *pMesh)
         LEVEL3Time2 = (end_.QuadPart - start_.QuadPart) * 1000.0 / frequency.QuadPart;
 
         QueryPerformanceCounter((LARGE_INTEGER *)&start_);
-	}
+    }
 #endif
 
     //// Create interpretation by greedy search.
@@ -10269,7 +10271,7 @@ bool VNClassifier::Classify2(
 
             iZ++;
         } // for (iPan = 0; iPan < nPan; iPan++)
-	}	  // for (iTilt = 0; iTilt < CTIDescriptorMapingData.nTilt; iTilt++)
+    }     // for (iTilt = 0; iTilt < CTIDescriptorMapingData.nTilt; iTilt++)
 
     // Only for debugging purpose!
 
@@ -10576,7 +10578,7 @@ bool VNClassifier::Classify2(
                     maxCorrelation[iBlock] = maxCorrelation_;
                 }
             } // for (j = 0; j < iAligned.n; j++)
-		}	  // if (iR < 0)
+        }     // if (iR < 0)
 
         // nHypotheses = 0;
 
@@ -10868,9 +10870,9 @@ bool VNClassifier::Classify2(
                         //}
                     }
                 } // for each hypothesis
-			}	  // if there are valid alignment proposals
-		}		  // for each hypothesis
-	}			  // for every class
+            }     // if there are valid alignment proposals
+        }         // for each hypothesis
+    }             // for every class
 
     timer.Stop();
 
@@ -12187,7 +12189,7 @@ void VNClassifier::SuperSegmentNeighbourhood(Mesh *pMesh)
 
     segmentN_PD.clear();
 
-	std::vector<int> pointIdxRadiusSearch;		   // to store index of surrounding points
+    std::vector<int> pointIdxRadiusSearch;         // to store index of surrounding points
     std::vector<float> pointRadiusSquaredDistance; // to store distance to surrounding points
     vtkSmartPointer<vtkPoints> points;
     vtkSmartPointer<vtkFloatArray> normals;
@@ -13587,7 +13589,7 @@ float VNClassifier::FitCTI(
                 memcpy(bd, bd_, sampledUnitSphere.h * sizeof(uchar));
             }
         } // for (iX = 0; iX < 3; iX++)
-	}	  // for (iZ = 0; iZ < 4; iZ++)
+    }     // for (iZ = 0; iZ < 4; iZ++)
 
     SURFEL::DeleteSceneSamples(sceneSamples);
 
@@ -14411,7 +14413,7 @@ void VNClassifier::CanonicalOrientation(float *RCanonical)
 
             iZ++;
         } // for (iPan = 0; iPan < nPan; iPan++)
-	}	  // for (iTilt = 0; iTilt < CTIDescriptorMapingData.nTilt; iTilt++)
+    }     // for (iTilt = 0; iTilt < CTIDescriptorMapingData.nTilt; iTilt++)
 
     RVL_DELETE_ARRAY(iModelNormalArray.Element);
 
@@ -15709,7 +15711,7 @@ void VNClassifier::MergeClusters(
                                 ptCnt++;
                                 pt = pt->pNext;
                             } // for all points in surfel
-						}	  // for all surfels
+                        }     // for all surfels
 
                         outlierCnt = 0;
 
@@ -16616,7 +16618,7 @@ void VNClassifier::CreatePartModel()
 
                     pModelTemplateInstance = pModelTemplateInstance->pNext;
                 } // For all model template instances of iModel1
-			}	  // for all models
+            }     // for all models
 
 #ifdef RVLVN_PART_SEGMENTATION_TRAINING_LOG
             fclose(fpLog);
@@ -17012,7 +17014,7 @@ void VNClassifier::CreatePartModel()
             // componentClusters.Element = new RECOG::VN_::ComponentCluster[nComponentClusters];
             // componentClusters.n = nComponentClusters;
         } // for every metamodel
-	}	  // for every label
+    }     // for every label
 
     int nMMsTotal = iMMAbs;
 

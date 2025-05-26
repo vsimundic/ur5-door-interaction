@@ -8,6 +8,7 @@ namespace RVL
 		{
 			cellMemSize = 0;
 			dataMemSize = 0;
+			bMultipleInstances = false;
 
 			grid.Element = NULL;
 			dataMem = NULL;
@@ -15,8 +16,9 @@ namespace RVL
 			activeCellArray.Element = NULL;
 			bActiveCell = NULL;
 			iMergingCandidates.Element = NULL;
+			bAlreadyIncluded = NULL;
 
-			neighborCellArray.Element = new int[8];
+			neighborCellArray.Element = new int[27];
 		}
 
 		virtual ~Space3DGrid()
@@ -27,6 +29,7 @@ namespace RVL
 			RVL_DELETE_ARRAY(activeCellArray.Element);
 			RVL_DELETE_ARRAY(bActiveCell);
 			RVL_DELETE_ARRAY(iMergingCandidates.Element);
+			RVL_DELETE_ARRAY(bAlreadyIncluded);
 
 			delete[] neighborCellArray.Element;
 		}
@@ -36,7 +39,7 @@ namespace RVL
 			int b,
 			int c,
 			CoordinateType cellSize_,
-			int maxnData)
+			int maxnData = 0)
 		{
 			grid.a = a;
 			grid.b = b;
@@ -84,6 +87,12 @@ namespace RVL
 
 			r2 = halfCellSize * halfCellSize;
 
+			if (maxnData > 0)
+				SetDataMem(maxnData);
+		}
+
+		void SetDataMem(int maxnData)
+		{
 			if (maxnData > dataMemSize)
 			{
 				dataMemSize = maxnData;
@@ -99,6 +108,12 @@ namespace RVL
 				RVL_DELETE_ARRAY(iMergingCandidates.Element);
 
 				iMergingCandidates.Element = new int[dataMemSize];
+
+				RVL_DELETE_ARRAY(bAlreadyIncluded);
+
+				bAlreadyIncluded = new bool[dataMemSize];
+
+				memset(bAlreadyIncluded, 0, dataMemSize * sizeof(bool));
 			}
 
 			pNewData = dataMem;
@@ -136,19 +151,30 @@ namespace RVL
 			return (i >= 0 && i < grid.a && j >= 0 && j < grid.b && k >= 0 && k < grid.c ? (k * grid.b + j) * grid.a + i : iOutCell);
 		}
 
-		inline DataType *AddData(DataType &data)
+		inline DataType *AddData(
+			DataType &data,
+			DataType *pNewDataIn = NULL)
 		{
-			*pNewData = data;
-
 			int i, j, k;
 
 			Cell(data.P, i, j, k);
 
 			int iCell = Cell(i, j, k);
 
+			return AddData(iCell, data, pNewDataIn);
+		}
+
+		inline DataType *AddData(
+			int iCell,
+			DataType &data,
+			DataType *pNewDataIn = NULL)
+		{
+			DataType *pNewData_ = (pNewDataIn ? pNewDataIn : pNewData);
+			*pNewData_ = data;
+
 			QList<DataType> *pCellDataList = grid.Element + iCell;
 
-			pNewData->iCell = iCell;
+			pNewData_->iCell = iCell;
 
 			if (!bActiveCell[iCell])
 			{
@@ -157,13 +183,12 @@ namespace RVL
 				bActiveCell[iCell] = true;
 			}
 
-			RVLQLIST_ADD_ENTRY2(pCellDataList, pNewData);
+			RVLQLIST_ADD_ENTRY2(pCellDataList, pNewData_);
 
-			DataType *pData = pNewData;
+			if (pNewDataIn == NULL)
+				pNewData++;
 
-			pNewData++;
-
-			return pData;
+			return pNewData_;
 		}
 
 		inline void RemoveData(DataType *pData)
@@ -173,27 +198,10 @@ namespace RVL
 			RVLQLIST_REMOVE_ENTRY2(pCellDataList, pData, DataType);
 		}
 
-		void Neighbors(
-			CoordinateType *P,
-			Array<DataType *> &neighborArray)
+		void NeighborCells8(int i, int j, int k)
 		{
-			CoordinateType P_[3];
-
-			P_[0] = P[0] - halfCellSize;
-			P_[1] = P[1] - halfCellSize;
-			P_[2] = P[2] - halfCellSize;
-
-			int i, j, k;
-
-			Cell(P_, i, j, k);
-
-			int iCell = Cell(i, j, k);
-
-			bool bOutCell = (iCell == iOutCell);
-
-			neighborCellArray.n = 0;
-
 			int i_, j_, k_;
+			bool bOutCell = false;
 
 			for (i_ = i; i_ <= i + 1; i_++)
 			{
@@ -221,10 +229,136 @@ namespace RVL
 
 			if (bOutCell)
 				neighborCellArray.Element[neighborCellArray.n++] = iOutCell;
+		}
+
+		void NeighborCells27(int i, int j, int k)
+		{
+			int i_, j_, k_;
+			bool bOutCell = false;
+
+			for (i_ = i - 1; i_ <= i + 1; i_++)
+			{
+				if (i_ >= 0 && i_ < grid.a)
+				{
+					for (j_ = j - 1; j_ <= j + 1; j_++)
+					{
+						if (j_ >= 0 && j_ < grid.b)
+						{
+							for (k_ = k - 1; k_ <= k + 1; k_++)
+							{
+								if (k_ >= 0 && k_ < grid.c)
+									neighborCellArray.Element[neighborCellArray.n++] = (k_ * grid.b + j_) * grid.a + i_;
+								else
+									bOutCell = true;
+							}
+						}
+						else
+							bOutCell = true;
+					}
+				}
+				else
+					bOutCell = true;
+			}
+
+			if (bOutCell)
+				neighborCellArray.Element[neighborCellArray.n++] = iOutCell;
+		}
+
+		void NeighborCells(int iCell)
+		{
+			neighborCellArray.n = 0;
+			int i = iCell % grid.a;
+			int j = iCell / grid.a;
+			int k = j / grid.b;
+			j = j % grid.b;
+			NeighborCells27(i, j, k);
+		}
+
+		inline void GetData(int iCell,
+							Array<DataType *> &dataArray,
+							bool bReset = true)
+		{
+			if (iCell == iOutCell)
+				return;
+
+			if (bReset)
+				dataArray.n = 0;
+
+			QList<DataType> *pCellDataList = grid.Element + iCell;
+
+			DataType *pData = pCellDataList->pFirst;
+
+			while (pData)
+			{
+				if (bMultipleInstances)
+				{
+					if (!bAlreadyIncluded[pData->idx])
+					{
+						bAlreadyIncluded[pData->idx] = true;
+						dataArray.Element[dataArray.n++] = pData;
+					}
+				}
+				else
+					dataArray.Element[dataArray.n++] = pData;
+				pData = pData->pNext;
+			}
+
+			if (bReset)
+				for (int i = 0; i < dataArray.n; i++)
+					bAlreadyIncluded[dataArray.Element[i]->idx] = false;
+		}
+
+		void Neighbors(int iCell,
+					   Array<DataType *> &neighborArray)
+		{
+			neighborArray.n = 0;
+
+			if (iCell == iOutCell)
+				return;
+
+			NeighborCells(iCell);
 
 			QList<DataType> *pCellDataList;
 
+			neighborArray.Element = dataBuff;
+
+			DataType *pData;
+			int iCell_;
+
+			for (int i = 0; i < neighborCellArray.n; i++)
+			{
+				iCell_ = neighborCellArray.Element[i];
+				GetData(iCell_, neighborArray, false);
+			}
+
+			if (bMultipleInstances)
+				for (int i = 0; i < neighborArray.n; i++)
+					bAlreadyIncluded[neighborArray.Element[i]->idx] = false;
+		}
+
+		void Neighbors(
+			CoordinateType *P,
+			Array<DataType *> &neighborArray)
+		{
 			neighborArray.n = 0;
+
+			CoordinateType P_[3];
+
+			P_[0] = P[0] - halfCellSize;
+			P_[1] = P[1] - halfCellSize;
+			P_[2] = P[2] - halfCellSize;
+
+			int i, j, k;
+
+			Cell(P_, i, j, k);
+
+			int iCell = Cell(i, j, k);
+			if (iCell == iOutCell)
+				return;
+
+			NeighborCells8(i, j, k);
+
+			QList<DataType> *pCellDataList;
 
 			neighborArray.Element = dataBuff;
 
@@ -240,12 +374,9 @@ namespace RVL
 				while (pData)
 				{
 					RVLDIF3VECTORS(pData->P, P, P_);
-
 					dist2 = RVLDOTPRODUCT3(P_, P_);
-
 					if (dist2 <= r2)
 						neighborArray.Element[neighborArray.n++] = pData;
-
 					pData = pData->pNext;
 				}
 			}
@@ -478,6 +609,16 @@ namespace RVL
 			pNewData = dataMem;
 		}
 
+		void SetMultipleInstancesOn()
+		{
+			bMultipleInstances = true;
+		}
+
+		void SetMultipleInstancesOff()
+		{
+			bMultipleInstances = false;
+		}
+
 	private:
 		Array3D<QList<DataType>> grid;
 		DataType *dataMem;
@@ -495,5 +636,7 @@ namespace RVL
 		Array<int> activeCellArray;
 		bool *bActiveCell;
 		Array<int> iMergingCandidates;
+		bool bMultipleInstances;
+		bool *bAlreadyIncluded;
 	};
 }

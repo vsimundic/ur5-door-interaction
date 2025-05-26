@@ -530,6 +530,32 @@ void RVL::IntrinsicCameraMatrix(
 	RVLMXEL(K, 3, 2, 2) = 1.0f;
 }
 
+void RVL::InvIntrinsicCameraMatrix(
+	float *K,
+	float *invK)
+{
+	RVLNULLMX3X3(invK);
+	RVLMXEL(invK, 3, 0, 0) = 1.0f / RVLMXEL(K, 3, 0, 0);
+	RVLMXEL(invK, 3, 0, 2) = -RVLMXEL(K, 3, 0, 2) / RVLMXEL(K, 3, 0, 0);
+	RVLMXEL(invK, 3, 1, 1) = 1.0f / RVLMXEL(K, 3, 1, 1);
+	RVLMXEL(invK, 3, 1, 2) = -RVLMXEL(K, 3, 1, 2) / RVLMXEL(K, 3, 1, 1);
+	RVLMXEL(invK, 3, 2, 2) = 1.0f;
+}
+
+void RVL::TriangleNormalAndArea(
+	float **P,
+	float *N,
+	float &area)
+{
+	float V1[3];
+	RVLDIF3VECTORS(P[1], P[0], V1);
+	float V2[3];
+	RVLDIF3VECTORS(P[2], P[0], V2);
+	RVLCROSSPRODUCT3(V1, V2, N);
+	RVLNORM3(N, area);
+	area *= 0.5f;
+}
+
 FileSequenceLoader::FileSequenceLoader()
 {
 	nFileNames = 0;
@@ -2218,6 +2244,59 @@ namespace RVL
 			delete[] idx;
 	}
 
+	void Combinations(
+		Array<int> N,
+		Array2D<int> &V)
+	{
+		int nCombinations = 1;
+		int i;
+		for (i = 0; i < N.n; i++)
+			nCombinations *= N.Element[i];
+		V.h = nCombinations;
+		V.w = N.n;
+		V.Element = new int[V.h * V.w];
+		if (nCombinations == 1)
+		{
+			for (i = 0; i < N.n; i++)
+				V.Element[i] = 0;
+			return;
+		}
+		int *V_ = new int[V.w];
+		memset(V_, 0, V.w * sizeof(int));
+		int *V__;
+		int iCombination = 1;
+		int idx;
+		while (true)
+		{
+			// Increment the vector
+			idx = N.n - 1;
+			while (idx >= 0)
+			{
+				V_[idx]++;
+				if (V_[idx] < N.Element[idx])
+				{
+					break;
+				}
+				else
+				{
+					V_[idx] = 0;
+					idx--;
+				}
+			}
+
+			V__ = V.Element + iCombination * V.w;
+			memcpy(V__, V_, V.w * sizeof(int));
+
+			if (idx < 0)
+			{
+				break; // All combinations are generated
+			}
+
+			iCombination = (iCombination + 1) % nCombinations;
+		}
+		delete[] V_;
+	}
+
 	void RandomIndices(
 		Array<int> rnd,
 		int iRnd,
@@ -2689,6 +2768,73 @@ namespace RVL
 			face[0] = faces_[iFace][0] + vertexIdxOffset;
 			face[1] = faces_[iFace][1] + vertexIdxOffset;
 			face[2] = faces_[iFace][2] + vertexIdxOffset;
+		}
+	}
+
+	// Input:
+	//    line - line defined by equation line[0] * x + line[1] * y + line[2] = 0
+	//    convexSet - array of lines defining a convex set, where each line is represented by a 3D vector
+	//                whose first two elements represent line normal n and the third element represents the line offset d
+	//                (line equation: n[0] * x + n[1] * y = d)
+	//    intersectionLineSegment - the line segment representing the intersection defined by a 4D vector,
+	//                whose first two elements represent the first endpoint and the other two elements the second endpoint
+
+	bool LineConvexSetIntersection2D(
+		float *line,
+		Array<Vector3<float>> convexSet,
+		float *intersectionLineSegment)
+	{
+		float c[2];
+		float fTmp = -line[2] / (line[0] * line[0] + line[1] * line[1]);
+		c[0] = fTmp * line[0];
+		c[1] = fTmp * line[1];
+		float v[2];
+		v[0] = -line[1];
+		v[1] = line[0];
+
+		float a;
+		float *b;
+		float s0;
+		float smin = 0.0f;
+		float smax = 0.0f;
+		bool bsmin = false;
+		bool bsmax = false;
+		for (int i = 0; i < convexSet.n; i++)
+		{
+			b = convexSet.Element[i].Element;
+			a = b[0] * v[0] + b[1] * v[1];
+			if (RVLABS(a) > 1e-10)
+			{
+				s0 = (b[2] - (b[0] * c[0] + b[1] * c[1])) / a;
+				if (a > 0.0f)
+				{
+					if (s0 < smax || !bsmax)
+					{
+						smax = s0;
+						bsmax = true;
+					}
+				}
+				else
+				{
+					if (s0 > smin || !bsmin)
+					{
+						smin = s0;
+						bsmin = true;
+					}
+				}
+			}
+		}
+
+		if (smax <= smin)
+			return false;
+		else
+		{
+			intersectionLineSegment[0] = c[0] + smin * v[0];
+			intersectionLineSegment[1] = c[1] + smin * v[1];
+			intersectionLineSegment[2] = c[0] + smax * v[0];
+			intersectionLineSegment[3] = c[1] + smax * v[1];
+
+			return true;
 		}
 	}
 

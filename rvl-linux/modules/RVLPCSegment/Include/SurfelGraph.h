@@ -8,27 +8,27 @@
 #endif
 #define RVLSURFELGRAPH_DEBUG_RELATION_DESCRIPTOR
 
-#define RVLSURFEL_DISPLAY_MODE_SURFELS					0
-#define RVLSURFEL_DISPLAY_MODE_BOUNDARY					1
-#define RVLSURFEL_DISPLAY_MODE_NEIGHBOR_PAIR			2
-#define RVLSURFEL_DISPLAY_MODE_FOREGROUND_BACKGROUND	3
-#define RVLSURFEL_DISPLAY_MODE_CONVEX_CONCAVE			4
+#define RVLSURFEL_DISPLAY_MODE_SURFELS 0
+#define RVLSURFEL_DISPLAY_MODE_BOUNDARY 1
+#define RVLSURFEL_DISPLAY_MODE_NEIGHBOR_PAIR 2
+#define RVLSURFEL_DISPLAY_MODE_FOREGROUND_BACKGROUND 3
+#define RVLSURFEL_DISPLAY_MODE_CONVEX_CONCAVE 4
 
 #define RVLSURFEL_DISPLAY_VERTEX_NORMAL_HULL
 
-#define RVLSURFEL_EDGE_FLAG_HARD				0x01
-#define RVLSURFEL_EDGE_FLAG_CONVEX				0x02
+#define RVLSURFEL_EDGE_FLAG_HARD 0x01
+#define RVLSURFEL_EDGE_FLAG_CONVEX 0x02
 
-#define RVLSURFEL_FLAG_RF						0x01
-#define RVLSURFEL_FLAG_GND						0x02
-#define RVLSURFEL_FLAG_VOI						0x04
+#define RVLSURFEL_FLAG_RF 0x01
+#define RVLSURFEL_FLAG_GND 0x02
+#define RVLSURFEL_FLAG_VOI 0x04
 
-#define RVLSURFELVERTEX_TYPE_CONVEX_CONCAVE		0x07
-#define RVLSURFELVERTEX_TYPE_OCCLUSION			0x20
-#define RVLSURFELVERTEX_TYPE_TANGENT			0x40
-#define RVLSURFELVERTEX_TYPE_REDUNDANT			0x80
+#define RVLSURFELVERTEX_TYPE_CONVEX_CONCAVE 0x07
+#define RVLSURFELVERTEX_TYPE_OCCLUSION 0x20
+#define RVLSURFELVERTEX_TYPE_TANGENT 0x40
+#define RVLSURFELVERTEX_TYPE_REDUNDANT 0x80
 
-#define RVLSURFEL_VERSION_0		0
+#define RVLSURFEL_VERSION_0 0
 
 namespace RVL
 {
@@ -51,10 +51,10 @@ namespace RVL
 			Mesh *pMesh;
 			void *vpDetector;
 			void *vpUserFunctionData;
-			bool(*mouseRButtonDownUserFunction)(Mesh *pMesh, SurfelGraph *pSurfels, int iSelectedPt, int iSelectedSurfel, void *vpData);
-			bool(*keyPressUserFunction)(Mesh *pMesh, SurfelGraph *pSurfels, std::string &key, void *vpData);
+			bool (*mouseRButtonDownUserFunction)(Mesh *pMesh, SurfelGraph *pSurfels, int iSelectedPt, int iSelectedSurfel, void *vpData);
+			bool (*keyPressUserFunction)(Mesh *pMesh, SurfelGraph *pSurfels, std::string &key, void *vpData);
 			bool bCallbackFunctionsDefined;
-			int  mode;
+			int mode;
 			unsigned char SelectionColor[3];
 			unsigned char ForegroundColor[3];
 			unsigned char BackgroundColor[3];
@@ -67,11 +67,13 @@ namespace RVL
 			vtkSmartPointer<vtkPolyData> edgeFeaturesPolyData;
 			vtkSmartPointer<vtkActor> edgeFeatures;
 			vtkSmartPointer<vtkActor> vertices;
+			std::vector<vtkSmartPointer<vtkActor>> selectedActors;
 			int *edgeFeatureIdxArray;
 			float normalLen;
 			bool bEdges;
 			bool bVertices;
 			bool bFirstKey;
+			bool bPolygons;
 		};
 
 		struct EdgePtr;
@@ -141,8 +143,29 @@ namespace RVL
 			float *SDF;
 			float *PMem;
 			float Pc[3];
-			uchar *status;	// 0 - no point; 1 - foreground; 2 - background
+			uchar *status; // 0 - no point; 1 - foreground; 2 - background
 			bool bCentered;
+		};
+
+		struct PolyEdgeGraphEdge;
+
+		struct PolyEdge
+		{
+			int iSurfel;
+			int iPolygon;
+			int iEdge;
+			int iVertex[2];
+			float V[3];
+			float len;
+		};
+
+		struct PolyEdgeGraphEdge
+		{
+			int idx;
+			int iVertex[2];
+			GRAPH::EdgePtr<PolyEdgeGraphEdge> *pVertexEdgePtr[2];
+			float P[2][3];
+			float dist2;
 		};
 
 		void DeleteSceneSamples(SURFEL::SceneSamples &sceneSamples);
@@ -151,28 +174,28 @@ namespace RVL
 			std::string keySym,
 			int iSelectedSurfel);
 		void UpdateNormalHull(
-			Array<NormalHullElement>& NHull,
-			float* N);
+			Array<NormalHullElement> &NHull,
+			float *N);
 		float DistanceFromNormalHull(
-			Array<SURFEL::NormalHullElement>& NHull,
-			float* N);
-	}	// namespace SURFEL
+			Array<SURFEL::NormalHullElement> &NHull,
+			float *N);
+	} // namespace SURFEL
 
 	struct Surfel
 	{
 		QList<QLIST::Index2> PtList;
 		Array<Array<MeshEdgePtr *>> BoundaryArray;
 		Array<Array<MeshEdgePtr *>> PolygonBoundaryArray;
-		float P[3];		// centroid
-		float N[3];		// normal
-		float R[9];		// rotation matrix (orientation of the camera RF w.r.t. surfel RF)
-		float d;		// plane offset
-		int RGB[3];		// average color
-		float P0[3];	// central point
+		float P[3];	 // centroid
+		float N[3];	 // normal
+		float R[9];	 // rotation matrix (orientation of the camera RF w.r.t. surfel RF)
+		float d;	 // plane offset
+		int RGB[3];	 // average color
+		float P0[3]; // central point
 		float V[3];
 		int size;
-		float r0;		// distance 
-		float r1, r2;	// radii of the approximating ellipse
+		float r0;	  // distance
+		float r1, r2; // radii of the approximating ellipse
 		QList<SURFEL::EdgePtr> EdgeList;
 		Surfel *pNext;
 		float physicalSize;
@@ -180,17 +203,19 @@ namespace RVL
 		BYTE flags;
 		QList<QLIST::Index> children;
 		Moments<double> *pMoments;
-		float* representativePts;
-		int ObjectID;	//Filko
-		std::shared_ptr<RVLColorDescriptor> colordescriptor; //Filko
-#ifdef 	RVLSURFEL_IMAGE_ADJACENCY
-		std::vector<Surfel*> imgAdjacency;	//Filko
-		std::vector<SurfelAdjecencyDescriptors*> imgAdjacencyDescriptors;	//Filko
+		float *representativePts;
+		int ObjectID;										 // Filko
+		std::shared_ptr<RVLColorDescriptor> colordescriptor; // Filko
+#ifdef RVLSURFEL_IMAGE_ADJACENCY
+		std::vector<Surfel *> imgAdjacency;								   // Filko
+		std::vector<SurfelAdjecencyDescriptors *> imgAdjacencyDescriptors; // Filko
 #endif
-		//RVLColorDescriptor *colordescriptor; //Filko
+		// RVLColorDescriptor *colordescriptor; //Filko
 #ifdef RVLSURFEL_GT_OBJECT_HISTOGRAM
-		std::vector<int> GTObjHist; //Filko
+		std::vector<int> GTObjHist; // Filko
 #endif
+		Array<Pair<int, int>> polygonVertexIntervals;
+		Array<int> triangles;
 	};
 
 	void SampleMesh(
@@ -215,7 +240,7 @@ namespace RVL
 		float voxelSize);
 #endif
 
-	class SurfelGraph : public Graph < Surfel, MeshEdge, MeshEdgePtr >
+	class SurfelGraph : public Graph<Surfel, MeshEdge, MeshEdgePtr>
 	{
 	public:
 		SurfelGraph();
@@ -335,13 +360,13 @@ namespace RVL
 			bool bExternalSamples = false,
 			bool bCenter = true);
 		bool ExternalSample(
-			Mesh *pMesh, 
-			Camera camera, 
+			Mesh *pMesh,
+			Camera camera,
 			Rect<int> cropWin,
-			float *m, 
-			int halfImageNeighborhood, 
-			bool *bBelongsToObject, 
-			float &dist, 
+			float *m,
+			int halfImageNeighborhood,
+			bool *bBelongsToObject,
+			float &dist,
 			float *P);
 		void GetPoints(
 			Array<int> iSurfelArray,
@@ -363,6 +388,7 @@ namespace RVL
 			float *RSG,
 			float *tSG,
 			float r);
+		void CreatePolygonGraph(float distThr);
 		void NodeColors(unsigned char *SelectionColor);
 		void Display(
 			Visualizer *pVisualizer,
@@ -384,7 +410,7 @@ namespace RVL
 		void DisplayVertexGraph(Visualizer *pVisualizer);
 		void Init(Mesh *pMesh);
 		void Clear();
-		unsigned char * GetColor(int iSurfel);
+		unsigned char *GetColor(int iSurfel);
 		void PrintData(
 			Visualizer *pVisualizer,
 			Mesh *pMesh,
@@ -396,10 +422,15 @@ namespace RVL
 			void *vpDetector,
 			bool bCallbackFunctions = true);
 		void DisplaySurfelBoundary(
-			Visualizer *pVisualizer, 
-			Mesh * pMesh, 
+			Visualizer *pVisualizer,
+			Mesh *pMesh,
 			int iSurfel,
 			unsigned char *Color);
+		void DisplayPolygons(
+			Visualizer *pVisualizer,
+			uchar *color,
+			bool bDisplayEdgeGraph = false,
+			bool bMultiColor = false);
 		void DisplayVertices();
 		void UpdateVertexDisplayLines();
 		void PaintVertices(
@@ -413,6 +444,10 @@ namespace RVL
 			unsigned char *edgeColor = NULL,
 			int *clusterMap = NULL);
 		void DisplayRGB(cv::Mat RGB);
+		void DisplaySphericalNormalHistogram(
+			Array<int> surfels,
+			Visualizer *pVisualizer);
+		void SetDisplayPolygonsOn();
 		void Save(
 			int iSurfel,
 			Mesh *pMesh,
@@ -434,15 +469,15 @@ namespace RVL
 			bool oneDimensional,
 			const int *bindata,
 			bool noBins,
-			const int * chFilterThrreshold = NULL,
-			bool useFilter = false); //Filko
+			const int *chFilterThrreshold = NULL,
+			bool useFilter = false); // Filko
 #ifdef RVLSURFEL_IMAGE_ADJACENCY
 		void ImageAdjacency(Mesh *pMesh);
 		void ImageAdjacency(
-			Mesh *pMesh, 
-			int iSurfel, 
+			Mesh *pMesh,
+			int iSurfel,
 			int *surfelIdx,
-			bool *bVisited);	
+			bool *bVisited);
 		void DetermineImgAdjDescriptors(
 			Surfel *pSurfel,
 			Mesh *mesh);
@@ -472,8 +507,8 @@ namespace RVL
 
 #ifdef RVLSURFEL_GT_OBJECT_HISTOGRAM
 		void SetPrimaryGTObj(
-			Surfel *pSurfel, 
-			cv::Mat labGTImg, 
+			Surfel *pSurfel,
+			cv::Mat labGTImg,
 			int noObj);
 		void AssignGroundTruthSegmentation(
 			char *meshFileName,
@@ -491,7 +526,7 @@ namespace RVL
 		void HideOcclustionFaces(
 			Mesh *pMesh,
 			Array<int> iVertexArray);
-		//Filko
+		// Filko
 		bool Coplanar(
 			Moments<double> moments1,
 			Array<int> iVertexArray1,
@@ -509,19 +544,20 @@ namespace RVL
 			QList<QLIST::Index> *pVertexList,
 			float tolerance);
 		bool Below(int iSurfel, int iSurfel_);
-		void EdgePointNormals(Mesh* pMesh);
+		void EdgePointNormals(Mesh *pMesh);
 		void RepresentativeSurfelSamples(
-			Mesh* pMesh,
+			Mesh *pMesh,
 			int minSurfelSize,
 			int minEdgeSize);
 		void RepresentativeComplexSurfelSamples(
-			Mesh* pMesh,
+			Mesh *pMesh,
 			int minSurfelSize,
 			int minEdgeSize,
 			SurfelGraph *pElements);
 
-	public:	
+	public:
 		CRVLParameterList ParamList;
+		float sizeUnit;
 		bool bGroundContactVertices;
 		int nMeshVertices;
 		int nMeshEdges;
@@ -530,12 +566,12 @@ namespace RVL
 		int *edgeMap;
 		MeshEdgePtr **surfelBndMem;
 		Array<MeshEdgePtr *> *surfelBndMem2;
-		//QLIST::Index2 *surfelBndMap;
+		// QLIST::Index2 *surfelBndMap;
 		unsigned char *edgeMarkMap;
 		CRVLMem *pMem;
 		SURFEL::Edge **neighborEdge;
 		Array<SURFEL::Edge *> EdgeArray;
-		SURFEL::DisplayCallbackData DisplayData; //VIDOVIC
+		SURFEL::DisplayCallbackData DisplayData; // VIDOVIC
 		QList<QLIST::Entry<Array<MeshEdgePtr *>>> BoundaryList;
 		MeshEdgePtr **BndMem;
 		int imageAdjacencyThr;
@@ -559,8 +595,16 @@ namespace RVL
 		int occlusionVertexMinClusterSize;
 		int occlusionVertexMinDepthStep;
 		Moments<double> *momentsMem;
-		float* surfelRefPtMem;
-		QLIST::Index* planarSurfaceSurfelMem;
+		float *surfelRefPtMem;
+		QLIST::Index *planarSurfaceSurfelMem;
+		std::vector<Point2D> polygonVertices;
+		Array<Vector3<float>> polygonVerticesS;
+		Pair<int, int> *polygonDataMem;
+		Array<SURFEL::PolyEdge> polyEdges;
+		Graph<GRAPH::Node_<GRAPH::EdgePtr<SURFEL::PolyEdgeGraphEdge>>, SURFEL::PolyEdgeGraphEdge, GRAPH::EdgePtr<SURFEL::PolyEdgeGraphEdge>> polyEdgeGraph;
+		std::vector<SURFEL::PolyEdgeGraphEdge> polygonEdgeGraphEdges;
+		Graph<GRAPH::Node, GRAPH::Edge, GRAPH::EdgePtr<GRAPH::Edge>> surfelGraph2;
+		int *triangleMem;
 
 	private:
 		unsigned char *nodeColor;
@@ -577,7 +621,7 @@ namespace RVL
 	namespace SURFEL
 	{
 		void ComputeParameters(
-			Surfel *pSurfel,		
+			Surfel *pSurfel,
 			MESH::Distribution &distribution,
 			Point *pPt);
 		void CreateFromPoint(
@@ -586,8 +630,8 @@ namespace RVL
 		void GetPoint(
 			Surfel *pSurfel,
 			Point *pPoint);
-		void MouseRButtonDown(vtkObject* caller, unsigned long eid, void* clientdata, void *calldata);
-		void KeyPressCallback(vtkObject* caller, unsigned long eid, void* clientdata, void *calldata);
+		void MouseRButtonDown(vtkObject *caller, unsigned long eid, void *clientdata, void *calldata);
+		void KeyPressCallback(vtkObject *caller, unsigned long eid, void *clientdata, void *calldata);
 		int PlaneDetectionRG(
 			int iSurfel,
 			int iSurfel_,

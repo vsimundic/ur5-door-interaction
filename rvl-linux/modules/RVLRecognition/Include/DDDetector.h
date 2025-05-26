@@ -802,32 +802,32 @@ namespace RVL
 		void Get2DObjectPoints(
 			RECOG::DDD::HypothesisDoorDrawer movingPart,
 			// Pose3D poseOC,
-			PSD::Point2D *&pts);
-		float CalculateArea(std::vector<PSD::Point2D> ptsIn);
+			Point2D *&pts);
+		float CalculateArea(std::vector<Point2D> ptsIn);
 		void IoUHypothesisEvaluation(
 			RECOG::DDD::HypothesisDoorDrawer movingPart,
-			std::vector<std::vector<PSD::Point2D>> gtPoints,
+			std::vector<std::vector<Point2D>> gtPoints,
 			float *&iouResults,
 			cv::Mat *pRGBDisplay);
 		void cvIoUHypothesisEvaluation(
 			RECOG::DDD::HypothesisDoorDrawer movingPart,
-			std::vector<std::vector<PSD::Point2D>> gtPoints,
+			std::vector<std::vector<Point2D>> gtPoints,
 			float *&iouResults,
 			cv::Mat *pRGBDisplay);
 
-		void VectorPSDPoin2DToVectorCvPoint(std::vector<PSD::Point2D> *ptsIn, std::vector<cv::Point> &ptsOut);
+		void VectorPSDPoin2DToVectorCvPoint(std::vector<Point2D> *ptsIn, std::vector<cv::Point> &ptsOut);
 
 		void VisualizeHypothesisGT(
 			cv::Mat pRGBDisplay,
-			std::vector<PSD::Point2D> detectedPts,
-			std::vector<PSD::Point2D> gtPts);
-		float GetIntersectionConvexSet(std::vector<PSD::Point2D> poly1, std::vector<PSD::Point2D> poly2, std::vector<PSD::Point2D> *outPoly);
+			std::vector<Point2D> detectedPts,
+			std::vector<Point2D> gtPts);
+		float GetIntersectionConvexSet(std::vector<Point2D> poly1, std::vector<Point2D> poly2, std::vector<Point2D> *outPoly);
 		void GetConvexPoints(
-			std::vector<PSD::Point2D> ptsIn,
-			std::vector<PSD::Point2D> &ptsOut);
+			std::vector<Point2D> ptsIn,
+			std::vector<Point2D> &ptsOut);
 		void GetGTPointsFromCSV(
 			std::vector<std::vector<std::string>> csvContent,
-			std::vector<std::vector<PSD::Point2D>> &allGTPoints);
+			std::vector<std::vector<Point2D>> &allGTPoints);
 
 		bool CreateMeshFromPolyData(Mesh *pMesh);
 		bool GetVisualizeDoorHypotheses();
