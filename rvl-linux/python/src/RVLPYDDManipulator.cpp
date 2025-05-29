@@ -26,6 +26,8 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "RVLMotionCommon.h"
 #include "RRT.h"
 #include "DDManipulator.h"
+// #include "Touch.h"
+#include "RVLPYTouch.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -88,8 +90,26 @@ public:
 	void load_cabinet_static_mesh_fcl(std::string cabinetStaticMeshPath);
 	void load_cabinet_panel_mesh_fcl(std::string cabinetPanelMeshPath);
 
+	// Touch related methods
+	void create_touch(std::string cfgFileName);
+	void create_scene_touch(
+		float sx, float sy, float sz,
+		float rx, float ry, float a, float b, float c, float qDeg);
+	void create_simple_tool_touch(
+		float a, float b, float c, float d, float h,
+		float *t = nullptr);
+	void correct_real_experiment_touch(
+		py::array T_Ek_E,
+		py::array V,
+		py::array T_A_E,
+		py::array T_E_0);
+	void update_cabinet_model_touch();
 public:
 	DDManipulator manipulator;
+	
+	PYTouch py_touch;
+	MOTION::TouchModel model_x;
+
 	int memSize;
 	int mem0Size;
 	Pair<int, int> *approachPathMem;
@@ -810,6 +830,55 @@ void PYDDManipulator::load_cabinet_panel_mesh_fcl(std::string cabinetPanelMeshPa
 {
 	if (manipulator.use_fcl)
 		manipulator.LoadCabinetPanelFCL(cabinetPanelMeshPath);
+}
+
+void PYDDManipulator::create_touch(std::string cfgFileName)
+{
+	py_touch.create(cfgFileName);
+}
+
+void PYDDManipulator::create_scene_touch(
+    float sx, float sy, float sz,
+    float rx, float ry, float a, float b, float c, float qDeg)
+{
+	py_touch.create_scene(sx, sy, sz,
+		rx, ry, a, b, c, qDeg);
+}
+
+void PYDDManipulator::create_simple_tool_touch(
+    float a, float b, float c, float d, float h, float *t)
+{
+	py_touch.create_simple_tool(a, b, c, d, h, t);	
+}
+
+void PYDDManipulator::correct_real_experiment_touch(
+    py::array T_Ek_E,
+    py::array V,
+    py::array T_A_E,
+    py::array T_E_0)
+{
+	py_touch.correct_real_experiment(
+		T_Ek_E,
+		V,
+		T_A_E,
+		T_E_0);
+	
+	model_x = py_touch.touch.getModelX();
+}
+
+void PYDDManipulator::update_cabinet_model_touch()
+{
+	manipulator.pVNEnv = model_x.pVNEnv;
+	// update dvnenv
+	Pose3D pose_A_0;
+	RVLCOMPTRANSF3D(py_touch.pose_E_0.R, py_touch.pose_E_0.t, model_x.pose_A_E.R, model_x.pose_A_E.t,
+		pose_A_0.R, pose_A_0.t);
+	
+	Pose3D pose_A_S;
+	RVLCOMPTRANSF3D(manipulator.robot.pose_0_W.R, manipulator.robot.pose_0_W.t, pose_A_0.R, pose_A_0.t,
+		pose_A_S.R, pose_A_S.t);
+
+	manipulator.SetDoorPose(pose_A_S);
 }
 
 ////////////////////////////////////////////////////////////////////

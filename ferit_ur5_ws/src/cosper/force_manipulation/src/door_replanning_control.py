@@ -50,8 +50,9 @@ class DoorReplanningFSM:
         self.T_C_6 = np.load('/home/RVLuser/ferit_ur5_ws/data/camera_calibration_20250331/T_C_T.npy')
         self.T_0_W = np.eye(4)
         self.T_TCP_G = np.eye(4)
-        # self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5 - 0.005, 0, 0.098])
-        self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5 - 0.007, 0, 0.100])
+        self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5, 0, 0.100])
+        
+        # self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5 - 0.007, 0, 0.100])
         self.R_TCP_D = np.array([[0, 0, -1],
                                 [0, 1, 0],
                                 [1, 0, 0]])
@@ -66,10 +67,13 @@ class DoorReplanningFSM:
             os.makedirs(self.save_dir)
 
         # Initialize robot and manipulator
-        self.robot = UR5Controller()
+        # self.robot = UR5Controller()
+        self.robot = UR5Commander()
         self.robot.T_C_6 = self.T_C_6
         self.robot.T_G_6 = np.eye(4)
 
+
+        self.ft_loss_joints = []
         self.tactile_loss_joints = []
         self.contact_established = False
 
@@ -77,6 +81,14 @@ class DoorReplanningFSM:
         self.rvl_manipulator = rvlpy.PYDDManipulator()
         self.rvl_manipulator.create(self.rvl_cfg)
         # self.rvl_manipulator.set_robot_pose(self.robot.T_0_W)
+
+        self.robot.T_G_6 = self.rvl_manipulator.get_T_G_6()
+
+        # # debug
+        # T_TCP2_TCP = np.eye(4)
+        # T_TCP2_TCP[:3, 3] = np.array([0.02706 * 0.5, 0, -0.019*0.5])
+
+        # T_TCP2_6 = self.robot.T_G_6 @ self.T_TCP_G @ T_TCP2_TCP
 
         # Cabinet model
         self.cabinet_model = None
@@ -362,8 +374,8 @@ class DoorReplanningFSM:
         return success
 
     def execute_and_remember_joints_on_force_loss(self, trajectory):
-        self.loss_joints = []
-        monitor_thread = threading.Thread(target=monitor_force_drop_and_remember_joints, args=(self.robot, self.loss_joints, 10.0, 1.0, 50.0))
+        self.ft_loss_joints = [] # reset the joints
+        monitor_thread = threading.Thread(target=monitor_force_drop_and_remember_joints, args=(self.robot, self.ft_loss_joints, 10.0, 1.0, 50.0))
         monitor_thread.start()
         rospy.sleep(0.05)
         self.robot.send_joint_trajectory_action(trajectory, max_velocity=0.5, max_acceleration=0.5)

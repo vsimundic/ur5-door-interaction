@@ -525,18 +525,18 @@ int main(int argc, char **argv)
         float c_tool = 0.007f;
         float d_tool = 0.049f;
         float h_tool = 0.02706f;
-        float t_tool[3] = {0.0f, 0.0f, 0.0f}; // distance from the flange center to the tool box center
+
+        // array([-0.06436793,  0.06436793,  0.26306001])
+        float t_tool[3] = {-0.06436793f, 0.06436793f, 0.26306001f}; // distance from the flange center to the tool box center
         touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool, t_tool);
 
         // For simulation purposes
         {
             // touch.Simulation();
         }
+        for (int i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
+            touch.x_real[i] = 0.0f;
 
-
-
-
-        
     }
 
     delete[] resultsFolder;

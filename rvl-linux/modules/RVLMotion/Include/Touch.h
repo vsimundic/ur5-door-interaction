@@ -294,13 +294,19 @@ namespace RVL
 
 
 		// Simundic
-		void Touch::CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::TouchModel& dst);
-		void Touch::RealExpCorrect(Array<MOTION::TouchData> touches, 
-			std::vector<MOTION::Contact> contacts,
+		void CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::TouchModel& dst);
+		void RealExpCorrect(Array<MOTION::TouchData> &touches, 
+			std::vector<MOTION::Contact> &contacts,
 			Pose3D pose_Ek_E,
 			float* V,
 			Pose3D pose_A_E,
-			Pose3D pose_E_0);
+			Pose3D pose_E_0,
+		    Pose3D pose_0_S);
+		MOTION::TouchModel getModelX() const
+		{
+			return model_x;
+		}
+		void setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K);
 
 	private:
 		void Constants();
@@ -355,6 +361,7 @@ namespace RVL
 
 		// Simundic
 		Pose3D pose_A_E, pose_C_E;
+		float x_real[RVLMOTION_TOUCH_NUM_PARAMS];
 
 	private:
 		MOTION::DisplayCallbackData *pVisualizationData;

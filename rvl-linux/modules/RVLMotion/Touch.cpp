@@ -3977,22 +3977,26 @@ void Touch::CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::Touc
     // ???
     dst.pVNEnv = src.pVNEnv;
     dst.d = src.d;
-    dst.plane = src.plane;
-    dst.vertex = src.vertex;
+    SetVerticesAndPlanes(surfaces, vertices, pose_W_E, &model_e);
+
+    // dst.plane = src.plane;
+    // dst.vertex = src.vertex;
     
     RVLCOPYMX3X3(src.pose_A_E.R, dst.pose_A_E.R);
     RVLCOPY3VECTOR(src.pose_A_E.t, dst.pose_A_E.t);
-
-    RVLCOPY3VECTOR(src.PAxis_E, dst.PAxis_E);
+    float z_E[3] = {src.pose_A_E.R[2], src.pose_A_E.R[5], src.pose_A_E.R[8]};
+    RVLSUM3VECTORS(z_E, pose_A_E.t, dst.PAxis_E);
+    // RVLCOPY3VECTOR(src.PAxis_E, dst.PAxis_E);
 }
 
 
-void Touch::RealExpCorrect(Array<MOTION::TouchData> touches, 
-    std::vector<MOTION::Contact> contacts,
+void Touch::RealExpCorrect(Array<MOTION::TouchData> &touches, 
+    std::vector<MOTION::Contact> &contacts,
     Pose3D pose_Ek_E,
     float* V,
     Pose3D pose_A_E,
-    Pose3D pose_E_0)
+    Pose3D pose_E_0,
+    Pose3D pose_0_S)
 {
     RVLCOLORS   // For visualization.
     Visualizer* pVisualizer = pVisualizationData->pVisualizer;
@@ -4001,14 +4005,16 @@ void Touch::RealExpCorrect(Array<MOTION::TouchData> touches,
     // kopiram model_gt u model_e
     CopyTouchModel(model_gt, model_e);
 
-    // x definiram da je sve 0 (?)
-    float x[RVLMOTION_TOUCH_NUM_PARAMS];
-    for (int i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
-        x[i] = 0.0f;
-
-    // tool.TCP -- treba definirati u odnosu na ks E // -- ne ovdje - samo  treba postavit translaciju
+    // x definiram da je sve 0 (?) -- ovo je sad x_real i postavlja se i alocira izvana
+    // float x[RVLMOTION_TOUCH_NUM_PARAMS];
+    // for (int i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
+    //     x[i] = 0.0f;
+    //
+    
+    // tool.TCP -- treba definirati u odnosu na ks E // -- ne ovdje - samo  treba postavit translaciju -- postavljeno 
 
     toolMoved.Copy(&(tool.solid));
+    toolMoved.Move(&(tool.solid), &pose_Ek_E);
     toolMoved.pVisualizer = pVisualizer;
 
     // Ovaj dio treba?
@@ -4016,30 +4022,50 @@ void Touch::RealExpCorrect(Array<MOTION::TouchData> touches,
     envSolid_E.Move(&envSolid, &pose_W_E);
     envSolid_E.Visualize(pVisualizer, black);
 
-    // ide ovo ispod
-    // toolMoved.Move(&(tool.solid), &pose_Ek_E);
     // dobiti pose_Ek_E i V
     MOTION::TouchData touch;
     float xOpt[RVLMOTION_TOUCH_NUM_PARAMS];
     std::vector<MOTION::TouchData> touches_E;
 
-    touch.pose = pose_Ek_E;
+    RVLCOPYMX3X3(pose_Ek_E.R, touch.pose.R);
+    RVLCOPY3VECTOR(pose_Ek_E.t, touch.pose.t);
+    // touch.pose = pose_Ek_E;
     RVLCOPY3VECTOR(V, touch.V);
     touch.iFirstContact = -1;
     touches_E.push_back(touch);
     touches.n = touches_E.size();
     touches.Element = touches_E.data();
-    if (!Correction(x, touches, contacts, xOpt))
+    if (!Correction(x_real, touches, contacts, xOpt))
         return;
 
     UpdateEnvironmentModel(&model_e, xOpt, &model_x);
     UpdateDoorOrientation(&model_x);
     UpdateEnvironmentVNModel(&model_e, xOpt, &model_x);
 
+    // Copy optimized parameters to the init ones. 
+    memcpy(x_real, xOpt, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
+
+    // W frame is center of the cabinet, E frame is the end-effector frame.
     // transform pVNEnv iz model_x u ks world
     // transformacija E u W i W u 0
-    Pose3D pose_W_0; 
-    float tmp[3];
+    Pose3D pose_W_0, pose_W_S; 
     RVLCOMPTRANSF3D(pose_E_0.R, pose_E_0.t, pose_W_E.R, pose_W_E.t, pose_W_0.R, pose_W_0.t);
-    model_x.pVNEnv->Transform(pose_W_0.R, pose_W_0.t); // -- za manipulator
+    RVLCOMPTRANSF3D(pose_0_S.R, pose_0_S.t, pose_W_0.R, pose_W_0.t, pose_W_S.R, pose_W_S.t);
+    model_x.pVNEnv->Transform(pose_W_S.R, pose_W_S.t); // -- za manipulator
+
+    // model_x.pose_A_E // ovo mi je rez
+}
+
+void Touch::setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K)
+{
+    // Set model_gt parameters.
+    RVLCOPYMX3X3(pose_A_E.R, model_gt.pose_A_E.R);
+    RVLCOPY3VECTOR(pose_A_E.t, model_gt.pose_A_E.t);
+    RVLCOPYMX3X3(pose_C_E.R, model_gt.pose_C_E.R);
+    RVLCOPY3VECTOR(pose_C_E.t, model_gt.pose_C_E.t);
+    model_gt.kappa = kappa;
+    model_gt.kappazn = kappazn;
+    RVLCOPYMX3X3(K, model_gt.K);
+    float z_E[3] = {pose_A_E.R[2], pose_A_E.R[5], pose_A_E.R[8]};
+    RVLSUM3VECTORS(z_E, pose_A_E.t, model_gt.PAxis_E);
 }

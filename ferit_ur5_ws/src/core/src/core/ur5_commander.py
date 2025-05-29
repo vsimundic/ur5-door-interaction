@@ -39,9 +39,11 @@ class UR5Commander():
         self.T_B_S = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_B_S.npy')))
         self.T_G_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_G_T.npy')))
         self.T_G_T[2, 3] = 0.115
+        self.T_G_6 = self.T_G_T
         # self.T_G_T[2, 3] -= 0.005
         self.T_C_T = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_C_T.npy')))
-        
+        self.T_C_6 = self.T_C_T
+
         self.joint_values_init = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'joint_values_init.npy')))
         self.T_T_B_home = np.array(np.load(os.path.join(get_package_path_from_name('gazebo_push_open'), 'config', 'T_T_B_home.npy')))
 
