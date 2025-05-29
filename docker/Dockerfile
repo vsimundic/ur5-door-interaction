@@ -90,7 +90,7 @@ RUN pip3 install python-fcl==0.7.0.6
 
 ###### DETECTRON2 ######
 WORKDIR /home/RVLuser
-COPY ../detectron2/ /home/RVLuser/detectron2
+# COPY ../detectron2/ /home/RVLuser/detectron2
 RUN apt-get update && apt-get install -y \
     python3-opencv ca-certificates python3-dev git wget sudo ninja-build
 # RUN ln -sv /usr/bin/python3 /usr/bin/python
@@ -107,6 +107,7 @@ RUN pip3 install pycocotools==2.0.6
 RUN pip3 install matplotlib==3.7.2
 # Install omegaconf and hydra-core with compatible versions
 RUN pip3 install omegaconf>=2.4.0 hydra-core>=1.1
+
 # install dependencies
 # See https://pytorch.org/ for other options if you use a different version of CUDA
 RUN pip3 install tensorboard onnx # cmake from apt-get is too old
@@ -124,14 +125,14 @@ ENV TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}"
 
 RUN apt-get update
 
-WORKDIR /home/RVLuser/detectron2
+# WORKDIR /home/RVLuser/detectron2
 # RUN pip3 install -e detectron2
-RUN python3 setup.py build develop
+# RUN python3 setup.py build develop
 ENV FVCORE_CACHE="/tmp"
 
 # RUN pip3 install -e /home/RVLuser/detectron2/projects/TensorMask
-WORKDIR /home/RVLuser/detectron2/projects/TensorMask
-RUN python3 setup.py build develop
+# WORKDIR /home/RVLuser/detectron2/projects/TensorMask
+# RUN python3 setup.py build develop
 
 
 ###### ROS-UR5 ######
