@@ -301,14 +301,29 @@ namespace RVL
 			float* V,
 			Pose3D pose_A_E,
 			Pose3D pose_E_0,
-		    Pose3D pose_0_S);
+			Pose3D pose_0_S,
+			Pose3D pose_C_W_,
+			Pose3D pose_C_W_gt_,
+			Pose3D pose_C_E);
 		MOTION::TouchModel getModelX() const
 		{
 			return model_x;
 		}
-		void setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K);
-
-	private:
+		void setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float* TCP_E);
+		void setModelEParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float* TCP_E);
+		void loadTransfMatrixFromNPY(std::string fileName, Pose3D &pose);
+		void loadVectorFromNPY(std::string fileName, float *vec, int size);
+		void CreateSceneLeftAxis(
+			float sx,
+			float sy,
+			float sz,
+			float rx,
+			float ry,
+			float a,
+			float b,
+			float c,
+			float qDeg);	
+		private:
 		void Constants();
 		void AuxParams(
 			MOTION::TouchModel *pModel0,
@@ -360,8 +375,9 @@ namespace RVL
 		bool bDoor;
 
 		// Simundic
-		Pose3D pose_A_E, pose_C_E;
+		Pose3D pose_A_E;
 		float x_real[RVLMOTION_TOUCH_NUM_PARAMS];
+		Solid envSolidGT;
 
 	private:
 		MOTION::DisplayCallbackData *pVisualizationData;

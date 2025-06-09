@@ -27,9 +27,6 @@
 
 #include "RVLPYTouch.h"
 
-namespace py = pybind11;
-using namespace RVL;
-using namespace py::literals;
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -110,7 +107,8 @@ void PYTouch::correct_real_experiment(
     py::array T_Ek_E,
     py::array V,
     py::array T_A_E,
-    py::array T_E_0)
+    py::array T_E_0,
+    py::array T_0_S)
 {
     // Convert numpy arrays to RVL types
     Pose3D pose_Ek_E, pose_A_E, pose_E_0;
@@ -124,13 +122,18 @@ void PYTouch::correct_real_experiment(
     double *T_E_0_ = (double *)T_E_0.request().ptr;
     RVLHTRANSFMXDECOMP(T_E_0_, pose_E_0.R, pose_E_0.t);
 
+    double *T_0_S_ = (double *)T_0_S.request().ptr;
+    Pose3D pose_0_S;
+    RVLHTRANSFMXDECOMP(T_0_S_, pose_0_S.R, pose_0_S.t);
+
     touch.RealExpCorrect(
         touches,
         contacts,
         pose_Ek_E,
         V_f,
         pose_A_E,
-        pose_E_0
+        pose_E_0,
+        pose_0_S
     );
 
 }
@@ -139,7 +142,7 @@ void PYTouch::set_capturing_flange_pose(py::array T_E_0)
 {
     double *T_E_0_ = (double *)T_E_0.request().ptr;
     RVLHTRANSFMXDECOMP(T_E_0_, pose_E_0.R, pose_E_0.t);
-    touch.pose_E_0 = pose_E_0;
+    // pose_E_0 = pose_E_0;
 }
 
 ////////////////////////////////////////////////////////////////////

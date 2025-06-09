@@ -332,7 +332,6 @@ int main(int argc, char **argv)
         FILE *fpLogFreeq = fopen("/home/RVLuser/rvl-linux/colchecks_Freeq.csv", "w");
         FILE *fpLogFreeSDF = fopen("/home/RVLuser/rvl-linux/colchecks_FreeSDF.csv", "w");
 
-
         while (std::getline(exampleFile, example))
         {
             // manipulator.pVNEnv->Display(&visualizer, 0.02f, manipulator.dVNEnv);
@@ -370,8 +369,7 @@ int main(int argc, char **argv)
 
             if (manipulator.bCountPoses)
             {
-                // printf("Num of selected nodes: %d\n", manipulator.vecSelectedNodes_debug.back());
-                
+                // printf("Num of selected nodes: %d\n", manipulator.vecSelectedNodes_debug.back()); 
                 vecExploredFirstPoses.push_back(manipulator.vecnumExploredPoses_debug.at(0));
                 printf("%d", manipulator.vecnumExploredPoses_debug.at(0));
                 if (success)
@@ -507,36 +505,87 @@ int main(int argc, char **argv)
         touch.Create(cfgFileName);
         touch.InitVisualizer(&visualizer, cfgFileName);
         touch.bDoor = true;
-        float sx = 0.018f;
-        float sy = 0.39251819252967834f;
-        float sz = 0.533647894859314f;
+        // float sx = 0.018f;
+        // // float sy = 0.39251819252967834f;
+        // float sy = 0.395f;
+        // // float sz = 0.533647894859314f;
+        // float sz = 0.495;
+        // float rx = 0.0011762514477595687f;
+        // float ry = -0.19625909626483917f;
+        // float a = 0.4f;
+        // float b = -ry - sy*0.5f;
+        // float c = 0.005f;
+        // float qDeg = -7.91f;
+        float a = 0.3f;
+        float sx = 0.02f;
+        float sy = 0.4;
+        float sz = 0.5f;
         //float rx = 0.01f;
-        float rx = 0.0011762514477595687f;
-        float ry = -0.19625909626483917f;
-        float a = 0.4f;
-        float b = ry - sy*0.5f;
+        float rx = 0.0f;
         //float b = 0.0025f;
+        float b = 0.0f;
         float c = 0.005f;
-        float qDeg = -7.91f;
-        // float ry = -(0.5f * sy + b);
-        touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, qDeg);
-        float a_tool = 0.019f;
-        float b_tool = 0.064f;
-        float c_tool = 0.007f;
-        float d_tool = 0.049f;
-        float h_tool = 0.02706f;
+        float qDeg = -10.0f;
+        float ry = -(0.5f * sy + b);
 
+        touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, qDeg);
+        // float a_tool = 0.019f;
+        // float b_tool = 0.064f;
+        // float c_tool = 0.007f;
+        // float d_tool = 0.049f;
+        // float h_tool = 0.02706f;
+        float a_tool = 0.03f;
+        float b_tool = 0.04f;
+        float c_tool = 0.01f;
+        float d_tool = 0.02f;
+        float h_tool = 0.03f;
         // array([-0.06436793,  0.06436793,  0.26306001])
-        float t_tool[3] = {-0.06436793f, 0.06436793f, 0.26306001f}; // distance from the flange center to the tool box center
-        touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool, t_tool);
+        float t_tool[3] = {0.06436793, -0.06436793, 0.26306001}; // distance from the flange center to the tool box center
+        touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool);
 
         // For simulation purposes
         {
-            // touch.Simulation();
+            touch.Simulation();
+            return 0;
         }
+
         for (int i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
             touch.x_real[i] = 0.0f;
+        
+        Pose3D pose_A_E, pose_A_E_gt, pose_C_E;
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_A_6.npy", pose_A_E);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_A_6_gt.npy", pose_A_E_gt);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_C_6.npy", pose_C_E);
+        float K[9];
+        IntrinsicCameraMatrix(touch.camera, K);
 
+        // float TCP_E[3] = {0.05480077460408211f, -0.05480077460408211f, 0.27256000638800115f};
+        float TCP_E[3] = {0.05480077460408211f, -0.05480077460408211f, 0.27256000638800115f};
+
+        touch.setModelEParams(pose_A_E, pose_C_E, 1.0f, 1.0f, K, TCP_E);
+        touch.setModelGTParams(pose_A_E_gt, pose_C_E, 1.0f, 1.0f, K, TCP_E);
+
+        Pose3D pose_Ek_E, pose_E_0, pose_0_S, pose_C_W, pose_C_W_gt;
+        float V[3];
+        touch.loadVectorFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/V.npy", V, 3);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_6k_6.npy", pose_Ek_E);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_6_0_capture.npy", pose_E_0);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_0_S.npy", pose_0_S);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_C_W.npy", pose_C_W);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_C_W_gt.npy", pose_C_W_gt);
+        Array<MOTION::TouchData> touches;
+        std::vector<RVL::MOTION::Contact> contacts;
+        touch.RealExpCorrect(
+            touches, 
+            contacts, 
+            pose_Ek_E, 
+            V, 
+            pose_A_E, 
+            pose_E_0, 
+            pose_0_S, 
+            pose_C_W,
+            pose_C_W_gt, 
+            pose_C_E);
     }
 
     delete[] resultsFolder;

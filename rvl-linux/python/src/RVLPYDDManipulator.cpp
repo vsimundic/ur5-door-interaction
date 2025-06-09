@@ -26,8 +26,8 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #include "RVLMotionCommon.h"
 #include "RRT.h"
 #include "DDManipulator.h"
-// #include "Touch.h"
-#include "RVLPYTouch.h"
+#include "Touch.h"
+// #include "RVLPYTouch.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -35,6 +35,95 @@ namespace py = pybind11;
 
 using namespace RVL;
 using namespace py::literals;
+
+////////////////////////////////////////////////////////////////////
+//
+//     PYTouch
+//
+/////////////////////////////////////////////////////////////////////
+
+class PYTouch {
+public:
+    RVL::Touch touch;
+    int memSize;
+    int mem0Size;
+    RVL::Visualizer visualizer;
+    RVL::Array<RVL::MOTION::TouchData> touches;
+    std::vector<RVL::MOTION::Contact> contacts;
+    Pose3D pose_E_0;
+
+    PYTouch() {
+        memSize = 1000000000;
+        mem0Size = 1000000000;
+    }
+
+    ~PYTouch() {
+        clear();
+    }
+
+    void create(std::string cfgFileName) {
+        touch.pMem0 = new CRVLMem;
+        touch.pMem0->Create(mem0Size);
+
+        char* cfgFileNameCStr = (char *)(cfgFileName.data());
+        touch.Create(cfgFileNameCStr);
+
+        visualizer.Create();
+        touch.InitVisualizer(&visualizer, cfgFileNameCStr);
+        touch.bDoor = true;
+    }
+
+    void clear() {
+        delete touch.pMem0;
+    }
+
+	void create_scene(
+		float sx, float sy, float sz,
+		float rx, float ry, float a, float b, float c, float qDeg)
+	{
+		touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, qDeg);
+	}
+
+	void create_simple_tool(
+		float a, float b, float c, float d, float h, float *t)
+	{
+		touch.CreateSimpleTool(a, b, c, d, h, t);
+	}
+
+    void correct_real_experiment(py::array T_Ek_E, py::array V, py::array T_A_E, py::array T_E_0, py::array T_0_S) {
+        Pose3D pose_Ek_E, pose_A_E, pose_E_0, pose_0_S;
+
+        double *T_Ek_E_ = (double *)T_Ek_E.request().ptr;
+        RVLHTRANSFMXDECOMP(T_Ek_E_, pose_Ek_E.R, pose_Ek_E.t);
+
+        double *V_ = (double *)V.request().ptr;
+        float V_f[3] = { (float)V_[0], (float)V_[1], (float)V_[2] };
+
+        double *T_A_E_ = (double *)T_A_E.request().ptr;
+        RVLHTRANSFMXDECOMP(T_A_E_, pose_A_E.R, pose_A_E.t);
+
+        double *T_E_0_ = (double *)T_E_0.request().ptr;
+        RVLHTRANSFMXDECOMP(T_E_0_, pose_E_0.R, pose_E_0.t);
+
+        double *T_0_S_ = (double *)T_0_S.request().ptr;
+        RVLHTRANSFMXDECOMP(T_0_S_, pose_0_S.R, pose_0_S.t);
+
+        touch.RealExpCorrect(
+            touches,
+            contacts,
+            pose_Ek_E,
+            V_f,
+            pose_A_E,
+            pose_E_0,
+            pose_0_S);
+    }
+
+    void set_capturing_flange_pose(py::array T_E_0) {
+        double *T_E_0_ = (double *)T_E_0.request().ptr;
+        RVLHTRANSFMXDECOMP(T_E_0_, pose_E_0.R, pose_E_0.t);
+    }
+};
+
 
 ////////////////////////////////////////////////////////////////////
 //
@@ -97,12 +186,13 @@ public:
 		float rx, float ry, float a, float b, float c, float qDeg);
 	void create_simple_tool_touch(
 		float a, float b, float c, float d, float h,
-		float *t = nullptr);
-	void correct_real_experiment_touch(
+		py::array t);
+	py::array correct_real_experiment_touch(
 		py::array T_Ek_E,
 		py::array V,
-		py::array T_A_E,
-		py::array T_E_0);
+		py::array T_A_E_init,
+		py::array T_E_0,
+		py::array T_0_S);
 	void update_cabinet_model_touch();
 public:
 	DDManipulator manipulator;
@@ -824,24 +914,43 @@ void PYDDManipulator::create_scene_touch(
 }
 
 void PYDDManipulator::create_simple_tool_touch(
-    float a, float b, float c, float d, float h, float *t)
+    float a, float b, float c, float d, float h, py::array t)
 {
-	py_touch.create_simple_tool(a, b, c, d, h, t);	
+	// Convert py::array to float array
+	float *t_ = (float *)t.request().ptr;
+	py_touch.create_simple_tool(a, b, c, d, h, t_);
 }
 
-void PYDDManipulator::correct_real_experiment_touch(
+py::array PYDDManipulator::correct_real_experiment_touch(
     py::array T_Ek_E,
     py::array V,
-    py::array T_A_E,
-    py::array T_E_0)
+    py::array T_A_E_init,
+    py::array T_E_0,
+    py::array T_0_S)
 {
 	py_touch.correct_real_experiment(
 		T_Ek_E,
 		V,
-		T_A_E,
-		T_E_0);
+		T_A_E_init,
+		T_E_0,
+		T_0_S);
 	
 	model_x = py_touch.touch.getModelX();
+	
+	Pose3D pose_A_E = model_x.pose_A_E;
+	// Convert pose_A_E to numpy array
+	auto T_A_E = py::array(py::buffer_info(
+		nullptr,
+		sizeof(float),
+		py::format_descriptor<float>::value,
+		2,
+		{4, 4},
+		{4 * sizeof(float), sizeof(float)}
+	));
+	float *T_A_E_ = (float *)T_A_E.request().ptr;
+	RVLHTRANSFMX(pose_A_E.R, pose_A_E.t, T_A_E_);
+	// Return the pose_A_E as a numpy array
+	return T_A_E;
 }
 
 void PYDDManipulator::update_cabinet_model_touch()

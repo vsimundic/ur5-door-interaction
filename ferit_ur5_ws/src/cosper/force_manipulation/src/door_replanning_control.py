@@ -31,6 +31,8 @@ class DoorReplanningFSM:
         self.cabinet_static_mesh_path = os.path.join(self.base_dir, 'cabinet_model/cabinet_static.ply')
         self.cabinet_panel_mesh_path = os.path.join(self.base_dir, 'cabinet_model/cabinet_panel.ply')
 
+        self.ft_loss_joints_path = os.path.join(self.base_dir, 'ft_loss_joints.npy')
+        self.ft_loss_T_6_0_path = os.path.join(self.base_dir, 'ft_loss_T_6_0.npy')
 
         self.gt_poses_path = os.path.join(self.base_dir, 'gt_cabinets/cabinet_gt_poses.npy')
         self.gt_trajectories_path = os.path.join(self.base_dir, 'gt_cabinets/cabinet_gt_trajectories.pkl')
@@ -38,7 +40,7 @@ class DoorReplanningFSM:
         self.gt_poses = np.load(self.gt_poses_path)
         with open(self.gt_trajectories_path, 'rb') as f:
             self.trajectories_per_pose = pickle.load(f)
-        self.gt_idx = 0
+        self.gt_idx = 4
 
         self.gt_door_model_path = os.path.join(self.base_dir, 'models/T_A_W_gt.npy')
         self.gt_door_width_path = os.path.join(self.base_dir, 'models/width.npy')
@@ -51,7 +53,9 @@ class DoorReplanningFSM:
         self.T_0_W = np.eye(4)
         self.T_TCP_G = np.eye(4)
         self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5, 0, 0.100])
-        
+        self.T_6_0_ft_loss = np.eye(4)
+        self.V = np.array([0.0, 0.0, 0.0]) # unit vector of approach path - in rf 6 (of capture pose) 
+
         # self.T_TCP_G[:3, 3] = np.array([0.155 * 0.5 - 0.007, 0, 0.100])
         self.R_TCP_D = np.array([[0, 0, -1],
                                 [0, 1, 0],
@@ -67,8 +71,8 @@ class DoorReplanningFSM:
             os.makedirs(self.save_dir)
 
         # Initialize robot and manipulator
-        # self.robot = UR5Controller()
-        self.robot = UR5Commander()
+        self.robot = UR5Controller()
+        # self.robot = UR5Commander()
         self.robot.T_C_6 = self.T_C_6
         self.robot.T_G_6 = np.eye(4)
 
@@ -77,18 +81,26 @@ class DoorReplanningFSM:
         self.tactile_loss_joints = []
         self.contact_established = False
 
-        self.rvl_cfg = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
+        self.rvl_data_path = '/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data'
+
+        self.rvl_ddmanipulator_cfg = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
+        self.rvl_touch_cfg = '/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec.cfg'
         self.rvl_manipulator = rvlpy.PYDDManipulator()
-        self.rvl_manipulator.create(self.rvl_cfg)
+        self.rvl_manipulator.create(self.rvl_ddmanipulator_cfg)
         # self.rvl_manipulator.set_robot_pose(self.robot.T_0_W)
 
         self.robot.T_G_6 = self.rvl_manipulator.get_T_G_6()
+        np.save(os.path.join(self.rvl_data_path, 'T_G_6.npy'), self.robot.T_G_6)
+        # debug
+        Tz = np.eye(4)
+        Tz[:3, :3] = rot_z(np.pi)
+        T_TCP2_TCP = np.eye(4)
+        T_TCP2_TCP[:3, 3] = np.array([0.02706 * 0.5, 0, -0.019*0.5])
 
-        # # debug
-        # T_TCP2_TCP = np.eye(4)
-        # T_TCP2_TCP[:3, 3] = np.array([0.02706 * 0.5, 0, -0.019*0.5])
-
-        # T_TCP2_6 = self.robot.T_G_6 @ self.T_TCP_G @ T_TCP2_TCP
+        T_TCP_6 = Tz @ (self.robot.T_G_6 @ self.T_TCP_G)
+        np.save(os.path.join(self.rvl_data_path, 'T_TCP_6.npy'), T_TCP_6)
+        T_TCP2_6 = Tz @ (T_TCP_6 @ T_TCP2_TCP)
+        np.save(os.path.join(self.rvl_data_path, 'T_TCP2_6.npy'), T_TCP2_6)
 
         # Cabinet model
         self.cabinet_model = None
@@ -104,6 +116,7 @@ class DoorReplanningFSM:
         rospy.loginfo("[FSM] Initializing...")
 
         self.cabinet_model, self.T_6_0_capture, self.state_angle = self.create_detected_cabinet_model(self.door_model_path)
+        gt_cabinet_model, gt_state_angle = self.create_gt_cabinet_model()
 
         # Save meshes
         self.state = "PLAN_TRAJECTORY"
@@ -124,6 +137,36 @@ class DoorReplanningFSM:
         self.rvl_manipulator.set_door_pose(self.cabinet_model.T_A_S)
         self.rvl_manipulator.load_cabinet_static_mesh_fcl(self.cabinet_static_mesh_path)
         self.rvl_manipulator.load_cabinet_panel_mesh_fcl(self.cabinet_panel_mesh_path)
+
+        # Touch initialization
+        self.rvl_manipulator.create_touch(self.rvl_touch_cfg)
+        # float sx, float sy, float sz,
+        # float rx, float ry, float a, float b, float c, float qDeg
+        self.rvl_manipulator.create_scene_touch(
+            self.cabinet_model.d_door,
+            self.cabinet_model.w_door,
+            self.cabinet_model.h_door,
+            self.cabinet_model.rx,
+            self.cabinet_model.ry,
+            self.cabinet_model.static_d,
+            self.cabinet_model.ry - self.cabinet_model.w_door * 0.5,
+            self.cabinet_model.static_side_width,
+            self.state_angle)
+        
+        a_tool = 0.019
+        b_tool = 0.064
+        c_tool = 0.007
+        d_tool = 0.049
+        h_tool = 0.02706
+        t_tool = np.array([-0.06436793, 0.06436793, 0.26306001])  # distance from the flange center to the tool box center
+        self.rvl_manipulator.create_simple_tool_touch(
+            a_tool,
+            b_tool,
+            c_tool,
+            d_tool,
+            h_tool,
+            t_tool)
+        
 
     def plan_trajectory(self):
         self.add_cabinet_model_to_scene(self.state_angle)
@@ -149,6 +192,9 @@ class DoorReplanningFSM:
             self.state = "EXIT"
         else:           
             self.extract_closest_trajectory()
+            # Save closest index to a file
+            closest_idx_path = os.path.join(self.base_dir, 'closest_idx.npy')
+            np.save(closest_idx_path, self.closest_idx)
             self.state = "EXECUTE_APPROACH_PATH"
 
     def load_trajectory(self):
@@ -163,6 +209,9 @@ class DoorReplanningFSM:
                 return
             else:
                 self.extract_closest_trajectory()
+                # Save closest index to a file
+                closest_idx_path = os.path.join(self.base_dir, 'closest_idx.npy')
+                np.save(closest_idx_path, self.closest_idx)
 
             rospy.loginfo("[FSM] Trajectory loaded successfully.")
             self.state = "EXECUTE_APPROACH_PATH"
@@ -175,9 +224,9 @@ class DoorReplanningFSM:
         current_joints = self.robot.get_current_joint_values()
         first_joints = self.trajectories[:, 0, :]
         cheb_distances = np.max(np.abs(first_joints - current_joints), axis=1)
-        closest_idx = np.argmin(cheb_distances)
-        rospy.loginfo(f"[FSM] Closest trajectory index: {closest_idx}")
-        self.trajectory = self.trajectories[closest_idx]
+        self.closest_idx = np.argmin(cheb_distances)
+        rospy.loginfo(f"[FSM] Closest trajectory index: {self.closest_idx}")
+        self.trajectory = self.trajectories[self.closest_idx]
 
     def execute_approach_path(self):
         rospy.loginfo("[FSM] Executing approach path...")
@@ -222,6 +271,21 @@ class DoorReplanningFSM:
         self.zero_sensor()
         rospy.loginfo("[FSM] Executing insertion path...")
         insertion_path = np.array([self.robot.get_current_joint_values(), self.trajectory[2]])
+
+        # Set vector unit vector V
+        T_6_0_via = self.robot.get_fwd_kinematics_moveit(self.trajectory[1])
+        T_6_0_contact = self.robot.get_fwd_kinematics_moveit(self.trajectory[2])
+
+        T_6via_6capture = np.linalg.inv(self.T_6_0_capture) @ T_6_0_via
+        T_6contact_6capture = np.linalg.inv(self.T_6_0_capture) @ T_6_0_contact
+        np.save(os.path.join(self.rvl_data_path, 'T_6via_6capture.npy'), T_6via_6capture)
+        np.save(os.path.join(self.rvl_data_path, 'T_6contact_6capture.npy'), T_6contact_6capture)
+        self.V = T_6contact_6capture[:3, 2] - T_6via_6capture[:3, 2]
+        self.V /= np.linalg.norm(self.V)  # Normalize the vector
+        np.save(os.path.join(self.rvl_data_path, 'V.npy'), self.V)
+        rospy.loginfo(f"[FSM] Insertion vector V: {self.V}")
+
+
         success = self.execute_with_monitoring(insertion_path, force_threshold=15.0)
         if success:
             rospy.loginfo("[FSM] Insertion path executed successfully.")
@@ -270,6 +334,44 @@ class DoorReplanningFSM:
         # self.execute_without_monitoring(backup_trajectory)
         self.execute_and_remember_joints_on_force_loss(backup_trajectory)
         rospy.loginfo("[FSM] Current state backed up.")
+
+    def correct_touch_model(self):
+        rospy.loginfo("[FSM] Correcting touch model...")
+        
+        # py::array T_Ek_E,
+        # py::array V,
+        # py::array T_A_E_init,
+        # py::array T_E_0,
+        # py::array T_0_S)
+
+        # k here means the model that should be corrected
+        T_0_6_capture = np.linalg.inv(self.T_6_0_capture)
+        
+        T_Arot_A = np.eye(4)
+        T_Arot_A[:3, :3] = rot_z(np.deg2rad(self.state_angle))
+
+        # Correct the model
+        T_6k_6 = T_0_6_capture @ self.T_6_0_ft_loss
+        np.save(os.path.join(self.rvl_data_path, 'T_6k_6.npy'), T_6k_6)
+        V = self.V
+        np.save(os.path.join(self.rvl_data_path, 'V.npy'), V)
+        T_A_6_capture = T_0_6_capture @ self.robot.T_0_W @ self.cabinet_model.T_A_S @ T_Arot_A
+        T_E_0 = self.T_6_0_capture
+        T_0_S = self.robot.T_0_W
+        T_A_6_corrected = self.rvl_manipulator.correct_real_experiment_touch(
+            T_6k_6,
+            V,
+            T_A_6_capture,
+            T_E_0,
+            T_0_S
+        )
+        T_A_W_corrected = self.robot.T_0_W @ self.T_6_0_capture @ T_A_6_corrected
+
+        # Update the cabinet model
+        self.cabinet_model.T_A_S = T_A_W_corrected.copy()
+
+        # Update collision model in RVL manipulator
+        self.rvl_manipulator.update_cabinet_model_touch()
 
     def recapture(self):
         rospy.loginfo("[FSM] Replanning...")
@@ -381,6 +483,16 @@ class DoorReplanningFSM:
         self.robot.send_joint_trajectory_action(trajectory, max_velocity=0.5, max_acceleration=0.5)
         monitor_thread.join()
 
+        self.ft_loss_joints = np.array(self.ft_loss_joints)
+        if self.ft_loss_joints.shape[0] == 1:
+            rospy.logwarn("[FSM] Force loss detected during backup. Remembered joints: %s", self.ft_loss_joints[0])
+            self.T_6_0_ft_loss = self.robot.get_fwd_kinematics_moveit(self.ft_loss_joints[0].tolist())
+            np.save(self.ft_loss_joints_path, self.ft_loss_joints[0])
+            np.save(self.ft_loss_T_6_0_path, self.T_6_0_ft_loss)
+            T_6k_6 = np.linalg.inv(self.T_6_0_capture) @ self.T_6_0_ft_loss
+            np.save(os.path.join(self.rvl_data_path, 'T_6k_6.npy'), T_6k_6)
+
+
     def capture_door_state(self, T_C_W_new):
         rospy.loginfo("[FSM] Capturing door state...")
         image_capture = OneShotImageCapture(self.save_dir, self.rgb_topic, self.depth_topic, self.camera_info_topic, self.depth_encoding)
@@ -412,6 +524,11 @@ class DoorReplanningFSM:
         joint_values = np.array(data["joint_values"])
 
         T_6_0 = self.robot.get_fwd_kinematics_moveit(joint_values)
+        np.save(os.path.join(self.rvl_data_path, 'T_6_0_capture.npy'), T_6_0)
+        T_Arot_A = np.eye(4)
+        T_Arot_A[:3, :3] = rot_z(np.deg2rad(state_angle))
+        T_A_6 = self.T_C_6 @ T_A_C @ T_Arot_A
+        np.save(os.path.join(self.rvl_data_path, 'T_A_6.npy'), T_A_6)
         T_A_W = self.T_0_W @ T_6_0 @ self.T_C_6 @ T_A_C
         cabinet_model = Cabinet(door_params=np.array([s[0], s[1], 0.018, 0.4]),
                                 r=r,
@@ -419,25 +536,44 @@ class DoorReplanningFSM:
                                 T_A_S=T_A_W,
                                 save_path=os.path.join(self.base_dir, 'cabinet_model/cabinet_model.urdf'),
                                 has_handle=False)
+        
+        T_C_O = cabinet_model.T_A_O @ np.linalg.inv(T_A_C)
+        T_O_C = np.linalg.inv(T_C_O)
+        T_O_C[:3, :3] = T_A_C[:3, :3].copy()
+        T_C_O = np.linalg.inv(T_O_C)
+        np.save(os.path.join(self.rvl_data_path, 'T_C_W.npy'), T_C_O)
         return cabinet_model, T_6_0, state_angle
 
     def create_gt_cabinet_model(self):
-        width = 0.396
-        height = 0.496
+        width = 0.395
+        height = 0.52
         door_thickness = 0.018
         static_depth = 0.4
         axis_pos = -1
         # T_A_W_gt = np.load(self.gt_door_model_path)
         T_A_W_gt = self.gt_poses[self.gt_idx]
+        state_angle_gt = axis_pos * np.rad2deg(np.arcsin(self.push_latch_mechanism_length / width))
+        T_Arot_A = np.eye(4)
+        T_Arot_A[:3, :3] = rot_z(np.deg2rad(state_angle_gt))
+
+        T_A_6_gt = np.linalg.inv(self.T_6_0_capture) @ self.robot.T_0_W @ T_A_W_gt @ T_Arot_A
+        np.save(os.path.join(self.rvl_data_path, 'T_A_6_gt.npy'), T_A_6_gt)
         # width = np.load(self.gt_door_width_path)
 
-        state_angle_gt = axis_pos * np.rad2deg(np.arcsin(self.push_latch_mechanism_length / width))
         cabinet_gt = Cabinet(door_params=np.array([width, height, door_thickness, static_depth]),
                                 r=np.array([0., -width*0.5]),
                                 axis_pos=axis_pos,
                                 T_A_S=T_A_W_gt,
                                 save_path=None,
                                 has_handle=False)
+        T_A_6_gt_notrot = np.linalg.inv(self.T_6_0_capture) @ self.robot.T_0_W @ T_A_W_gt
+        T_A_C = np.linalg.inv(self.T_C_6) @ T_A_6_gt_notrot
+        T_C_O = cabinet_gt.T_A_O @ np.linalg.inv(T_A_C)
+        T_O_C = np.linalg.inv(T_C_O)
+        T_O_C[:3, :3] = T_A_C[:3, :3].copy()
+        T_C_O = np.linalg.inv(T_O_C)
+        np.save(os.path.join(self.rvl_data_path, 'T_C_W_gt.npy'), T_C_O)
+
         return cabinet_gt, state_angle_gt
 
 

@@ -1040,14 +1040,14 @@ def demo_push_poses():
     dd_state_deg = 7.0
     num_viewpoints = 100
     num_rot_angles = 12
-    load_valid_contact_poses_from_file = False
-    load_feasible_poses_from_file = False
+    load_valid_contact_poses_from_file = True
+    load_feasible_poses_from_file = True
     contact_point_sampling_offset = 0.02
     use_default_gripper = False
     vision_tolerance = 0.007
 
-    use_fcl = True
-    visualize_feasible_poses = False
+    use_fcl = False
+    visualize_feasible_poses = True
 
     if use_default_gripper:
         custom_gripper_spheres_path = ''
@@ -1163,44 +1163,68 @@ def demo_push_poses():
             feasible_poses = valid_contact_poses_[np.logical_not(collision),:]
 
 
-        # Visualize meshes and contact points.
-        if visualize_feasible_poses:
-            origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size = 0.05)
-
-            samples = feasible_poses
-            good_samples = []
-            for i in range(10):
-
-                good_sample = False
-                while not good_sample:
-                    sample_idx = np.random.randint(samples.shape[0])
-                    # sample_idx = 0
-                    T_G_DD = samples[sample_idx,:,:]
-                    p_ref_G = np.ones(4)
-                    p_ref_G[:3] = -np.array([tool_finger_distances])
-                    p_ref_DD = T_G_DD @ p_ref_G
-                    good_sample = (p_ref_DD[0] < 0.0 or p_ref_DD[1] < 0.0)
-
-                good_samples.append(sample_idx)
-                # tool has to be created again, because the transform is 
-                # relative to the current pose, not origin
-                tool_mesh = tool.create_mesh([0.0, 0.5, 0.5]) 
-                T_G_W = door.T_DD_W @ T_G_DD 
-                tool_mesh.transform(T_G_W)
-                tool_mesh.compute_vertex_normals()
-                door_mesh = dd_plate_mesh + dd_static_mesh
-                door_mesh.compute_vertex_normals()
-                o3d.visualization.draw_geometries([dd_mesh, tool_mesh, origin_rf])
-
-                # dd_mesh, tool_mesh, tool_mesh_wireframe, tool_sampling_sphere_centers_pcd = visualize_push(collision[sample_idx], door, tool, T_G_DD)
-                # o3d.visualization.draw_geometries([tool_mesh_wireframe, tool_sampling_sphere_centers_pcd, dd_mesh])
 
         if use_fcl:
             np.save('/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis_fcl.npy', feasible_poses)
         else:
             np.save('/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis.npy', feasible_poses)
 
+    # Visualize meshes and contact points.
+    if visualize_feasible_poses:
+        import open3d as o3d
 
+        origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
+        samples = feasible_poses
+        good_samples = []
+
+        # Prepare initial geometries
+        tool_mesh = tool.create_mesh([0.5, 0.5, 0.5])
+        door_mesh = dd_plate_mesh  # + dd_static_mesh
+        door_mesh.compute_vertex_normals()
+        door_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
+        door_rf.transform(door.T_DD_W)
+
+        vis = o3d.visualization.VisualizerWithKeyCallback()
+        vis.create_window(window_name="Feasible Poses", width=800, height=600)
+        vis.add_geometry(door_mesh)
+        vis.add_geometry(door_rf)
+        vis.add_geometry(tool_mesh)
+
+        sample_indices = []
+        current_idx = {"i": 0}
+        tool_mesh_holder = [tool_mesh]  # Use a list to hold the reference
+
+        def update_tool_mesh(vis):
+            # Remove old tool mesh
+            vis.remove_geometry(tool_mesh_holder[0], reset_bounding_box=False)
+            # Pick a new sample
+            good_sample = False
+            while not good_sample:
+                sample_idx = np.random.randint(samples.shape[0])
+                T_G_DD = samples[sample_idx, :, :]
+                p_ref_G = np.ones(4)
+                p_ref_G[:3] = -np.array([tool_finger_distances])
+                p_ref_DD = T_G_DD @ p_ref_G
+                good_sample = (p_ref_DD[0] < 0.0 or p_ref_DD[1] < 0.0)
+            sample_indices.append(sample_idx)
+            # Create and transform new tool mesh
+            tool_mesh_new = tool.create_mesh([0.5, 0.5, 0.5])
+            T_G_W = door.T_DD_W @ T_G_DD
+            tool_mesh_new.transform(T_G_W)
+            tool_mesh_new.compute_vertex_normals()
+            # Add new tool mesh
+            vis.add_geometry(tool_mesh_new, reset_bounding_box=False)
+            # Update reference for next removal
+            tool_mesh_holder[0] = tool_mesh_new
+            vis.update_renderer()
+            return False  # Don't close window
+
+        # Register callback for right arrow key (key code 262)
+        vis.register_key_callback(262, update_tool_mesh)
+        print("Press the right arrow key to update the tool pose.")
+
+        vis.run()
+        vis.destroy_window()
 
     # Collision-free poses.
 

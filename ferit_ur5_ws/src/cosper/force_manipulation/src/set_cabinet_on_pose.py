@@ -7,8 +7,8 @@ trajectories_path = '/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250
 T_A_W_path = '/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/gt_cabinets/cabinet_gt_poses.npy'
 
 door_thickness = 0.018
-width = 0.396
-height = 0.496
+width = 0.395
+height = 0.495
 
 T_A_W_cabinets = np.load(T_A_W_path)
 T_A_W_cabinets = T_A_W_cabinets.reshape(-1, 4, 4)

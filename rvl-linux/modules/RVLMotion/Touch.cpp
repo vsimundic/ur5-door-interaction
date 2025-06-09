@@ -21,6 +21,7 @@
 #include "VN.h"
 #include "RVLMotionCommon.h"
 #include "Touch.h"
+#include "cnpy.h"
 
 //#define RVLMOTION_TOUCH_VN
 
@@ -1900,11 +1901,11 @@ void Touch::CreateSimpleTool(
     //}
     //tool.solid.Create(faces_);
 
-    // Visualize solid.
-
-    //Visualizer* pVisualizer = pVisualizationData->pVisualizer;
-    //tool.solid.Visualize(pVisualizer);
-    //pVisualizer->Run();
+    // // Visualize solid.
+    // RVLCOLORS
+    // Visualizer* pVisualizer = pVisualizationData->pVisualizer;
+    // tool.solid.Visualize(pVisualizer, green);
+    // pVisualizer->Run();
 
     // TCP.
 
@@ -2970,8 +2971,8 @@ bool Touch::Correction(
         if(pTouch_E->iFirstContact < 0)
             Contacts(pTouch_E, contacts, bVisualizeContacts);
 
-    if (touches_E.Element[touches_E.n - 1].nContacts == 0)
-        return false;
+    // if (touches_E.Element[touches_E.n - 1].nContacts == 0)
+    //     return false;
 
     if (bVisualizeContacts)
     {
@@ -3956,10 +3957,6 @@ void Touch::TestVertexPlaneConsistency()
 
 // Simundic
 void Touch::CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::TouchModel& dst) {
-    // Copy POD and fixed-size arrays
-    RVLCOPYMX3X3(src.pose_C_E.R, dst.pose_C_E.R);
-    RVLCOPY3VECTOR(src.pose_C_E.t, dst.pose_C_E.t);
-
     dst.camera.fu = src.camera.fu;
     dst.camera.fv = src.camera.fv;
     dst.camera.uc = src.camera.uc;
@@ -3967,25 +3964,39 @@ void Touch::CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::Touc
     dst.camera.w = src.camera.w;
     dst.camera.h = src.camera.h;
 
-    RVLCOPYMX3X3(src.K, dst.K);
-
-    dst.kappa = src.kappa;
-    dst.kappazn = src.kappazn;
-
     RVLCOPY3VECTOR(src.TCP_E, dst.TCP_E);
 
     // ???
-    dst.pVNEnv = src.pVNEnv;
-    dst.d = src.d;
+    // dst.pVNEnv = src.pVNEnv;
+    // dst.d = src.d;
+
+    // ADD: Copy the VN environment
+    int iFeature;
+    RECOG::VN_::Feature* pFeatureSrc = src.pVNEnv->featureArray.Element;
+    RECOG::VN_::Feature* pFeatureTgt = dst.pVNEnv->featureArray.Element;
+    MOTION::Plane Plane_E_e;
+    MOTION::Plane Plane_E;
+
+    for (iFeature = 0; iFeature < dst.pVNEnv->featureArray.n; iFeature++, pFeatureSrc++, pFeatureTgt++)
+    {
+        RVLPLANETRANSF3(pFeatureSrc->N, pFeatureSrc->d, pose_W_E.R, pose_W_E.t, Plane_E.N, Plane_E.d);
+        // VisionPlane(&Plane_E, a_, b_, D, &pose_C_E, &pose_C_E_e, &Plane_E_e);
+        RVLCOPY3VECTOR(Plane_E.N, pFeatureTgt->N);
+        pFeatureTgt->d = Plane_E.d;
+    }
+
+    // ADD: Copy features
+    src.pVNEnv->CopyDescriptor(dst.d);
+
     SetVerticesAndPlanes(surfaces, vertices, pose_W_E, &model_e);
 
     // dst.plane = src.plane;
     // dst.vertex = src.vertex;
     
-    RVLCOPYMX3X3(src.pose_A_E.R, dst.pose_A_E.R);
-    RVLCOPY3VECTOR(src.pose_A_E.t, dst.pose_A_E.t);
-    float z_E[3] = {src.pose_A_E.R[2], src.pose_A_E.R[5], src.pose_A_E.R[8]};
-    RVLSUM3VECTORS(z_E, pose_A_E.t, dst.PAxis_E);
+    // RVLCOPYMX3X3(src.pose_A_E.R, dst.pose_A_E.R);
+    // RVLCOPY3VECTOR(src.pose_A_E.t, dst.pose_A_E.t);
+    // float z_E[3] = {src.pose_A_E.R[2], src.pose_A_E.R[5], src.pose_A_E.R[8]};
+    // RVLSUM3VECTORS(z_E, pose_A_E.t, dst.PAxis_E);
     // RVLCOPY3VECTOR(src.PAxis_E, dst.PAxis_E);
 }
 
@@ -3996,10 +4007,46 @@ void Touch::RealExpCorrect(Array<MOTION::TouchData> &touches,
     float* V,
     Pose3D pose_A_E,
     Pose3D pose_E_0,
-    Pose3D pose_0_S)
+    Pose3D pose_0_S,
+    Pose3D pose_C_W_,
+    Pose3D pose_C_W_gt_,
+    Pose3D pose_C_E)
 {
     RVLCOLORS   // For visualization.
     Visualizer* pVisualizer = pVisualizationData->pVisualizer;
+
+    RVLCOPYMX3X3(pose_C_W_.R, pose_C_W.R);
+    RVLCOPY3VECTOR(pose_C_W_.t, pose_C_W.t);
+
+    Pose3D pose_W_C;
+    RVLINVTRANSF3D(pose_C_W.R, pose_C_W.t, pose_W_C.R, pose_W_C.t);
+    RVLCOMPTRANSF3D(pose_C_E.R, pose_C_E.t, pose_W_C.R, pose_W_C.t, pose_W_E.R, pose_W_E.t);
+    RVLINVTRANSF3D(pose_W_E.R, pose_W_E.t, pose_E_W.R, pose_E_W.t);
+
+    Pose3D pose_W_C_gt, pose_W_E_gt, pose_E_W_gt;
+    RVLINVTRANSF3D(pose_C_W_gt_.R, pose_C_W_gt_.t, pose_W_C_gt.R, pose_W_C_gt.t);
+    RVLCOMPTRANSF3D(pose_C_E.R, pose_C_E.t, pose_W_C_gt.R, pose_W_C_gt.t, pose_W_E_gt.R, pose_W_E_gt.t);
+    RVLINVTRANSF3D(pose_W_E_gt.R, pose_W_E_gt.t, pose_E_W_gt.R, pose_E_W_gt.t);
+
+    // // Visualize environment model
+    // {
+    //    Solid* pSolid;
+    //    SolidVertex* pSolidVertex;
+    //    float V3Tmp[3];
+    //    for (int iSolid = 0; iSolid < envSolidx.solids.size(); iSolid++)
+    //    {
+    //        pSolid = envSolidx.solids[iSolid];
+    //        for (int i = 0; i < pSolid->vertices.n; i++)
+    //        {
+    //            pSolidVertex = pSolid->vertices.Element + i;
+    //            RVLTRANSF3(pSolidVertex->P, pose_W_E.R, pose_W_E.t, V3Tmp);
+    //            RVLCOPY3VECTOR(V3Tmp, pSolidVertex->P);
+    //        }
+    //    }
+    //    envSolidx.Visualize(pVisualizer, darkGreen);
+    //    pVisualizer->Run();
+    // }
+
 
     // u model_e i model_gt stavljam pose_A_E, pose_C_E, kappa, kappazn, K izvana.
     // kopiram model_gt u model_e
@@ -4016,11 +4063,16 @@ void Touch::RealExpCorrect(Array<MOTION::TouchData> &touches,
     toolMoved.Copy(&(tool.solid));
     toolMoved.Move(&(tool.solid), &pose_Ek_E);
     toolMoved.pVisualizer = pVisualizer;
+    toolMoved.Visualize(pVisualizer, red);
 
-    // Ovaj dio treba?
+    envSolidGT.Copy(&envSolid);
+    envSolidGT.Move(&envSolid, &pose_W_E_gt);
+    envSolidGT.Visualize(pVisualizer, blue);
+
     envSolid_E.Copy(&envSolid);
     envSolid_E.Move(&envSolid, &pose_W_E);
     envSolid_E.Visualize(pVisualizer, black);
+    pVisualizer->Run();
 
     // dobiti pose_Ek_E i V
     MOTION::TouchData touch;
@@ -4057,7 +4109,7 @@ void Touch::RealExpCorrect(Array<MOTION::TouchData> &touches,
     // model_x.pose_A_E // ovo mi je rez
 }
 
-void Touch::setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K)
+void Touch::setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float *TCP_E)
 {
     // Set model_gt parameters.
     RVLCOPYMX3X3(pose_A_E.R, model_gt.pose_A_E.R);
@@ -4069,4 +4121,456 @@ void Touch::setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, floa
     RVLCOPYMX3X3(K, model_gt.K);
     float z_E[3] = {pose_A_E.R[2], pose_A_E.R[5], pose_A_E.R[8]};
     RVLSUM3VECTORS(z_E, pose_A_E.t, model_gt.PAxis_E);
+    RVLCOPY3VECTOR(TCP_E, model_gt.TCP_E);
+}
+
+void Touch::setModelEParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float *TCP_E)
+{
+    // Set model_e parameters.
+    RVLCOPYMX3X3(pose_A_E.R, model_e.pose_A_E.R);
+    RVLCOPY3VECTOR(pose_A_E.t, model_e.pose_A_E.t);
+    RVLCOPYMX3X3(pose_C_E.R, model_e.pose_C_E.R);
+    RVLCOPY3VECTOR(pose_C_E.t, model_e.pose_C_E.t);
+    model_e.kappa = kappa;
+    model_e.kappazn = kappazn;
+    RVLCOPYMX3X3(K, model_e.K);
+    float z_E[3] = {pose_A_E.R[2], pose_A_E.R[5], pose_A_E.R[8]};
+    RVLSUM3VECTORS(z_E, pose_A_E.t, model_e.PAxis_E);
+    RVLCOPY3VECTOR(TCP_E, model_e.TCP_E);
+}
+
+void Touch::loadTransfMatrixFromNPY(std::string fileName, Pose3D &pose)
+{
+    cnpy::NpyArray npyData = cnpy::npy_load(fileName);
+    double *data = npyData.data<double>();
+    double *pData = data;
+    double *srcRow;
+    float *tgtRow;
+    srcRow = pData;
+    tgtRow = pose.R;
+    int i;
+    for (i = 0; i < 3; i++, srcRow += 4, tgtRow += 3)
+    {
+        RVLCOPY3VECTOR(srcRow, tgtRow);
+        pose.t[i] = srcRow[3];
+    }
+}
+
+void Touch::loadVectorFromNPY(std::string fileName, float *vec, int size)
+{
+    cnpy::NpyArray npyData = cnpy::npy_load(fileName);
+    double *data = npyData.data<double>();
+    double *pData = data;
+    for (int i = 0; i < size; i++, pData++)
+        vec[i] = (float)(*pData);
+}
+
+void Touch::CreateSceneLeftAxis(
+    float sx,
+    float sy,
+    float sz,
+    float rx,
+    float ry,
+    float a,
+    float b,
+    float c,
+    float qDeg)
+{
+    // Constants.
+
+    float q = qDeg * DEG2RAD;
+
+    // Scene.
+
+    int nPanels = 4;
+    float scene[4][6];
+        //float scene[4][6] = { {0.300f, 0.420f, 0.020f, 0.0f, 0.0f, 0.250f},
+        //    {0.300f, 0.420f, 0.020f, 0.0f, 0.0f, -0.250f},
+        //    {0.300f, 0.020f, 0.520f, 0.0f, 0.200f, 0.0f},
+        //    {0.300f, 0.020f, 0.520f, 0.0f, -0.200f, 0.0f} };
+
+    RVLSET6VECTOR(scene[0], a, sy + 2.0f * (sx + c), sx, 0.0f, 0.0f, 0.5f * (sx + sz) + c);
+    RVLSET6VECTOR(scene[1], a, sy + 2.0f * (sx + c), sx, 0.0f, 0.0f, -(0.5f * (sx + sz) + c));
+    RVLSET6VECTOR(scene[2], a, sx, sz + 2.0f * (sx + c), 0.0f, 0.5f * (sx + sy) + c, 0.0f);
+    RVLSET6VECTOR(scene[3], a, sx, sz + 2.0f * (sx + c), 0.0f, -(0.5f * (sx + sy) + c), 0.0f);
+
+    float* panelSize;
+    int i, j;
+    int iPanel;
+    Solid* pPanel;
+    Pose3D pose_B_W;
+    RVLUNITMX3(pose_B_W.R);
+    float* t_B_W;
+    bool bFirstVertex = false;
+    for (iPanel = 0; iPanel < nPanels; iPanel++)
+    {
+        panelSize = scene[iPanel];
+        pPanel = new Solid;
+        t_B_W = scene[iPanel] + 3;
+        RVLCOPY3VECTOR(t_B_W, pose_B_W.t);
+        pPanel->CreateBox(panelSize, &pose_B_W);
+        envSolid.Add(pPanel);
+    }
+    //envSolid.Union();
+    float bboxSize = BoxSize<float>(&(envSolid.bbox));
+
+    // Door.
+
+    Pose3D pose_Arot_A;
+    if (bDoor)
+    {
+        pPanel = new Solid;
+        Pose3D pose_B_Arot;
+        RVLUNITMX3(pose_B_Arot.R);
+        RVLSET3VECTOR(pose_B_Arot.t, rx, ry, 0.0f);
+        float cs = cos(q);
+        float sn = sin(q);
+        RVLROTZ(cs, sn, pose_Arot_A.R);
+        RVLNULL3VECTOR(pose_Arot_A.t);
+        RVLUNITMX3(doorPose.R);
+        RVLSET3VECTOR(doorPose.t, -0.5f * a, 0.5f * sy + b, 0.0f);
+        Pose3D pose_B_A;
+        RVLCOMPTRANSF3D(pose_Arot_A.R, pose_Arot_A.t, pose_B_Arot.R, pose_B_Arot.t, pose_B_A.R, pose_B_A.t);
+        RVLCOMPTRANSF3D(doorPose.R, doorPose.t, pose_B_A.R, pose_B_A.t, pose_B_W.R, pose_B_W.t);
+        float panelSize_[3];
+        RVLSET3VECTOR(panelSize_, sx, sy, sz);
+        pPanel->CreateBox(panelSize_, &pose_B_W);
+        envSolid.Add(pPanel);
+        nPanels++;
+    }
+
+    // Visualize environment model.
+
+    //RVLCOLORS
+    //Visualizer* pVisualizer = pVisualizationData->pVisualizer;
+    //if (bDoor)
+    //    pVisualizer->DisplayReferenceFrame(&doorPose, 0.2f);
+    //envSolid.Visualize(pVisualizer, black);
+    //pVisualizer->Run();
+
+    // Panel Surfaces.
+
+    //Array<MOTION::Plane> panelSurfaces;
+    //panelSurfaces.n = nPanels * 6;
+    //panelSurfaces.Element = new MOTION::Plane[panelSurfaces.n];    
+    //MOTION::Plane* pPanelSurface = panelSurfaces.Element;
+    //float* P_W__[3];
+    //int iPlane = 0;
+    //float area;
+    //for (iPanel = 0; iPanel < nPanels; iPanel++)
+    //{
+    //    for (i = 0; i < 6; i++)
+    //    {
+    //        iPlane = 6 * iPanel + i;
+    //        pPanelSurface = panelSurfaces.Element + iPlane;
+    //        face_ = face + 2 * iPlane * 3;
+    //        for(j = 0; j < 3; j++)
+    //            P_W__[j] = P_W + face_[j] * 3;
+    //        TriangleNormalAndArea(P_W__, pPanelSurface->N, area);
+    //        pPanelSurface->d = RVLDOTPRODUCT3(pPanelSurface->N, P_W__[0]);
+    //    }
+    //}
+
+    // Surfaces.
+
+    //RVL_DELETE_ARRAY(surfaces.Element);
+    //surfaces.Element = new MOTION::PlanarSurface[panelSurfaces.n];
+    //MOTION::PlanarSurface *pSurface = surfaces.Element;
+    //bool* bJoined = new bool[panelSurfaces.n];
+    //memset(bJoined, 0, panelSurfaces.n * sizeof(bool));
+    //int iPlane_;
+    //MOTION::Plane* pPanelSurface_;
+    //float e;
+    //for (iPlane = 0; iPlane < panelSurfaces.n; iPlane++)
+    //{
+    //    if (bJoined[iPlane])
+    //        continue;
+    //    bJoined[iPlane] = true;
+    //    pPanelSurface = panelSurfaces.Element + iPlane;
+    //    pSurface->plane = *pPanelSurface;
+    //    pSurface++;
+    //    for (iPlane_ = iPlane + 1; iPlane_ < panelSurfaces.n; iPlane_++)
+    //    {
+    //        if (bJoined[iPlane_])
+    //            continue;
+    //        pPanelSurface_ = panelSurfaces.Element + iPlane_;
+    //        if (1.0f - RVLDOTPRODUCT3(pPanelSurface->N, pPanelSurface_->N) > 1e-6)
+    //            continue;
+    //        e = pPanelSurface_->d - pPanelSurface->d;
+    //        if (RVLABS(e) > 1e-6)
+    //            continue;
+    //        bJoined[iPlane_] = true;
+    //    }
+    //}
+    //surfaces.n = pSurface - surfaces.Element;
+    //delete[] bJoined;
+    //delete[] panelSurfaces.Element;
+
+    // VN environment model.
+
+    if (model_gt.pVNEnv)
+        delete[] model_gt.pVNEnv;
+    model_gt.pVNEnv = new VN;
+    VN* pVNEnv = model_gt.pVNEnv;
+    pVNEnv->CreateEmpty();
+    Array2D<float> A;
+    A.w = 3;
+    A.h = 18;
+    A.Element = new float[A.w * A.h];
+    CreateConvexTemplate18(A.Element);
+    Array<RECOG::PSGM_::Plane> CT;
+    CT.n = A.h;
+    CT.Element = new RECOG::PSGM_::Plane[CT.n];
+    RECOG::PSGM_::CreateTemplate(A, CT);
+    float R[9];
+    RVLUNITMX3(R);
+    float t[3];
+    RVLNULL3VECTOR(t);
+    Pair<float, float> betaInterval;
+    betaInterval.a = 0.0f;
+    betaInterval.b = PI;
+    Array2D<float> NArray;
+    NArray.w = 3;
+    NArray.h = 0;
+    VNMClusters.n = nPanels;
+    RVL_DELETE_ARRAY(VNMClusters.Element);
+    VNMClusters.Element = new RECOG::VN_::ModelCluster * [VNMClusters.n];
+    for (iPanel = 0; iPanel < nPanels; iPanel++)
+    {
+        if(bDoor && iPanel == nPanels - 1)
+            VNMClusters.Element[iPanel] = pVNEnv->AddModelCluster(iPanel, RVLVN_CLUSTER_TYPE_CONVEX, pose_Arot_A.R, t, 0.5f, CT, betaInterval, NArray, pMem0);
+        else
+            VNMClusters.Element[iPanel] = pVNEnv->AddModelCluster(iPanel, RVLVN_CLUSTER_TYPE_CONVEX, R, t, 0.5f, CT, betaInterval, NArray, pMem0);
+    }
+    pVNEnv->AddOperation(nPanels,     -1, 0, 1, pMem0);
+    pVNEnv->AddOperation(nPanels + 1, -1, 2, 3, pMem0);
+    pVNEnv->AddOperation(nPanels + 2, -1, nPanels, nPanels + 1, pMem0);
+    if (bDoor)
+        pVNEnv->AddOperation(nPanels + 3, -1, nPanels + 2, nPanels - 1, pMem0);
+    pVNEnv->SetOutput(nPanels + 3);
+    pVNEnv->Create(pMem0);
+    Array<Vector3<float>> vertices_;
+    vertices_.n = 0;
+    int iSolid;
+    Solid* pSolid;
+    int nSolidFaces = 0;
+    for (iSolid = 0; iSolid < envSolid.solids.size(); iSolid++)
+    {
+        pSolid = envSolid.solids[iSolid];
+        vertices_.n += pSolid->vertices.n;
+        nSolidFaces += pSolid->faces.n;
+    }
+    vertices_.Element = new Vector3<float>[vertices_.n];
+    SolidVertex* pSolidVertex;
+    Vector3<float>* pVertex_ = vertices_.Element;
+    for (iSolid = 0; iSolid < envSolid.solids.size(); iSolid++)
+    {
+        pSolid = envSolid.solids[iSolid];        
+        for (i = 0; i < pSolid->vertices.n; i++, pVertex_++)
+        {
+            pSolidVertex = pSolid->vertices.Element + i;
+            RVLCOPY3VECTOR(pSolidVertex->P, pVertex_->Element);
+        }
+    }
+    Array<RECOG::VN_::Correspondence5> assoc;
+    assoc.Element = new RECOG::VN_::Correspondence5[nPanels * 8];
+    RECOG::VN_::Correspondence5* pAssoc = assoc.Element;
+    int iVertex = 0;
+    for (iPanel = 0; iPanel < nPanels; iPanel++)
+    {
+        for (j = 0; j < 8; j++, pAssoc++, iVertex++)
+        {
+            pAssoc->iSPoint = iVertex;
+            pAssoc->iMCluster = iPanel;
+            pAssoc->iBeta = -1;
+        }
+    }
+    assoc.n = pAssoc - assoc.Element;
+    RVL_DELETE_ARRAY(model_gt.d);
+    model_gt.d = new float[pVNEnv->featureArray.n];
+    pVNEnv->Descriptor(vertices_, assoc, model_gt.d);
+    delete[] vertices_.Element;
+    delete[] assoc.Element;
+    pVNEnv->SetFeatureOffsets(model_gt.d);
+
+    // Visualize VN environment model.
+
+    //pVisualizer = pVisualizationData->pVisualizer;
+    //pVNEnv->Display(pVisualizer, 0.02f, model_gt.d);
+    //pVisualizer->Run();
+    //pVisualizer->Clear();
+
+    /// Vertices.
+
+    vertices.n = vertices_.n;
+    RVL_DELETE_ARRAY(vertices.Element);
+    vertices.Element = new MOTION::Vertex[vertices.n];
+    MOTION::Vertex* pVertex = vertices.Element;
+    RVL_DELETE_ARRAY(vertexMem);
+    vertexMem = new Pair<int, int>[vertices.n];
+    bool* bJoined = new bool[vertices.n];
+    memset(bJoined, 0, vertices.n * sizeof(bool));
+    vertices.n = 0;
+    Pair<int, int>* pVertexIdx = vertexMem;
+    iVertex = 0;
+    int iSolid_;
+    Solid* pSolid_;
+    int iVertex_;
+    SolidVertex* pSolidVertex_;
+    float dP[3];
+    int k;
+    int l;
+    for (iSolid = 0; iSolid < envSolid.solids.size(); iSolid++)
+    {
+        pSolid = envSolid.solids[iSolid];
+        for (i = 0; i < pSolid->vertices.n; i++, iVertex++)
+        {
+            if (bJoined[iVertex])
+                continue;
+            bJoined[iVertex] = true;
+            pVertex->solidVertices.Element = pVertexIdx;
+            pVertexIdx->a = iSolid;
+            pVertexIdx->b = i;
+            pVertexIdx++;
+            pSolidVertex = pSolid->vertices.Element + i;
+            iVertex_ = iVertex + 1;
+            l = i + 1;
+            for (iSolid_ = iSolid; iSolid_ < envSolid.solids.size(); iSolid_++, l = 0)
+            {
+                pSolid_ = envSolid.solids[iSolid_];
+                for (j = l; j < pSolid_->vertices.n; j++, iVertex_++)
+                {
+                    if (bJoined[iVertex_])
+                        continue;
+                    pSolidVertex_ = pSolid_->vertices.Element + j;
+                    RVLDIF3VECTORS(pSolidVertex_->P, pSolidVertex->P, dP);
+                    for (k = 0; k < 3; k++)
+                        if (RVLABS(dP[k]) > 1e-6)
+                            break;
+                    if (k >= 3)
+                    {
+                        pVertexIdx->a = iSolid_;
+                        pVertexIdx->b = j;
+                        pVertexIdx++;
+                        bJoined[iVertex_] = true;
+                    }
+                }
+            }
+            pVertex->solidVertices.n = pVertexIdx - pVertex->solidVertices.Element;
+            RVLCOPY3VECTOR(pSolidVertex->P, pVertex->P);
+            pVertex++;
+        }
+    }
+    vertices.n = pVertex - vertices.Element;
+    delete[] bJoined;
+
+    /// Surfaces.
+
+    RVL_DELETE_ARRAY(surfaces.Element);
+    surfaces.Element = new MOTION::PlanarSurface[pVNEnv->featureArray.n];
+    MOTION::PlanarSurface* pSurface = surfaces.Element;
+    RVL_DELETE_ARRAY(surfaceMem);
+    surfaceMem = new uchar[pVNEnv->featureArray.n * sizeof(int) + nSolidFaces * sizeof(Pair<int, int>)];
+
+    // Associate VN features.
+
+    int* pFeatureIdx = (int *)surfaceMem;
+    bJoined = new bool[pVNEnv->featureArray.n];
+    memset(bJoined, 0, pVNEnv->featureArray.n * sizeof(bool));
+    RECOG::VN_::ModelCluster* pVNCluster;
+    int iFeature;
+    for (iPanel = 0; iPanel < VNMClusters.n; iPanel++, pVNCluster++)
+    {
+        pVNCluster = VNMClusters.Element[iPanel];
+        for (iFeature = pVNCluster->iFeatureInterval.a; iFeature <= pVNCluster->iFeatureInterval.b; iFeature++)
+            if(iFeature - pVNCluster->iFeatureInterval.a >= 6)
+                bJoined[iFeature] = true;
+    }
+    float e;
+    int iFeature_;
+    RECOG::VN_::Feature* pFeature, * pFeature_;
+    for (iFeature = 0; iFeature < pVNEnv->featureArray.n; iFeature++)
+    {
+        if (bJoined[iFeature])
+            continue;
+        bJoined[iFeature] = true;
+        pFeature = pVNEnv->featureArray.Element + iFeature;
+        pSurface->VNFeatures.Element = pFeatureIdx;
+        *(pFeatureIdx++) = iFeature;
+        for (iFeature_ = iFeature + 1; iFeature_ < pVNEnv->featureArray.n; iFeature_++)
+        {
+            if (bJoined[iFeature_])
+                continue;
+            pFeature_ = pVNEnv->featureArray.Element + iFeature_;
+            if (1.0f - RVLDOTPRODUCT3(pFeature->N, pFeature_->N) > 1e-6)
+                continue;
+            e = pFeature_->d - pFeature->d;
+            if (RVLABS(e) > 1e-6)
+                continue;
+            *(pFeatureIdx++) = iFeature_;
+            bJoined[iFeature_] = true;
+        }
+        pSurface->VNFeatures.n = pFeatureIdx - pSurface->VNFeatures.Element;
+        RVLCOPY3VECTOR(pFeature->N, pSurface->plane.N);
+        pSurface->plane.d = pFeature->d;
+        pSurface++;
+    }
+    surfaces.n = pSurface - surfaces.Element;
+    delete[] bJoined;
+
+    // Associate solid faces.
+
+    uchar* surfaceMem_ = surfaceMem + pVNEnv->featureArray.n * sizeof(int);
+    Pair<int, int>* pSolidFaceIdx = (Pair<int, int> *)surfaceMem_;
+    int iFace;
+    int iSurface;
+    SolidFace* pFace;
+    pSurface = surfaces.Element;
+    for (iSurface = 0; iSurface < surfaces.n; iSurface++, pSurface++)
+    {
+        pSurface->solidFaces.Element = pSolidFaceIdx;
+        for (iSolid = 0; iSolid < envSolid.solids.size(); iSolid++)
+        {
+            pSolid = envSolid.solids[iSolid];
+            pFace = pSolid->faces.Element;
+            for (iFace = 0; iFace < pSolid->faces.n; iFace++, pFace++)
+            {
+                if (1.0f - RVLDOTPRODUCT3(pFace->N, pSurface->plane.N) < 1e-6)
+                {
+                    e = pFace->d - pSurface->plane.d;
+                    if (RVLABS(e) < 1e-6)
+                    {
+                        pSolidFaceIdx->a = iSolid;
+                        pSolidFaceIdx->b = iFace;
+                        pSolidFaceIdx++;
+                        if (bDoor)
+                            if (iSolid == 4 && iFace == 4)
+                                doorRefSurfaceIdx = iSurface;
+                    }
+                }            
+            }
+        }
+        pSurface->solidFaces.n = pSolidFaceIdx - pSurface->solidFaces.Element;
+    }
+
+    ///
+
+    // Create a template for the environment model obtained by a vision system.
+
+    CreateEnvironmentModelTemplete(&model_e, nPanels, CT, betaInterval, &pose_Arot_A);
+
+    // Create a template for the environment model created by a vision system and corrected by touching.
+
+    envSolidx.Copy(&envSolid);
+    CreateEnvironmentModelTemplete(&model_x, nPanels, CT, betaInterval, &pose_Arot_A);
+
+    // Allocate memory for computations related to VN models.
+
+    RVL_DELETE_ARRAY(SDFBuff);
+    SDFBuff = new float[model_gt.pVNEnv->NodeArray.n];
+
+    //
+
+    delete[] A.Element;
+    delete[] CT.Element;
 }

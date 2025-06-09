@@ -49,7 +49,7 @@ class UR5Controller:
 
         self.client = actionlib.SimpleActionClient(action_topic, FollowJointTrajectoryAction)
         rospy.loginfo("Waiting for trajectory action server...")
-        self.client.wait_for_server()
+        # self.client.wait_for_server()
         rospy.loginfo("Connected to FollowJointTrajectory action server.")
 
         self.active_goal = None

@@ -1518,7 +1518,7 @@ void DDManipulator::Path(Pose3D *pPose_G_S_init)
         RVLDOTPRODUCT(dq, dq, 6, dist, i);             \
     }
 
-#define RVLMOTION_DDMANIPULATOR_PATH2_GRAPH_VISUALIZATION
+// #define RVLMOTION_DDMANIPULATOR_PATH2_GRAPH_VISUALIZATION
 
 bool DDManipulator::Path2(
     float *qInit,
@@ -4580,9 +4580,9 @@ void DDManipulator::InitVisualizer(Visualizer *pVisualizerIn)
     pVisualizationData->paramList.Init();
     pParamData = pVisualizationData->paramList.AddParam("DDM.visualize", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bVisualize));
     pVisualizationData->paramList.LoadParams((char *)(cfgFileName.data()));
-#ifdef RVLMOTION_DDMANIPULATOR_PATH2_GRAPH_VISUALIZATION
+// #ifdef RVLMOTION_DDMANIPULATOR_PATH2_GRAPH_VISUALIZATION
     pVisualizationData->pVisualizer->SetBackgroundColor(1.0, 1.0, 1.0);
-#endif
+// #endif
 }
 
 #ifdef RVLVTK

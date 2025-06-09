@@ -19,11 +19,11 @@ if __name__ == '__main__':
     real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results.txt'
     traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories'
 
-    START_FROM_BEGGINING = False
+    START_FROM_BEGGINING = True
     
     exp_success = []
     
-    i_ = 0
+    i_ = 1
     if not START_FROM_BEGGINING:
         exp_success = np.loadtxt(real_results_path, delimiter=',',dtype=int).tolist()
         if type(exp_success) is not list:
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     n = 50
     T_G_T_pen = np.eye(4)
-    T_G_T_pen[2, 3] = 0.313
+    T_G_T_pen[2, 3] = 0.314
 
     T_R_W = np.eye(4)
 
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         # q[q<-np.pi]+=(2.0*np.pi)
         # q = np.unwrap(q, axis=0)
         # q = np.unwrap(q, axis=0)
-        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
         # robot.generate_URScript(q[1:], with_force_mode=False)
         # robot.send_URScript(get_feedback=False)
         robot.force_threshold = 40 # N
