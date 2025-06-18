@@ -16,7 +16,7 @@ T_A_W_cabinets = T_A_W_cabinets.reshape(-1, 4, 4)
 with open(trajectories_path, 'rb') as f:
     trajectories_per_pose = pickle.load(f)
 
-cabinet_idx = 4
+cabinet_idx = 2
 
 # rospy.init_node('set_cabinet_on_pose', anonymous=True)
 

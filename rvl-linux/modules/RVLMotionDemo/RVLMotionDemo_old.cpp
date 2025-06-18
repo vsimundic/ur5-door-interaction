@@ -35,8 +35,6 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 
 #define RVLMOTION_METHOD_DDM 0
 #define RVLMOTION_METHOD_TOUCH 1
-#define RVLMOTION_MODE_REAL 0
-#define RVLMOTION_MODE_SIMULATION 1
 
 using namespace RVL;
 
@@ -62,7 +60,6 @@ void CreateParamList(
     CRVLParameterList *pParamList,
     CRVLMem *pMem,
     DWORD &method,
-    DWORD &mode,
     float &dd_state_angle_deg,
     float &dd_end_state_angle_deg,
     int &nStates,
@@ -71,10 +68,7 @@ void CreateParamList(
     float &rotz_A_S,
     char **pResultsFolder,
     bool &bSolverSave,
-    bool &bSolverLoad,
-    char **pEnvModelFileName,
-    char **pDoorSimulationSamplesFileName,
-    char **pToolFlangePoseFileName)
+    bool &bSolverLoad)
 {
     pParamList->m_pMem = pMem;
     RVLPARAM_DATA *pParamData;
@@ -83,9 +77,6 @@ void CreateParamList(
     pParamData = pParamList->AddParam("Motion.method", RVLPARAM_TYPE_ID, &method);
     pParamList->AddID(pParamData, "DDM", RVLMOTION_METHOD_DDM);
     pParamList->AddID(pParamData, "TOUCH", RVLMOTION_METHOD_TOUCH);
-    pParamData = pParamList->AddParam("Motion.mode", RVLPARAM_TYPE_ID, &mode);
-    pParamList->AddID(pParamData, "REAL", RVLMOTION_MODE_REAL);
-    pParamList->AddID(pParamData, "SIM", RVLMOTION_MODE_SIMULATION);
     pParamData = pParamList->AddParam("DoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_state_angle_deg);
     pParamData = pParamList->AddParam("EndDoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_end_state_angle_deg);
     pParamData = pParamList->AddParam("nStates", RVLPARAM_TYPE_INT, &nStates);
@@ -102,9 +93,6 @@ void CreateParamList(
     pParamData = pParamList->AddParam("ResultsFolder", RVLPARAM_TYPE_STRING, pResultsFolder);
     pParamData = pParamList->AddParam("Solver.save", RVLPARAM_TYPE_BOOL, &bSolverSave);
     pParamData = pParamList->AddParam("Solver.load", RVLPARAM_TYPE_BOOL, &bSolverLoad);
-    pParamData = pParamList->AddParam("Touch.Environment_model_file_name", RVLPARAM_TYPE_STRING, pEnvModelFileName);
-    pParamData = pParamList->AddParam("Touch.Door_simulation_samples_file_name", RVLPARAM_TYPE_STRING, pDoorSimulationSamplesFileName);
-    pParamData = pParamList->AddParam("Touch.Tool_flange_pose", RVLPARAM_TYPE_STRING, pToolFlangePoseFileName);
 }
 
 int main(int argc, char **argv)
@@ -128,9 +116,6 @@ int main(int argc, char **argv)
     int nStates = 17;
     CRVLParameterList ParamList;
     char *resultsFolder = NULL;
-    char *environmentModelFileName = NULL;
-    char *doorSimulationSamplesFileName = NULL;
-    char *toolFlangePoseFileName = NULL;
     float qHome[6];
     memset(qHome, 0, 6 * sizeof(float));
     Pose3D pose_A_S;
@@ -138,11 +123,9 @@ int main(int argc, char **argv)
     bool bSolverSave = false;
     bool bSolverLoad = false;
     DWORD method = RVLMOTION_METHOD_DDM;
-    DWORD mode = RVLMOTION_MODE_SIMULATION;
     CreateParamList(&ParamList,
                     &mem0,
                     method,
-                    mode,
                     dd_state_angle_deg,
                     dd_end_state_angle_deg,
                     nStates,
@@ -151,10 +134,7 @@ int main(int argc, char **argv)
                     rotz_A_S_deg,
                     &resultsFolder,
                     bSolverSave,
-                    bSolverLoad,
-                    &environmentModelFileName,
-                    &doorSimulationSamplesFileName,
-                    &toolFlangePoseFileName);
+                    bSolverLoad);
     ParamList.LoadParams(cfgFileName);
 
     // Test DDManipulator::LocalFreePose()
@@ -171,7 +151,6 @@ int main(int argc, char **argv)
     if (method == RVLMOTION_METHOD_DDM)
     {
         // Create manipulator.
-
         DDManipulator manipulator;
         manipulator.pMem0 = &mem0;
         manipulator.pMem = &mem;
@@ -511,6 +490,9 @@ int main(int argc, char **argv)
         std::cout << "Average execution time: " << average_time << setprecision(4) << " seconds\n";
         std::cout << "Number of successful exps: " << num_successful << endl;
 
+
+
+
         exampleFile.close();
         RVL_DELETE_ARRAY(poses_G_0.Element);
         RVL_DELETE_ARRAY(robotJoints.Element);
@@ -522,74 +504,103 @@ int main(int argc, char **argv)
         touch.Create(cfgFileName);
         touch.InitVisualizer(&visualizer, cfgFileName);
         touch.bDoor = true;
-        MOTION::DoorSimulationParams simParams;
-        simParams.a = 0.3f;
-        simParams.sx = 0.018f;
-        simParams.sy = 0.4;
-        simParams.sz = 0.5f;
-        // float rx = 0.01f;
-        simParams.rx = 0.0f;
-        // float b = 0.0025f;
-        simParams.b = 0.0f;
-        simParams.c = 0.005f;
-        simParams.qDeg = -10.0f;
-        simParams.ry = -(0.5f * simParams.sy + simParams.b);
+        
+        // float a = 0.3f;
+        // float sx = 0.02f;
+        // float sy = 0.4;
+        // float sz = 0.5f;
+        // //float rx = 0.01f;
+        // float rx = 0.0f;
+        // //float b = 0.0025f;
+        // float b = 0.0f;
+        // float c = 0.005f;
+        // float qDeg = -10.0f;
+        // float ry = -(0.5f * sy + b);
+
+        float sx = 0.018f;
+        // float sy = 0.39251819252967834f;
+        float sy = 0.384772390127182;
+        // float sz = 0.533647894859314f;
+        float sz = 0.5204145908355713;
+        // float rx = 0.0037189184222370386;
+        float rx = 0.0f;
+        // float ry = -0.192386195063591;
+        float ry = -0.5f * sy;
+        float a = 0.4f;
+        float b = -ry - sy*0.5f;
+        float c = 0.005f;
+        float qDeg = -8.218102762982548f;
+
+        touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, qDeg);
+
+        // float a_tool = 0.03f;
+        // float b_tool = 0.04f;
+        // float c_tool = 0.01f;
+        // float d_tool = 0.02f;
+        // float h_tool = 0.03f;
+
         float a_tool = 0.019f;
         float b_tool = 0.064f;
         float c_tool = 0.007f;
         float d_tool = 0.049f;
         float h_tool = 0.02706f;
-        FILE *fpToolFlangePose = fopen(toolFlangePoseFileName, "rb");
-        if (fpToolFlangePose)
-        {
-            cnpy::NpyArray npyData = cnpy::npy_load(toolFlangePoseFileName);
-            double *data = npyData.data<double>();
-            RVLHTRANSFMXDECOMP(data, touch.pose_tool_E.R, touch.pose_tool_E.t);
-            fclose(fpToolFlangePose);
-        }
-        touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool, &(touch.pose_tool_E));
-        if (mode == RVLMOTION_MODE_SIMULATION)
-        {
-            if (doorSimulationSamplesFileName)
-            {
-                std::ifstream sampleFile(doorSimulationSamplesFileName);
-                std::string simulationSampleHeader;
-                std::vector<std::string> sampleFormat;
-                if (std::getline(sampleFile, simulationSampleHeader))
-                    touch.LoadSimulationSampleFormat(simulationSampleHeader, sampleFormat);
-                if (touch.simulation == RVLMOTION_TOUCH_SIMULATION_OPEN)
-                {
-                    std::string simulationSample;
-                    while (std::getline(sampleFile, simulationSample))
-                    {
-                        touch.LoadSimulationSample(simulationSample, sampleFormat, &simParams);
-                        touch.Simulation(&simParams);
-                    }
-                }
-            }
-            if (touch.simulation == RVLMOTION_TOUCH_SIMULATION_RND)
-                touch.Simulation(&simParams);
-        }
-        else
-        {
-            std::ifstream exampleFile(environmentModelFileName);
-            std::string example;
-            if (std::getline(exampleFile, example))
-            {
-                Pose3D pose_A_0;
-                float al, q;
-                // MOTION::LoadDoorExample(example, sy, sz, pose_A_0.t, al, q);
-                // touch.CreateScene(sx, sy, sz, rx, ry, a, b, c, RAD2DEG * q);
-            }
-            else
-                printf("ERROR: Environment model file not found!\n");
-    }
-    }
+        // array([-0.06436793,  0.06436793,  0.26306001])
+        // float t_tool[3] = {0.06436793, -0.06436793, 0.26306001}; // distance from the flange center to the tool box center
+        // float t_tool[3] = {0.05480077460408211f, -0.05480077460408211f, 0.27256000638800115f}; // distance from the flange center to the tool box center
+        float t_tool[3] = {-0.09103f, 0.0f, 0.2635f}; // distance from the flange center to the tool box center
+        Pose3D pose_tool_E;
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_tool_6.npy", pose_tool_E);
 
+        // touch.CreateSimpleTool(a_tool, b_tool, c_tool, d_tool, h_tool, t_tool);
+        touch.CreateSimpleTool2(a_tool, b_tool, c_tool, d_tool, h_tool, &pose_tool_E);
+
+        // // For simulation purposes
+        // {
+        //     touch.Simulation();
+        //     return 0;
+        // }
+
+        for (int i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
+            touch.x_real[i] = 0.0f;
+        
+        Pose3D pose_A_E, pose_A_E_gt, pose_C_E;
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_A_6.npy", pose_A_E);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_A_6_gt.npy", pose_A_E_gt);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_C_6.npy", pose_C_E);
+        float K[9];
+        IntrinsicCameraMatrix(touch.camera, K);
+
+        // float TCP_E[3] = {0.05480077460408211f, -0.05480077460408211f, 0.27256000638800115f};
+        float TCP_E[3] = {0.05480077460408211f, -0.05480077460408211f, 0.27256000638800115f};
+
+        touch.setModelGTParams(pose_A_E_gt, pose_C_E, 1.0f, 1.0f, K, TCP_E);
+        touch.setModelEParams(pose_A_E, pose_C_E, 1.0f, 1.0f, K, TCP_E);
+
+        Pose3D pose_Ek_E, pose_E_0, pose_0_S, pose_C_W, pose_E_W_gt, pose_G_E;
+        float V[3];
+        touch.loadVectorFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/V.npy", V, 3);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_6k_6_rotated.npy", pose_Ek_E);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_6_0_capture.npy", pose_E_0);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_0_S.npy", pose_0_S);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_C_W.npy", pose_C_W);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_E_W_gt.npy", pose_E_W_gt);
+        touch.loadTransfMatrixFromNPY("/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/RVL_data/T_G_6_capture.npy", pose_G_E);
+        Array<MOTION::TouchData> touches;
+        std::vector<RVL::MOTION::Contact> contacts;
+        touch.RealExpCorrect(
+            touches, 
+            contacts, 
+            pose_Ek_E, 
+            V, 
+            pose_A_E, 
+            pose_E_0, 
+            pose_0_S, 
+            pose_C_W,
+            pose_E_W_gt, 
+            pose_C_E,
+            pose_G_E);
+    }
     delete[] resultsFolder;
-    delete[] environmentModelFileName;
-    delete[] doorSimulationSamplesFileName;
-    delete[] toolFlangePoseFileName;
 
     return 0;
 }

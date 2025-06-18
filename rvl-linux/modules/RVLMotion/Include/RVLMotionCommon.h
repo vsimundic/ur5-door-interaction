@@ -32,6 +32,14 @@ namespace RVL
 			std::vector<Pair<int, int>> visEdges;
 		};
 
+		void LoadDoorExample(
+			std::string example,
+			float &sy,
+			float &sz,
+			float *t,
+			float &al,
+			float &q);
+
 		void InitVisualizer(
 			Visualizer *pVisualizerIn,
 			MOTION::DisplayCallbackData *&pVisualizationData,

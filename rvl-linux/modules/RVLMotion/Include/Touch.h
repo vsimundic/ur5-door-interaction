@@ -5,9 +5,19 @@
 #define RVLMOTION_TOUCH_CONTACT_TYPE_EDGE_EDGE 1
 #define RVLMOTION_TOUCH_CONTACT_TYPE_PLANE_POINT 2
 #define RVLMOTION_TOUCH_NUM_REF_PTS 6
+#define RVLMOTION_TOUCH_SIMULATION_RND 0
+#define RVLMOTION_TOUCH_SIMULATION_OPEN 1
 
 namespace RVL
 {
+    bool Line2DCircleIntersection(
+        float a,
+        float b,
+        float c,
+        float r,
+        float *P1,
+        float *P2);
+
 	struct SolidVertex
 	{
 		float P[3];
@@ -23,6 +33,7 @@ namespace RVL
 		int iPrev;
 		int iTwin;
 		float len;
+        float V[3];
 	};
 
 	struct SolidFace
@@ -78,6 +89,7 @@ namespace RVL
 		std::vector<Solid *> solids;
 		Box<float> bbox;
 		Visualizer *pVisualizer;
+        int maxnVertexEdges;
 	};
 
 	namespace MOTION
@@ -163,6 +175,43 @@ namespace RVL
 			float Ex;
 			float E;
 		};
+
+        struct LineArc
+        {
+            float P[2];
+            float q;
+            bool bArc;
+            char rel;
+        };
+
+        struct DoorSimulationParams
+        {
+            int idx;
+            float sx;
+            float sy;
+            float sz;
+            float rx;
+            float ry;
+            float a;
+            float b;
+            float c;
+            Pose3D pose_A_0;
+            float qDeg;
+            Pose3D pose_E_0;
+        };
+
+        void InitCircleConvex(
+            QList<QLIST::Entry2<LineArc>> *pCircleConvex,
+            float r,
+            QLIST::Entry2<LineArc> *&pNewLineArc);
+        void UpdateCircleConvex(
+            QList<QLIST::Entry2<LineArc>> *pCircleConvex,
+            float *N,
+            float d,
+            float r,
+            float eps,
+            QLIST::Entry2<LineArc> *&pNewLineArc);
+        void TestCircleConvex(Array<int> rndVal); // Only for debugging purpose!!!
 	}
 
 	class Touch
@@ -213,8 +262,8 @@ namespace RVL
 			float c,
 			float d,
 			float h,
-			float *t = NULL);
-		void Simulation();
+            Pose3D *pPose_tool_E = NULL);
+        void Simulation(MOTION::DoorSimulationParams *pSimParams);
 		void SimulateVisionWithError(float *x);
 		void Correct(
 			MOTION::TouchModel *pModelSrc,
@@ -271,7 +320,21 @@ namespace RVL
 			float *N2,
 			float *N3,
 			float *N4);
+        bool Intersection(
+            Solid *pSolid1,
+            int iVertex,
+            Solid *pSolid2,
+            int iFace);
+        bool Intersection(
+            Array<Vector3<float>> vertexEdgeVectors,
+            float *N);
+        bool IntersectionEE(
+            Solid *pSolid1,
+            int iEdge1,
+            Solid *pSolid2,
+            int iEdge2);
 		void RndTouchPoint(MOTION::TouchPoint &touchPt);
+        void OpenDoorContactPoint(MOTION::TouchPoint &touchPt);
 		void RefPts();
 		void PlanTouch(
 			MOTION::TouchPoint touchPt,
@@ -287,43 +350,48 @@ namespace RVL
 		void SceneBBox(
 			MOTION::TouchModel *pModel,
 			Box<float> *pBBox);
+        void LoadSimulationSampleFormat(
+            std::string simulationSampleHeader,
+            std::vector<std::string> &sampleFormat);
+        void LoadSimulationSample(
+            std::string sample,
+            std::vector<std::string> sampleFormat,
+            MOTION::DoorSimulationParams *pSample);
 		void InitVisualizer(
 			Visualizer *pVisualizerIn,
 			char *cfgFileName);
 		void SetVisualizeOptimization(bool bVisualizeOptimization);
 
-
 		// Simundic
-		void CopyTouchModel(const RVL::MOTION::TouchModel& src, RVL::MOTION::TouchModel& dst);
-		void RealExpCorrect(Array<MOTION::TouchData> &touches, 
-			std::vector<MOTION::Contact> &contacts,
-			Pose3D pose_Ek_E,
-			float* V,
-			Pose3D pose_A_E,
-			Pose3D pose_E_0,
-			Pose3D pose_0_S,
-			Pose3D pose_C_W_,
-			Pose3D pose_C_W_gt_,
-			Pose3D pose_C_E);
+		void CopyTouchModel(const RVL::MOTION::TouchModel &src, RVL::MOTION::TouchModel &dst);
+		void RealExpCorrect(Array<MOTION::TouchData> &touches,
+							std::vector<MOTION::Contact> &contacts,
+							Pose3D pose_Ek_E,
+							float *V,
+							Pose3D pose_A_E,
+							Pose3D pose_E_0,
+							Pose3D pose_0_S,
+							Pose3D pose_C_W_,
+							Pose3D pose_E_W_gt,
+							Pose3D pose_C_E,
+							Pose3D pose_G_E);
 		MOTION::TouchModel getModelX() const
 		{
 			return model_x;
 		}
-		void setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float* TCP_E);
-		void setModelEParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float* TCP_E);
+		void setModelGTParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float *TCP_E);
+		void setModelEParams(Pose3D pose_A_E, Pose3D pose_C_E, float kappa, float kappazn, float *K, float *TCP_E);
 		void loadTransfMatrixFromNPY(std::string fileName, Pose3D &pose);
 		void loadVectorFromNPY(std::string fileName, float *vec, int size);
-		void CreateSceneLeftAxis(
-			float sx,
-			float sy,
-			float sz,
-			float rx,
-			float ry,
+		void CreateSimpleTool2(
 			float a,
 			float b,
 			float c,
-			float qDeg);	
-		private:
+			float d,
+			float h,
+			Pose3D *pose_tool_E = NULL);
+
+	private:
 		void Constants();
 		void AuxParams(
 			MOTION::TouchModel *pModel0,
@@ -372,7 +440,10 @@ namespace RVL
 		float toolTiltDeg;
 		int simulationSeed;
 		int nSimulationTouches;
+        DWORD simulation;
 		bool bDoor;
+		float contactIntersectionThr;
+		Pose3D pose_tool_E;
 
 		// Simundic
 		Pose3D pose_A_E;

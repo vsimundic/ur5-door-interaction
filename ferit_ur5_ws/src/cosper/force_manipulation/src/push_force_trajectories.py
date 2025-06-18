@@ -11,6 +11,126 @@ from core.ur5_commander import UR5Commander
 from core.real_ur5_controller import UR5Controller
 import copy
 import open3d as o3d
+import fcl
+
+def load_fcl_mesh_from_mesh(mesh):
+    """
+    Load a mesh from a PLY file and create an FCL BVHModel.
+    """
+
+    # Extract vertices and triangles
+    vertices = np.asarray(mesh.vertices, dtype=np.float64)
+    triangles = np.asarray(mesh.triangles, dtype=np.int32)
+
+    # Create FCL BVHModel
+    fcl_mesh = fcl.BVHModel()
+    fcl_mesh.beginModel(len(vertices), len(triangles))
+    fcl_mesh.addSubModel(vertices, triangles)
+    fcl_mesh.endModel()
+    
+    return fcl_mesh
+
+def load_fcl_mesh_from_vertices_triangles(vertices, triangles):
+
+    # Extract vertices and triangles
+    vertices = np.asarray(vertices, dtype=np.float64)
+    triangles = np.asarray(triangles, dtype=np.int32)
+
+    # Create FCL BVHModel
+    fcl_mesh = fcl.BVHModel()
+    fcl_mesh.beginModel(len(vertices), len(triangles))
+    fcl_mesh.addSubModel(vertices, triangles)
+    fcl_mesh.endModel()
+    
+    return fcl_mesh
+
+def create_collision_object(mesh, pose):
+    """
+    Create a collision object for a mesh with a given pose.
+    """
+    # Convert pose to FCL-compatible format
+    transform = fcl.Transform(pose[:3, :3], pose[:3, 3])
+    # print("Transform rotation:\n", transform.getRotation())
+    # print("Transform translation:\n", transform.getTranslation())
+    return fcl.CollisionObject(mesh, transform)
+
+def collision_detection_fcl(tool_mesh, tool_poses, cabinet_mesh):
+
+    # Tool mesh triangles, vertices
+    tool_vertices = np.asarray(tool_mesh.vertices).copy()
+    tool_triangles = np.asarray(tool_mesh.triangles).copy()
+
+    # Cabinet preprocess - FCL
+    T_plate_0 = np.eye(4)
+    fcl_cabinet_mesh = load_fcl_mesh_from_mesh(cabinet_mesh)
+    cabinet_col_obj = create_collision_object(fcl_cabinet_mesh, T_plate_0)
+
+    # Initialize results list
+    collision_results = []
+
+    # Iterate through all tool poses
+    # for pose in tqdm(tool_poses):
+    num_poses = tool_poses.shape[0]
+    # for idx, pose in tqdm(enumerate(tool_poses)):
+    for idx in tqdm(range(num_poses)):
+        T_G_DD = tool_poses[idx]
+
+        fcl_tool_mesh = load_fcl_mesh_from_vertices_triangles(tool_vertices, tool_triangles)
+        tool_col_obj = create_collision_object(fcl_tool_mesh, T_G_DD)
+
+        dist_request = fcl.DistanceRequest(enable_nearest_points=True, enable_signed_distance=True, gjk_solver_type=fcl.GJKSolverType.GST_INDEP)
+        dist_result = fcl.DistanceResult()
+        fcl.distance(cabinet_col_obj, tool_col_obj, dist_request, dist_result)
+        ret_dist = int(dist_result.min_distance < 0.004)
+
+        # Perform collision detection
+        request = fcl.CollisionRequest()
+        result = fcl.CollisionResult()
+        ret_col = fcl.collide(cabinet_col_obj, tool_col_obj, request, result)
+
+        ## Debug
+        # # Visualize
+        # tool_mesh_ = copy.deepcopy(tool_mesh)
+        # tool_mesh_.transform(T_G_DD)
+        # tool_mesh_.compute_vertex_normals()
+        # o3d.visualization.draw_geometries([tool_mesh_, cabinet_mesh])
+        
+        # # if bool(ret) and not bool(collision[idx]):
+        # if bool(collision[idx]) is False:
+        #     if bool(ret) is True:
+        #         tool_mesh_ = copy.deepcopy(tool_mesh)
+        #         tool_mesh_.transform(T_G_DD)
+        #         tool_mesh_.compute_vertex_normals()
+                
+        #         o3d.visualization.draw_geometries([tool_mesh_, cabinet_mesh])
+        # if bool(ret) is True:
+        #     if bool(collision[idx]) is False:
+        #         tool_mesh_ = copy.deepcopy(tool_mesh)
+        #         tool_mesh.paint_uniform_color([0.5, 0.5, 0])
+        #         tool_mesh_.transform(T_G_DD)
+        #         tool_mesh_.compute_vertex_normals()
+                
+        #         o3d.visualization.draw_geometries([tool_mesh_, cabinet_mesh])
+
+        # Store the result for the current pose
+        if not ret_dist and ret_col:
+            debug = 0
+            dist_request = fcl.DistanceRequest(enable_nearest_points=True, enable_signed_distance=True, gjk_solver_type=fcl.GJKSolverType.GST_INDEP)
+            dist_result = fcl.DistanceResult()
+            fcl.distance(cabinet_col_obj, tool_col_obj, dist_request, dist_result)
+
+            tool_mesh_ = copy.deepcopy(tool_mesh)
+            tool_mesh_.transform(T_G_DD)
+            tool_mesh_.compute_vertex_normals()
+            origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05, origin=[0, 0, 0])
+            o3d.visualization.draw_geometries([tool_mesh_, cabinet_mesh, origin_rf])
+        # else:
+        #     dist_request = fcl.DistanceRequest(enable_nearest_points=True, enable_signed_distance=True, gjk_solver_type=fcl.GJKSolverType.GST_INDEP)
+        #     dist_result = fcl.DistanceResult()
+        #     fcl.distance(cabinet_col_obj, tool_col_obj, dist_request, dist_result)
+        #     pass 
+        collision_results.append(ret_dist)
+    return collision_results
 
 def rotx_multiple(theta_arr):
 
@@ -52,7 +172,7 @@ def rotz_multiple(theta_arr):
 def generate_tool_line_poses(height, T_TCP_G=np.ndarray, R_TCP_D=np.ndarray):
     sample_dist = 0.015
     top_offset = 0.005
-    side_offset = 0.005
+    side_offset = 0.015
     z_offset = 0.007
 
     num_samples = int(height / sample_dist)
@@ -146,6 +266,7 @@ class Waypoint:
         self.parent = parent                    
         self.children = []                      
         self.dist_to_parent = 0.0 if parent is None else chebyshev_distance(q, parent.q)
+        self.depth = 0 if parent is None else parent.depth + 1
 
     def add_child(self, child_q):
         child_node = Waypoint(child_q, parent=self)
@@ -580,6 +701,144 @@ def generate_trajectories_and_approach2(
 
     return all_trajectories, traj_array_np
 
+
+def generate_one_trajectory_and_approach(
+    poses_G_DD: np.ndarray,
+    num_states: int,
+    init_state: float,
+    goal_state: float,
+    cabinet_model: Cabinet,
+    # rvl_ddmanipulator_config: str,
+    rvl_manipulator: rvlpy.PYDDManipulator,
+    T_0_W: np.ndarray,
+    controller: Union[UR5Commander, UR5Controller],
+    verbose: bool = True
+):
+    """
+    Generate a single trajectory for the first pose in poses_G_DD.
+
+    Returns:
+        - List of root Waypoints (trajectory trees)
+        - Numpy array of joint trajectories with shape (N, num_states, 6)
+    """
+    states = np.linspace(init_state, goal_state, num_states)
+    states_rad = np.radians(states)
+    all_trajectories = []
+    traj_arrays = []
+
+    T_W_0 = np.linalg.inv(T_0_W)
+    T_G_6 = rvl_manipulator.get_T_G_6()
+    T_6_G = np.linalg.inv(T_G_6)
+
+    trajectory = []
+
+    for i_pose in tqdm(
+        range(poses_G_DD.shape[0]), 
+        desc="Generating trajectories", 
+        unit="pose",
+        disable=not verbose
+    ):
+        T_G_D = poses_G_DD[i_pose]
+
+        cabinet_model.dd_plate_mesh
+
+        root_waypoints = []
+
+        T_A_A = np.eye(4)
+        T_A_A[:3, :3] = rot_z(states_rad[0])
+        T_6_0_contact = T_W_0 @ cabinet_model.T_A_S @ T_A_A @ cabinet_model.T_D_A @ T_G_D @ T_6_G
+        T_G_W_contact = T_0_W @ T_6_0_contact @ T_G_6
+
+        rvl_manipulator.set_environment_state(np.rad2deg(states_rad[0]))
+
+        # Get approach path
+        T_G_0_via, ik_solutions, paths, _ = rvl_manipulator.approach_path(T_G_W_contact.copy())
+        if T_G_0_via.shape[0] < 1 or len(paths) < 1:
+            continue
+        
+        # Adjust IK solutions to ROS and limit ranges
+        for ik_sols in ik_solutions:
+            ik_sols[:, 0] -= np.pi
+            ik_sols[:, 5] -= np.pi
+            ik_sols[ik_sols > np.pi] -= (2.0 * np.pi)
+            ik_sols[ik_sols < -np.pi] += (2.0 * np.pi)
+
+        # Check for paths in the approach path and add them to the root waypoints
+        for path in paths:
+            ik0 = np.array(ik_solutions[0][path[0]])
+            ik1 = np.array(ik_solutions[1][path[1]])
+
+            for i_sol in range(len(ik_solutions[2])):
+                ik2 = np.array(ik_solutions[2][i_sol])
+                if chebyshev_distance(ik2, ik1) <= 0.5 * np.pi and \
+                    controller.is_state_valid(ik2.tolist()) and \
+                    controller.is_state_valid(ik1.tolist()) and \
+                    controller.is_state_valid(ik0.tolist()):
+                    wp_root = Waypoint(ik0)
+                    wp_mid = wp_root.add_child(ik1)
+                    wp_mid.add_child(ik2)
+                    root_waypoints.append(wp_root)
+
+        return root_waypoints
+
+        # If no root waypoints were found, skip this pose
+        if len(root_waypoints) == 0:
+            continue
+
+        # Iterate through the states and try to grow the tree
+        for i_state in range(1, num_states):
+            state_rad = states_rad[i_state]
+            rvl_manipulator.set_environment_state(np.rad2deg(state_rad))
+
+            T_A_A = np.eye(4)
+            T_A_A[:3, :3] = rot_z(state_rad)
+            T_6_0 = T_W_0 @ cabinet_model.T_A_S @ T_A_A @ cabinet_model.T_D_A @ T_G_D @ T_6_G
+
+            joints, n_sol, _ = rvl_manipulator.inv_kinematics_all_sols_prev(T_6_0)
+            if n_sol < 1:
+                break
+            
+            joints_rvl = joints.copy()
+            for i_sol in range(n_sol):
+                q = joints[i_sol, :]
+                q[0] -= np.pi
+                q[5] -= np.pi
+                q[q > np.pi] -= (2.0 * np.pi)
+                q[q < -np.pi] += (2.0 * np.pi)
+
+            # For each root waypoint, try to grow the tree
+            # If the root is a leaf, we can add the new state directly
+            for root in root_waypoints:
+                leaves = [root] if root.is_leaf() else get_all_leaves(root)
+                for leaf in leaves:
+                    best_q = None
+                    min_dist = np.inf
+                    for i_sol in range(n_sol):
+                        q = joints[i_sol, :]
+                        q_rvl = joints_rvl[i_sol, :]
+                        dist = chebyshev_distance(q, leaf.q)
+                        if np.isnan(dist) or dist > 0.5 * np.pi:
+                            continue
+                        # rvl_manipulator.visualize_current_state(q_rvl, T_6_0 @ T_G_6)
+                        if dist < min_dist and rvl_manipulator.free(q_rvl) and controller.is_state_valid(q.tolist()):
+                            best_q = q
+                            min_dist = dist
+                    if best_q is not None:
+                        leaf.add_child(best_q)
+                        if leaf.children[-1].depth == num_states + 1:
+                            # Finish the search - got the desired trajectory
+                            leaf_ = copy.deepcopy(leaf.children[-1])
+                            while leaf_.parent:
+                                trajectory.append(leaf_.q)
+                                leaf_ = leaf_.parent
+                            trajectory.append(leaf_.q)
+                            trajectory.reverse()
+                            return np.array(trajectory)
+        # print max depth of the tree
+        max_depth = max([leaf.depth for root in root_waypoints for leaf in get_all_leaves(root)])
+        # print("Max depth of the tree:", max_depth)
+
+    return np.array(trajectory)
 
 def generate_poses_demo():
     # --- Setup fixed transforms ---

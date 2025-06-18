@@ -50,6 +50,12 @@
 		Y[0] = X[0];         \
 		Y[1] = X[1];         \
 	}
+// Z = X + Y
+#define RVLSUM2VECTORS(X, Y, Z) \
+	{                           \
+		Z[0] = X[0] + Y[0];     \
+		Z[1] = X[1] + Y[1];     \
+	}
 // Z = X - Y
 #define RVLDIF2VECTORS(X, Y, Z) \
 	{                           \
@@ -176,6 +182,8 @@
 				Z[i * n3 + j] = z;                      \
 			}                                           \
 	}
+// Normalize angle x to interval <-PI, PI]
+#define RVLNORMANGLE(x) x = (x > PI ? x -= (2.0 * PI) : (x <= -PI ? x += (2.0 * PI) : x))
 // Bresenham line drawing algorithm - initialization
 #define RVLBRESENHAMINIT(x0, y0, x1, y1, x, y, data) \
 	{                                                \
@@ -294,6 +302,13 @@ namespace RVL
 		float vc;
 		int w;
 		int h;
+	};
+
+	struct Polygon2DLineIntersection
+	{
+		int iVertex;
+		Point2D P;
+		char dir;
 	};
 
 	// VIDOVIC
@@ -1276,6 +1291,12 @@ namespace RVL
 		float *P,
 		int *faces,
 		int faceIdxOffset = 0);
+	bool LineRectIntersection(
+		float *lineP1,
+		float *lineP2,
+		Rect<float> rect,
+		float *intersectionP1,
+		float *intersectionP2);
 	bool LineConvexSetIntersection2D(
 		float *line,
 		Array<Vector3<float>> convexSet,

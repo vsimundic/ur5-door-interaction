@@ -922,6 +922,12 @@
         RVLCLOSEST_POINT_ON_3DLINE_SEGMENT(C, D, V3Tmp, F, sCD, DC, BC, fTmp);                                                              \
         RVLCLOSEST_POINT_ON_3DLINE_SEGMENT(A, B, F, E, sAB, BA, BC, fTmp);                                                                  \
     }
+// X <- random unit 3D vector
+#define RVLRNDUNIT3VECTOR(X, fTmp)                                                                                                                                    \
+    {                                                                                                                                                                 \
+        RVLSET3VECTOR(X, 2.0f * (float)rand() / (float)RAND_MAX - 1.0f, 2.0f * (float)rand() / (float)RAND_MAX - 1.0f, 2.0f * (float)rand() / (float)RAND_MAX - 1.0f) \
+        RVLNORM3(X, fTmp)                                                                                                                                             \
+    }
 
 template <typename Type>
 struct Moments2D

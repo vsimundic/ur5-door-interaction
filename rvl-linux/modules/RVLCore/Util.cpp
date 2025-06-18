@@ -2771,6 +2771,63 @@ namespace RVL
 		}
 	}
 
+	bool LineRectIntersection(
+		float *lineP1,
+		float *lineP2,
+		Rect<float> rect,
+		float *intersectionP1,
+		float *intersectionP2)
+	{
+		float s1 = 0.0f;
+		float s2 = 1.0f;
+		float V[2];
+		V[0] = lineP2[0] - lineP1[0];
+		V[1] = lineP2[1] - lineP1[1];
+		float lineLen = sqrt(V[0] * V[0] + V[1] * V[1]);
+		float N[4][2];
+		float d[4];
+		N[0][0] = 0.0f;
+		N[0][1] = -1.0f;
+		N[1][0] = -1.0f;
+		N[1][1] = 0.0f;
+		N[2][0] = 0.0f;
+		N[2][1] = 1.0f;
+		N[3][0] = 1.0f;
+		N[3][1] = 0.0f;
+		d[0] = -rect.miny;
+		d[1] = -rect.minx;
+		d[2] = rect.maxy;
+		d[3] = rect.maxx;
+		float s;
+		float k;
+		float e;
+		for (int i = 0; i < 4; i++)
+		{
+			e = N[i][0] * lineP1[0] + N[i][1] * lineP1[1] - d[i];
+			k = N[i][0] * V[0] + N[i][1] * V[1];
+			if (RVLABS(k) < 1e-7)
+			{
+				if (e > 0.0f)
+					return false;
+			}
+			else
+			{
+				s = -e / k;
+				if (k > 0 && s < s2)
+					s2 = s;
+				if (k < 0 && s > s1)
+					s1 = s;
+				if (s1 > s2)
+					return false;
+			}
+		}
+		intersectionP1[0] = lineP1[0] + s1 * V[0];
+		intersectionP1[1] = lineP1[1] + s1 * V[1];
+		intersectionP2[0] = lineP1[0] + s2 * V[0];
+		intersectionP2[1] = lineP1[1] + s2 * V[1];
+		return true;
+	}
+
 	// Input:
 	//    line - line defined by equation line[0] * x + line[1] * y + line[2] = 0
 	//    convexSet - array of lines defining a convex set, where each line is represented by a 3D vector

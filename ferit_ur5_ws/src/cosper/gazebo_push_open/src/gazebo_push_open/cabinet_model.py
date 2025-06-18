@@ -767,7 +767,16 @@ class Cabinet():
         self.dd_static_top_mesh.translate((-self.static_d/2.,
                                          -(self.w_door/2. + 2*self.moving_to_static_part_distance + self.d_door),
                                          (self.h_door/2. + self.moving_to_static_part_distance)))
-
+        
+        self.dd_static_top_origin_point = np.array([-self.static_d/2.,
+                                                   -(self.w_door/2. + 2*self.moving_to_static_part_distance + self.d_door),
+                                                   (self.h_door/2. + self.moving_to_static_part_distance)])
+        self.dd_static_top_origin_point_mesh = o3d.geometry.TriangleMesh.create_sphere(radius=0.01)
+        self.dd_static_top_origin_point_mesh.translate((-self.static_d/2.,
+                                                       -(self.w_door/2. + 2*self.moving_to_static_part_distance + self.d_door),
+                                                       (self.h_door/2. + self.moving_to_static_part_distance)))
+        self.dd_static_top_origin_point_mesh.paint_uniform_color([1.0, 0.0, 0.0])
+        self.dd_static_top_mesh += self.dd_static_top_origin_point_mesh
 
         self.dd_static_bottom_mesh = o3d.geometry.TriangleMesh.create_box(width=self.static_d,
                                                                      height=self.w_door + 2*(self.moving_to_static_part_distance + self.d_door) + self.moving_to_static_part_distance,
