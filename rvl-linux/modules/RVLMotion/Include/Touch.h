@@ -26,6 +26,17 @@ namespace RVL
         float *P1,
         float *P2);
 
+	void DetectPlane(
+		Array<Vector3<float>> P,
+		float tol,
+		float PSuccess,
+		float *N,
+		float &d,
+		Array<int> &consensusSet,
+		Array<int> rndVal,
+		int &iRndVal,
+		int *&consensusSetMem);
+
 	struct SolidVertex
 	{
 		float P[3];
@@ -210,7 +221,9 @@ namespace RVL
 			int sessionIdx;
 			int sceneIdx;
 			bool bMiss;
+			float w;
 			MOTION::TouchEnvModel *pEnvSolidParams;
+			bool bSuccessful; // Is the touch successful, aka tactile sensor in contact (only used to discard in real experiment testing)
 		};
 
 		struct Tool
@@ -292,6 +305,8 @@ namespace RVL
 			Array<int> faces;
 		};
 
+		void KeyPressCallback(vtkObject *caller, unsigned long eid, void *clientdata, void *calldata);
+		void MouseRButtonDown(vtkIdType closestPointId, double *closestPoint, void *callData);
         void InitCircleConvex(
             QList<QLIST::Entry2<LineArc>> *pCircleConvex,
             float r,
@@ -325,6 +340,7 @@ namespace RVL
 			Array<int> planesForUpdate;
 			bool *bVerticesForUpdate;
 			bool *bPlanesForUpdate;
+			bool bUpdated;
 		};
 	}
 
@@ -437,6 +453,15 @@ namespace RVL
 		void ClearSession(
 			std::vector<MOTION::TouchData> &touches,
 			std::vector<MOTION::Contact> &contacts);
+		void ManualSegmentation(
+			Mesh *pMesh,
+			float sx,
+			float rx,
+			float b,
+			Pose3D &ose_A_C,
+			float &sy,
+			float &sz,
+			float &ry);
 		void Reconstruct(
 			float *P_E,
 			MOTION::TouchModel *pModel_x,
@@ -537,7 +562,8 @@ namespace RVL
 			Visualizer *pVisualizerIn,
 			char *cfgFileName);
 		void SetVisualizeOptimization(bool bVisualizeOptimization);
-		void PrintContact(MOTION::Contact *pContact);
+		vtkSmartPointer<vtkActor> VisualizeMove(float *V);
+		void PrintTouch(MOTION::TouchData *pTouch);
 		void PrintX(float *x);
 		
 		// Simundic
@@ -613,6 +639,7 @@ namespace RVL
 		int nSimulationTouches;
         DWORD simulation;
 		bool bDoor;
+		bool bFitToLastTouch;
 		float contactIntersectionThr;
 		Pose3D pose_tool_E;
 		bool bVisualization;
@@ -620,6 +647,7 @@ namespace RVL
 		int nPanels;
 		DWORD optimizationMethod;
 		int nBest;
+		int iSelectedSession;
 		MOTION::TouchTarget target;
 		int *targetMem;
 
@@ -647,6 +675,7 @@ namespace RVL
 		MOTION::DisplayCallbackData *pVisualizationData;
 		Array<RECOG::VN_::ModelCluster *> VNMClusters;
 		Array<int> rndVal;
+		int iRndVal;
 		float stdgxyk;
 		float stdgzk;
 		float stdhxyk;
@@ -660,7 +689,6 @@ namespace RVL
 		float stdphirad;
 		float varx[RVLMOTION_TOUCH_NUM_PARAMS];
 		float csContactAngleThr;
-		int iRndVal;
 		Pose3D pose_Arot_A;
 		Pose3D pose_C_W;
 		Pose3D pose_E_W;

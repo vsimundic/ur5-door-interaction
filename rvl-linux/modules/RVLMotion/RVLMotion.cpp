@@ -45,6 +45,8 @@ void MOTION::InitVisualizer(
 {
     if (pVisualizationData == NULL)
         pVisualizationData = new MOTION::DisplayCallbackData;
+    assert(pVisualizationData->selectedPoints.size() == 0);
+
     if (pVisualizerIn)
     {
         pVisualizationData->pVisualizer = pVisualizerIn;

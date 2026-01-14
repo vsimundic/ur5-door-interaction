@@ -1,0 +1,103 @@
+# door_replanning_fsm_config.yaml
+
+# === Execution Flags ===
+is_offline: true
+correct_on_touch: true
+load_session: true
+grasp_one_finger: true  # true for one finger grasp, false for two fingers
+# === Paths ===
+base_dir: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection"
+
+# Model & Config Paths
+door_detector_config_path: "/home/RVLuser/rvl-linux/RVLRecognitionDemo_Cupec_DDD2_Detection.cfg"
+rvl_ddmanipulator_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg"
+rvl_touch_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec.cfg"
+gripper_mesh_path: "/home/RVLuser/rvl-linux/data/Robotiq3Finger_real/mesh.ply"
+T_C_6_path: "/home/RVLuser/ferit_ur5_ws/data/camera_calibration_20250331/T_C_T.npy"
+T_G_6_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_G_6.npy"
+
+# Poses files
+gt_poses_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/gt_cabinets/cabinet_gt_poses.pkl"
+offline_gt_poses_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/gt_cabinets/offline_cabinet_gt_poses.pkl"
+
+# Output Files
+T_tool_6_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_tool_6.npy"
+collision_free_poses_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_G_DD_all_colfree.npy"
+online_cabinet_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_estimation_final.csv"
+online_cabinet_filename_gt: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_gt_final.csv"
+online_touches_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_touches_final.csv"
+
+offline_cabinet_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_estimation_final.csv"
+offline_cabinet_filename_gt: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_gt_final.csv"
+offline_touches_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_touches_final.csv"
+
+analysis_dir: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/analysis"
+rvl_log_dir: "/home/RVLuser/rvl-linux/data/Exp-correct_calibration-20250616/ExpRez"
+
+# === Physical Parameters ===
+door_thickness: 0.018
+static_depth: 0.4
+max_width: 0.6
+max_height: 0.8
+gt_height: 0.495
+gt_width: 0.395
+
+tactile_sensor_depth: 0.006
+tactile_sensor_width: 0.023
+opening_angle: -45.0
+push_latch_mechanism_length: 0.0445
+latch_offset: 0.023
+
+# === Simulation Parameters ===
+simulation_dir: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/simulation"
+T_G_DD_all_colfree_path_simulation: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/simulation/T_G_DD_all_colfree.npy"
+
+opening_angle_simulation: -15.0
+opening_step_simulation: 5.0
+min_width_simulation: 0.2
+max_width_simulation: 0.6
+min_height_simulation: 0.2
+max_height_simulation: 0.8
+
+min_x_simulation: -0.8
+max_x_simulation: 0.8
+min_y_simulation: 0.0
+max_y_simulation: 0.8
+
+# === Tool Parameters ===
+tool:
+  a: 0.0205
+  b: 0.032
+  c: 0.011
+  d: 0.026
+  h: 0.023
+  tx_E: 0.069   # 0.15 * 0.5 - 0.006
+  tz_E: 0.278
+  tx_G: 0.0721
+  tz_G_one_finger: 0.1041
+  tz_G_two_fingers: 0.100
+  rotz_angle: -0.78539816339  # -pi * 0.25
+  
+  R_TCP_D: [[0, 0, -1],
+            [0, -1, 0],
+            [-1, 0, 0]]
+
+T_G_DD_all_colfree_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_G_DD_all_colfree.npy"
+
+touch:
+  a: 0.4
+  b: 0.0
+  c: 0.005
+
+# === Camera Parameters ===
+camera:
+  fu: 597.9033203125
+  fv: 598.47998046875
+  uc: 323.8436584472656
+  vc: 236.32774353027344
+  width: 640
+  height: 480
+  depth_encoding: "16UC1"
+  rgb_topic: "/camera/color/image_raw"
+  depth_topic: "/camera/aligned_depth_to_color/image_raw"
+  camera_info_topic: "/camera/color/camera_info"

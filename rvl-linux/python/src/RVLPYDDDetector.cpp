@@ -61,9 +61,18 @@ public:
 	py::dict detect();
 	void set_hyp_file_name(std::string hypFileNameIn);
 	void show_mesh(int iMesh);
+	void set_rgb_detected_dir(std::string rgbDetectedDir)
+	{
+		detector.rgbDetectedDir = rgbDetectedDir;
+	}
 
 	void load_best_hypothesis(std::string hypFileNameIn);
 	py::array recognize_ao_state(py::array T_O_C, bool print_debug = false);
+
+	void set_detected_state_img_path(std::string detectedImgPath)
+	{
+		detector.detectedStateImgPath = detectedImgPath;
+	}
 
 public:
 	DDDetector detector;
@@ -359,7 +368,9 @@ PYBIND11_MODULE(RVLPYDDDetector, m)
 		.def("set_camera_parameters", &PYDDDetector::set_camera_parameters)
 		.def("detect", &PYDDDetector::detect)
 		.def("set_hyp_file_name", &PYDDDetector::set_hyp_file_name)
+		.def("set_rgb_detected_dir", &PYDDDetector::set_rgb_detected_dir)
 		.def("show_mesh", &PYDDDetector::show_mesh)
 		.def("load_best_hypothesis", &PYDDDetector::load_best_hypothesis)
-		.def("recognize_ao_state", &PYDDDetector::recognize_ao_state);
+		.def("recognize_ao_state", &PYDDDetector::recognize_ao_state)
+		.def("set_detected_state_img_path", &PYDDDetector::set_detected_state_img_path);
 }

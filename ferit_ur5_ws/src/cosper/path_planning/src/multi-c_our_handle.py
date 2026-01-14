@@ -216,7 +216,7 @@ if __name__ == '__main__':
                 continue # will continue with the same 
 
             handle_path_exec = robot.send_multiple_joint_space_poses_to_robot2(q_moveit_traj[1:])
-            
+            handle_path_exec = bool(handle_path_exec)
             if not handle_path_exec:
                 contact_free = contact_state['contact_free']
 

@@ -390,26 +390,41 @@ void DDManipulator::CreateParamList()
 void DDManipulator::Clear()
 {
     if (pVNEnv)
+    {
         delete pVNEnv;
+        pVNEnv = NULL;
+    }
     if (pVNPanel)
-        delete dVNPanel;
+    {
+        delete pVNPanel;
+        pVNPanel = NULL;
+    }
     if (pVisualizationData)
     {
         if (pVisualizationData->bOwnVisualizer)
-            if (pVisualizationData->pVisualizer)
-                delete pVisualizationData->pVisualizer;
+        if (pVisualizationData->pVisualizer)
+        delete pVisualizationData->pVisualizer;
+        pVisualizationData->pVisualizer = NULL;
         delete pVisualizationData;
+        pVisualizationData = NULL;
     }
     RVL_DELETE_ARRAY(VNMClusters.Element);
     RVL_DELETE_ARRAY(dVNEnv);
+    RVL_DELETE_ARRAY(dVNPanel);
     RVL_DELETE_ARRAY(tool_sample_spheres.Element);
     RVL_DELETE_ARRAY(tool_contact_spheres.Element);
     RVL_DELETE_ARRAY(feasibleTCPs.Element);
     RVL_DELETE_ARRAY(nodeBuffMem);
     if (pToolMesh)
+    {
         delete pToolMesh;
+        pToolMesh = NULL;
+    }
     if (pTimer)
+    {
         delete pTimer;
+        pTimer = NULL;
+    }
     RVL_DELETE_ARRAY(nodes.Element);
     RVL_DELETE_ARRAY(rndIdx.Element);
     RVL_DELETE_ARRAY(feasibleToolContactPosesFileName);
@@ -427,9 +442,15 @@ void DDManipulator::Clear()
 
     // FCL
     if (pCabinetMeshStatic)
+    {
         delete pCabinetMeshStatic;
+        pCabinetMeshStatic = NULL;
+    }
     if (pCabinetMeshPanel)
+    {
         delete pCabinetMeshPanel;
+        pCabinetMeshPanel = NULL;
+    }
     // if (use_fcl)
     //     delete collisionCabinetObj;
     RVL_DELETE_ARRAY(cabinetStaticDirPath);
@@ -4584,11 +4605,18 @@ void DDManipulator::LoadExampleIndexed(std::string example)
 void DDManipulator::InitVisualizer(Visualizer *pVisualizerIn)
 {
     MOTION::InitVisualizer(pVisualizerIn, pVisualizationData, pMem0);
+    assert(pVisualizationData && pVisualizationData->selectedPoints.size() == 0);
     pVisualizationData->paramList.m_pMem = pMem;
     RVLPARAM_DATA *pParamData;
     pVisualizationData->paramList.Init();
+    assert(pVisualizationData->selectedPoints.size() == 0);
+
     pParamData = pVisualizationData->paramList.AddParam("DDM.visualize", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bVisualize));
+    assert(pVisualizationData->selectedPoints.size() == 0);
+
     pVisualizationData->paramList.LoadParams((char *)(cfgFileName.data()));
+    assert(pVisualizationData->selectedPoints.size() == 0);
+
     // #ifdef RVLMOTION_DDMANIPULATOR_PATH2_GRAPH_VISUALIZATION
     pVisualizationData->pVisualizer->SetBackgroundColor(1.0, 1.0, 1.0);
     // #endif
@@ -4681,6 +4709,7 @@ void DDManipulator::Visualize(
             }
 
             // VisualizeCabinetWholeMesh(pose_A_S, pCabinetWholeMeshActor);
+            
             if (bVisualizeToolBoundingSphere)
             {
                 Array<int> visSpheres;
@@ -4706,6 +4735,7 @@ void DDManipulator::Visualize(
                 pVisualizer->renderer->RemoveViewProp(doorPanelVNActor);
             for (iToolActor = 0; iToolActor < pVisualizationData->robotActors.size(); iToolActor++)
                 pVisualizer->renderer->RemoveViewProp(pVisualizationData->robotActors[iToolActor]);
+            pVisualizer->renderer->RemoveAllViewProps();
         }
     }
     else
@@ -5126,6 +5156,17 @@ void DDManipulator::VisualizeRobot(
             RVLCOMPTRANSF3D(robot.link_pose[iLink].R, robot.link_pose[iLink].t, pose_C_L.R, pose_C_L.t, pose_C_0.R, pose_C_0.t);
             RVLCOMPTRANSF3D(robot.pose_0_W.R, robot.pose_0_W.t, pose_C_0.R, pose_C_0.t, pose_C_W.R, pose_C_W.t);
             pActors->push_back(pVisualizer->DisplayCylinder(pCylinder->r, h, &pose_C_W, 16, 1.0, 1.0, 1.0));
+
+            // // Display spheres - spherocylinders
+            // float cS[3];
+            // Pose3D pose_L_W;
+            // RVLCOMPTRANSF3D(robot.pose_0_W.R, robot.pose_0_W.t, robot.link_pose[iLink].R, robot.link_pose[iLink].t, pose_L_W.R, pose_L_W.t);
+            // RVLTRANSF3(pCylinder->P[0].Element, pose_L_W.R, pose_L_W.t, cS);
+            // pVisualizer->DisplaySphere(cS, pCylinder->r, 16);
+
+            // RVLTRANSF3(pCylinder->P[1].Element, pose_L_W.R, pose_L_W.t, cS);
+            // pVisualizer->DisplaySphere(cS, pCylinder->r, 16);
+
         }
     }
 

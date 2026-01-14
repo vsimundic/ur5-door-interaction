@@ -1,4 +1,5 @@
 #pragma once
+
 namespace RVL
 {
 	namespace MOTION
@@ -19,6 +20,7 @@ namespace RVL
 		struct DisplayCallbackData
 		{
 			Visualizer *pVisualizer;
+			Mesh *pMesh;
 			bool bOwnVisualizer;
 			CRVLParameterList paramList;
 			bool bVNEnv;
@@ -29,9 +31,13 @@ namespace RVL
 			bool bVisualize;
 			bool bOptimization;
 			bool bContacts;
+			bool bOnlySelectedSample;
+			int iSelectedSample;
+			bool bPath;
 			Box<float> VNBBox;
 			std::vector<MOTION::VisualizationNode> visNodes;
 			std::vector<Pair<int, int>> visEdges;
+			std::vector<int> selectedPoints;
 		};
 
 		void LoadDoorExample(
@@ -46,5 +52,6 @@ namespace RVL
 			Visualizer *pVisualizerIn,
 			MOTION::DisplayCallbackData *&pVisualizationData,
 			CRVLMem *pMem);
+
 	}
 }

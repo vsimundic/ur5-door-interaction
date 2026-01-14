@@ -1,8 +1,8 @@
 import csv
 
 # Input and output file names
-input_file = "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_bVNPanelTrue.csv"  # Change this to your actual input file name
-output_file = "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless.csv"  # Change this to your desired output file name
+input_file = "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handle.csv"  # Change this to your actual input file name
+output_file = "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handle_final.csv"  # Change this to your desired output file name
 
 # Read the CSV file and add an index
 with open(input_file, mode='r', newline='', encoding='utf-8') as infile:

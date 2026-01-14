@@ -40,7 +40,9 @@ class Cabinet():
                  axis_pos: int=1, 
                  T_A_S: np.ndarray=np.eye(4), 
                  save_path:str=None,
-                 has_handle:bool=False):
+                 has_handle:bool=False,
+                 static_side_width:float=0.018,
+                 axis_distance:float=0.0):
         # S = World (scene)
         # O = centroid of cabinet
         # F = top left corner of static part of cabinet
@@ -54,9 +56,9 @@ class Cabinet():
         # self.moving_to_static_part_distance = 0.01
         self.moving_to_static_part_distance = 0.005
         # self.axis_distance = 0.01
-        self.axis_distance = 0.0
+        self.axis_distance = axis_distance
         # self.axis_distance = 0.005
-        self.static_side_width = 0.018
+        self.static_side_width = static_side_width
         
         self.rx = r[0]
         self.ry = r[1]

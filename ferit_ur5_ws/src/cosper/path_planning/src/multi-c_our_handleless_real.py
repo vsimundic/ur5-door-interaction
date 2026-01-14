@@ -32,7 +32,7 @@ if __name__ == '__main__':
 	pkg_path = rp.get_path('path_planning')
 	
 	# Config
-	cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real.yaml' % method_name)
+	cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real3.yaml' % method_name)
 	config = read_config(cfg_path)
 	
 	# Save/load path for results
@@ -53,8 +53,9 @@ if __name__ == '__main__':
 	rvl_cfg = config['rvl_config_path'] 
 	
     # Trajectories path
-	traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories'
-
+	traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories_3'
+	if not os.path.exists(traj_path):
+		os.makedirs(traj_path)
 	# If False, the data loads and the experiment starts where it stopped
 	start_i = 0
 	if START_FROM_BEGINNING:
@@ -84,6 +85,8 @@ if __name__ == '__main__':
 	# Static cabinet params
 	door_thickness=config['cabinet_door_dims']['depth']
 	static_depth=config['cabinet_door_dims']['static_depth']
+	static_side_width = config['cabinet_door_dims']['static_side_width']
+	axis_distance = config['cabinet_door_dims']['axis_distance']
 
 	# Static mesh filename
 	cabinet_static_mesh_filename = config['cabinet_static_mesh_save_path']
@@ -124,7 +127,9 @@ if __name__ == '__main__':
 									axis_pos=axis_pos,
 									T_A_S=T_A_S,
 									save_path=config['cabinet_urdf_save_path'],
-									has_handle=False)
+									has_handle=False,
+									static_side_width=static_side_width,
+									axis_distance=axis_distance)
 					
 			# Save cabinet mesh to a file
 			cabinet_model.save_mesh_without_doors(cabinet_static_mesh_filename)
@@ -143,6 +148,8 @@ if __name__ == '__main__':
 					with open(csv_path, 'a') as f:
 						writer = csv.writer(f, delimiter=',')
 						writer.writerow([i, path_found, trajectory_successful, contact_free, door_opened, width, height, position[0], position[1], position[2], rot_z_deg, state_angle, axis_pos])
+
+			
 
 			if T_G_0_array.shape[0] > 1:
 
@@ -188,6 +195,31 @@ if __name__ == '__main__':
 				q[q>np.pi]-=(2.0*np.pi)     
 				q[q<-np.pi]+=(2.0*np.pi)
 				q = np.unwrap(q, axis=0)
+
+
+				# Check for self-collision
+				for q_ in q:
+
+					succ = robot.is_state_valid(q_)
+					if not succ:
+						print('Self-collision in trajectory')
+						path_found = False
+						with open(csv_path, 'a') as f:
+							writer = csv.writer(f, delimiter=',')
+							writer.writerow([i, path_found, trajectory_successful, contact_free, door_opened, width, height, position[0], position[1], position[2], rot_z_deg, state_angle, axis_pos])
+						break
+				if not path_found:
+					# stop_gazebo_launcher(gazebo_process)
+					kill_ros_nodes()
+					rospy.sleep(1.)
+					kill_processes()
+					reset_tf_buffer(tf_buffer)
+					launch_process.terminate()
+					launch_process.wait()
+					i += 1
+					continue
+
+
 				traj_filename = os.path.join(traj_path, 'traj_%d.txt' % i)
 				np.savetxt(traj_filename, q, delimiter=',')
 

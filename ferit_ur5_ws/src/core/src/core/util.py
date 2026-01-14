@@ -95,3 +95,61 @@ def furthest_point_sampling(points, num_samples):
         sampled_indices.append(idx)
 
     return sampled_indices
+
+
+def chamfer_distance(A: np.ndarray, B: np.ndarray, squared: bool = False) -> float:
+    """
+    Chamfer Distance between two point clouds A (n,3) and B (m,3).
+
+    CD(A,B) = mean_{a in A} min_{b in B} d(a,b) + mean_{b in B} min_{a in A} d(b,a)
+    where d is squared Euclidean if squared=True, else Euclidean.
+
+    Args:
+        A: (n, 3) float array
+        B: (m, 3) float array
+        squared: use squared L2 if True (common in literature), else plain L2
+
+    Returns:
+        float: symmetric Chamfer distance.
+    """
+    
+    A = np.asarray(A, dtype=np.float64)
+    B = np.asarray(B, dtype=np.float64)
+    if A.ndim != 2 or B.ndim != 2 or A.shape[1] != 3 or B.shape[1] != 3:
+        raise ValueError("A and B must be shape (n,3) and (m,3).")
+    if len(A) == 0 or len(B) == 0:
+        raise ValueError("A and B must be non-empty.")
+
+    # Fast path with SciPy KDTree if available
+    try:
+        from scipy.spatial import cKDTree
+        kdt_B = cKDTree(B)
+        d_AB, _ = kdt_B.query(A, k=1)  # distances from each A to nearest B
+
+        kdt_A = cKDTree(A)
+        d_BA, _ = kdt_A.query(B, k=1)  # distances from each B to nearest A
+
+        if squared:
+            d_AB = d_AB**2
+            d_BA = d_BA**2
+
+        return float(d_AB.mean() + d_BA.mean())
+
+    except Exception:
+        # Fallback (O(n*m) memory/time) – fine for small point sets
+        # Pairwise squared distances: ||A||^2 + ||B||^2 - 2 A·B^T
+        AA = np.sum(A**2, axis=1, keepdims=True)           # (n,1)
+        BB = np.sum(B**2, axis=1, keepdims=True).T         # (1,m)
+        D2 = AA + BB - 2.0 * (A @ B.T)                     # (n,m)
+        # Numerical safety
+        np.maximum(D2, 0.0, out=D2)
+
+        if squared:
+            d_AB_min = D2.min(axis=1)                      # (n,)
+            d_BA_min = D2.min(axis=0)                      # (m,)
+        else:
+            D = np.sqrt(D2, dtype=np.float64)              # (n,m)
+            d_AB_min = D.min(axis=1)
+            d_BA_min = D.min(axis=0)
+
+        return float(d_AB_min.mean() + d_BA_min.mean())

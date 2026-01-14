@@ -60,6 +60,7 @@ public:
 
 	PYTouch()
 	{
+		touch.pMem0 = NULL;
 		memSize = 1000000000;
 		mem0Size = 1000000000;
 	}
@@ -86,7 +87,11 @@ public:
 
 	void clear()
 	{
-		delete touch.pMem0;
+		if (touch.pMem0)
+		{
+			delete touch.pMem0;
+			touch.pMem0 = NULL;
+		}
 	}
 
 	void create_simple_tool(
@@ -143,6 +148,7 @@ public:
 		double *T_C_E_ = (double *)T_C_E.request().ptr;
 		RVLHTRANSFMXDECOMP(T_C_E_, doorExpParams.pose_C_E.R, doorExpParams.pose_C_E.t);
 		
+		touch.ClearSession(touches, contacts);
 		touch.InitSession(&doorExpParams, true);
 	}
 	
@@ -280,7 +286,6 @@ public:
 	void set_environment_from_touch();
 	void set_environment_from_touch_gt();
 	void visualize_vn_model();
-	void reset_vn_environment(py::array T_D_S);
 
 	py::array get_corrected_cabinet_pose();
 	py::array get_corrected_camera_pose();
@@ -297,12 +302,10 @@ public:
 	int mem0Size;
 	Pair<int, int> *approachPathMem;
 	Visualizer visualizer;
-	MOTION::DisplayCallbackData *pVisualizationData;
+	// MOTION::DisplayCallbackData *pVisualizationData;
 	Pose3D pose_A_S;
 	int maxnIKSolutions;
 	float a, b, c;
-
-	RVL::VN *pVNEnv_;
 };
 
 PYDDManipulator::PYDDManipulator()
@@ -345,7 +348,6 @@ void PYDDManipulator::create(
 		manipulator.CreateGndFCL();
 	}
 
-	pVNEnv_ = manipulator.pVNEnv;
 }
 
 void PYDDManipulator::set_memory_storage_size(
@@ -358,11 +360,10 @@ void PYDDManipulator::set_memory_storage_size(
 
 void PYDDManipulator::clear()
 {
+	manipulator.Clear();
+	RVL_DELETE_ARRAY(approachPathMem);
 	delete manipulator.pMem0;
 	delete manipulator.pMem;
-	RVL_DELETE_ARRAY(approachPathMem);
-	manipulator.pVNEnv = pVNEnv_;
-	manipulator.Clear();
 }
 
 py::tuple PYDDManipulator::path2(
@@ -745,11 +746,6 @@ void PYDDManipulator::set_door_model_params(
 	float static_side_width,
 	float moving_to_static_part_distance)
 {
-	// manipulator.pVNEnv = manipulator.pVNEnv_tmp;
-	// RVL_DELETE_ARRAY(manipulator.dVNEnv);
-	// manipulator.dVNEnv = new float[manipulator.pVNEnv->featureArray.n];
-	// manipulator.pVNEnv->CopyDescriptor(manipulator.dVNEnv);
-
 	manipulator.SetDoorModelParams(sx, sy, sz, rx, ry, opening_direction, static_side_width, moving_to_static_part_distance);
 	manipulator.pVNEnv->BoundingBox(manipulator.dVNEnv, manipulator.vnbbox);
 	BoxSize<float>(&manipulator.vnbbox, a, b, c);
@@ -1101,26 +1097,6 @@ void PYDDManipulator::set_environment_from_touch_gt()
 
 }
 
-void PYDDManipulator::reset_vn_environment(py::array T_D_S)
-{
-	manipulator.pVNEnv = pVNEnv_;
-	RVL_DELETE_ARRAY(manipulator.dVNEnv);
-	manipulator.dVNEnv = new float[manipulator.pVNEnv->featureArray.n];
-
-	pVNEnv_->CopyDescriptor(manipulator.dVNEnv);
-
-	manipulator.UpdateFurnitureParams();
-
-	manipulator.pVNEnv->BoundingBox(manipulator.dVNEnv, manipulator.vnbbox);
-
-	double *T_D_S_ = (double *)T_D_S.request().ptr;
-	Pose3D pose_D_S;
-	RVLHTRANSFMXDECOMP(T_D_S_, pose_D_S.R, pose_D_S.t);
-	manipulator.setPose_DD_S(pose_D_S);
-	manipulator.FreeSpacePlanes();
-
-}
-
 void PYDDManipulator::visualize_vn_model()
 {
 	visualizer.Clear();
@@ -1268,6 +1244,5 @@ PYBIND11_MODULE(RVLPYDDManipulator, m)
 		.def("get_corrected_pose_D_Arot", &PYDDManipulator::get_corrected_pose_D_Arot)
 		.def("get_corrected_pose_D_0", &PYDDManipulator::get_corrected_pose_D_0)
 		.def("update_model_x", &PYDDManipulator::update_model_x)
-		.def("reset_vn_environment", &PYDDManipulator::reset_vn_environment)
 		.def_readwrite("py_touch", &PYDDManipulator::py_touch);
 }

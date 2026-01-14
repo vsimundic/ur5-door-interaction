@@ -82,17 +82,19 @@ rospack = RosPack()
 # pkg_path = rospack.get_path('path_planning')
 pkg_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning'
 # Choose epxeriment
-exp_name = 'simulation_exp' # simulation_exp, real_exp
+exp_name = 'real_exp' # simulation_exp, real_exp
 
 if exp_name == 'simulation_exp':
     cfg_path = os.path.join(pkg_path, 'config/config_simulations_axis_left.yaml')
-    save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left.npy')
+    # save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left.npy')
 elif exp_name == 'real_exp':
-    cfg_path = os.path.join(pkg_path, 'config/config_multi-c_our_handleless_axis_left_real.yaml')
-    save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left_real.npy')
+    cfg_path = os.path.join(pkg_path, 'config/config_multi-c_our_handleless_axis_left_real3.yaml')
+    # save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left_real2.npy')
 config = read_config(cfg_path)
 
-HAS_HANDLE = True
+save_path = config['cabinet_configs_path']
+
+HAS_HANDLE = False
 
 NEW_GEN = True
 
@@ -119,14 +121,19 @@ poses = np.zeros((n, 8))
 cabinet_door_dims = config['cabinet_door_dims'] # w_door, h_door, static_d, d_door
 cabinet_pose = config['cabinet_pose']
 axis_pos = cabinet_pose['axis_pos']
-
+static_side_width = cabinet_door_dims['static_side_width']
+axis_distance = cabinet_door_dims['axis_distance']
 
 # Params for height from floor
-static_side_width = 0.018
+# static_side_width = 0.017
 moving_to_static_part_distance = 0.005
 distance_from_floor = 0.003 # to ensure that cabinet does not collide with floor
 
-push_latch_mechanism_length = 0.046 + static_side_width*0.5
+# push_latch_mechanism_length = 0.038 + static_side_width*0.5
+# push_latch_mechanism_length = 0.042
+push_latch_mechanism_length = 0.058
+# latch_offset = 0.005
+latch_offset = 0.0
 
 T_B_S = np.eye(4)
 T_B_S[2, 3] = 0.005
@@ -160,12 +167,13 @@ while i < n:
                             np.random.uniform(cabinet_pose['min_y'], cabinet_pose['max_y']),
                             static_side_width + moving_to_static_part_distance + distance_from_floor + door_params[1]*0.5 ] # half of door height + offset from bottom
     else:
-        # this is to compansate for differences between the cabinet in simulation and the real cabinet
+        # this is to compensate for differences between the cabinet in simulation and the real cabinet
         # the real cabinet has 0.009m offset from bottom, while simulation cabinet has  static_side_width + moving_to_static_part_distance
-        door_params[1] = door_params[1] - (static_side_width + moving_to_static_part_distance - 0.009)
+        # door_params[1] = door_params[1] - (static_side_width + moving_to_static_part_distance - 0.009)
         cabinet_position = [np.random.uniform(cabinet_pose['min_x'], cabinet_pose['max_x']),
                             np.random.uniform(cabinet_pose['min_y'], cabinet_pose['max_y']),
-                            T_B_S[2, 3] + static_side_width + moving_to_static_part_distance + door_params[1]*0.5 ] # half of door height + robot offset from bottom + offset from bottom
+                            # T_B_S[2, 3] + static_side_width + moving_to_static_part_distance + door_params[1]*0.5 ] # half of door height + robot offset from bottom + offset from bottom
+                            cabinet_pose['z']] # half of door height + robot offset from bottom + offset from bottom
                             # 0.009 + 0.005 + door_params[1]*0.5 ] # half of door height + robot offset from bottom + offset from bottom
 
     rotz_deg = np.random.uniform(cabinet_pose['rot_angle_min_deg'], cabinet_pose['rot_angle_max_deg'])
@@ -184,7 +192,9 @@ while i < n:
         cabinet_model = Cabinet(door_params=np.array(door_params), 
                                 axis_pos=cabinet_pose['axis_pos'],
                                 T_A_S=T_A_S,
-                                save_path=config['cabinet_urdf_save_path'])
+                                save_path=config['cabinet_urdf_save_path'],
+                                static_side_width=static_side_width,
+                                axis_distance=axis_distance)
         
         T_pt1_A = np.eye(4)
         T_pt1_A[:3, 3] = np.array([0., 0., 0.])
@@ -204,14 +214,14 @@ while i < n:
         T_pt3_S = T_A_S @ T_pt3_A
         T_pt4_S = T_A_S @ T_pt4_A
         
-        angle_deg = axis_pos * np.rad2deg(np.arcsin(push_latch_mechanism_length/door_params[0]))
+        angle_deg = axis_pos * np.rad2deg(np.arcsin(push_latch_mechanism_length/(door_params[0]-latch_offset)))
         
         pts_crit = T_pt1_S[0, 3] > -0.35 and T_pt2_S[0, 3] > -0.35 and T_pt3_S[0, 3] < 0.35 and T_pt4_S[0, 3] < 0.35
 
         dist_crit = True
         if NEW_GEN:
             T_D_A = cabinet_model.T_D_A_init.copy()
-            T_D_A[0,3] = 0. # the axis and the free point for rotation are aligned on the door axis
+            # T_D_A[0,3] = 0. # the axis and the free point for rotation are aligned on the door axis
 
             T_D_S_rots = cabinet_model.T_A_S[np.newaxis,...] @ Tz_rots @ T_D_A[np.newaxis,...]
 

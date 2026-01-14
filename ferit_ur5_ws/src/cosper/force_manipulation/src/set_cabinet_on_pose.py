@@ -10,7 +10,7 @@ width = 0.395
 height = 0.495
 
 IS_OFFLINE = False
-cabinet_idx = 9
+cabinet_idx = 0
 
 # num_poses = 3 if IS_OFFLINE else 1
 

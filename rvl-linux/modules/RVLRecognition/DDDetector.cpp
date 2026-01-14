@@ -2814,6 +2814,9 @@ void DDDetector::Detect(
 					RVLSET3VECTOR(s, frontFaceThickness, movingPartHyp.s[0], movingPartHyp.s[1]);
 					VisualizeBoxFrontFaceRGB(poseBC, s, &display);
 					cv::imshow("Surfels", display);
+					std::string imgName = rgbDetectedDir + "/" + std::to_string(iMesh) + ".png";
+					printf("Saving image %s\n", imgName.c_str());
+					cv::imwrite(imgName, display);
 					cv::waitKey();
 				}
 			}
@@ -13859,6 +13862,7 @@ void DDDetector::RecognizeArticulatedObjectState(
 		pRGBImg->copyTo(display);
 		VisualizeArticulatedObject(AObj, poseOC, false, &display);
 		cv::imshow("Articulated object", display);
+		cv::imwrite(detectedStateImgPath, display);
 		cv::waitKey();
 	}
 	if (pVisualizationData->b3DVisualization)

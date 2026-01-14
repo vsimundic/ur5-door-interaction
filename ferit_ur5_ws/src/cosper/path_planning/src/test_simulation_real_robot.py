@@ -13,17 +13,18 @@ from utils import *
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
     
-    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real.csv'
+    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real3.csv'
     data = read_csv_DataFrame(read_results_path)
 
-    real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results.txt'
-    traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories'
+    real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results3.txt'
+    traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories_3'
+    door_configs_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left_real3.npy'
 
-    START_FROM_BEGGINING = True
+    START_FROM_BEGGINING = False
     
     exp_success = []
     
-    i_ = 1
+    i_ = 0
     if not START_FROM_BEGGINING:
         exp_success = np.loadtxt(real_results_path, delimiter=',',dtype=int).tolist()
         if type(exp_success) is not list:
@@ -34,7 +35,6 @@ if __name__ == '__main__':
     # rvl_cfg_path = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
 
 	# Load door configurations
-    door_configs_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left_real.npy'
     doors = np.load(door_configs_path)
     num_doors = int(doors.shape[0]*0.5)
 
@@ -51,8 +51,8 @@ if __name__ == '__main__':
     T_R_W = np.eye(4)
 
 	# Static cabinet params
-    door_thickness=0.018
-    static_depth=0.4
+    door_thickness=0.017
+    static_depth=0.35
 
     # Robot handler
     # robot = UR5Commander()  
@@ -75,6 +75,7 @@ if __name__ == '__main__':
 
         T_A_S = np.eye(4)
         T_A_S[:3, 3] = np.array(position)
+        # T_A_S[2, 3] -= 0.005
         # Tz_init = np.eye(4)
         # Tz_init[:3, :3] = rot_z(np.radians(90.))
         # T_A_S = T_A_S @ Tz_init
@@ -82,17 +83,27 @@ if __name__ == '__main__':
         Tz[:3, :3] = rot_z(np.radians(rot_z_deg))
         T_A_S = T_A_S @ Tz
 
+        # Adjust angle for the push mechanism in default state
+        push_latch_mechanism_length = 0.018
+        angle_rad = -np.arcsin(push_latch_mechanism_length/width)
+        Tz_correction = np.eye(4)
+        Tz_correction[:3, :3] = rot_z(angle_rad)
+        # T_A_S = T_A_S @ Tz_correction
 
         # Create a cabinet object
         cabinet_model = Cabinet(door_params=np.array([width, height, door_thickness, static_depth]), 
                                 axis_pos=axis_pos,
                                 T_A_S=T_A_S,
-                                has_handle=False)
+                                has_handle=False,
+                                static_side_width=0.017,
+                                axis_distance=0.01)
 
         T_pt1_A = np.eye(4)
-        T_pt1_A[:3, 3] = np.array([-0.009, 0, height*0.5])
+        # T_pt1_A[:3, 3] = np.array([-0.009, 0, height*0.5])
+        T_pt1_A[:3, 3] = np.array([-0.0085, 0.01+0.0015+0.017, height*0.5+0.005+0.017])
         T_pt2_A = np.eye(4)
-        T_pt2_A[:3, 3] = np.array([-0.009, -width, height*0.5])
+        # T_pt2_A[:3, 3] = np.array([-0.009, -width, height*0.5])
+        T_pt2_A[:3, 3] = np.array([-0.0085, 0.01-width-0.001-0.017, height*0.5+0.005+0.017])
 
         Tz_poly = np.eye(4)
         Tz_poly[:3, :3] = rot_z(np.radians(180.))
@@ -145,7 +156,7 @@ if __name__ == '__main__':
         # robot.send_URScript(get_feedback=False)
         robot.force_threshold = 40 # N
         robot.send_joint_trajectory_action(q[:3])
-        robot.zero_ft_sensor()
+        # robot.zero_ft_sensor()
         robot.force_threshold = 30 # N
         robot.send_joint_trajectory_action(q[2:])
 

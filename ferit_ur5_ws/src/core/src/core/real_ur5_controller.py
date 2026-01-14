@@ -2,7 +2,7 @@ import rospy
 import numpy as np
 import moveit_commander
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotTrajectory, RobotState
+from moveit_msgs.msg import RobotTrajectory, RobotState, DisplayTrajectory
 from geometry_msgs.msg import WrenchStamped, PoseStamped
 from moveit_msgs.msg import RobotState as RobotStateMsg
 from xela_server_ros.msg import SensStream
@@ -20,6 +20,9 @@ from moveit_msgs.srv import GetStateValidity, GetStateValidityRequest
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 from fast_collision_checker import FastCollisionChecker
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
+
 
 class UR5Controller:
     def __init__(self, move_group="arm", 
@@ -784,3 +787,150 @@ class UR5Controller:
         time_velocity = position_differences / max_velocity
         time_acceleration = np.sqrt(2 * position_differences / max_acceleration)
         return max(np.max(time_velocity), np.max(time_acceleration))
+
+
+    # --- helpers -------------------------------------------------------------
+    def _robot_state_from_array(self, q: np.ndarray) -> RobotState:
+        """Build a RobotState from a (J,) numpy array in self.joint_names order."""
+        q = np.asarray(q, dtype=float).ravel()
+        if q.size != len(self.joint_names):
+            raise ValueError(f"start_joints has size {q.size}, expected {len(self.joint_names)}")
+        rs = RobotState()
+        js = JointState()
+        js.name = list(self.joint_names)
+        js.position = q.tolist()
+        js.header.stamp = rospy.Time.now()
+        rs.joint_state = js
+        return rs
+
+    def _traj_to_array(self, traj):
+        """Return (N,J) float array from numpy / RobotTrajectory / JointTrajectory."""
+        if isinstance(traj, np.ndarray):
+            arr = np.asarray(traj, dtype=float)
+            if arr.ndim != 2:
+                raise ValueError("Expected (N,J) array.")
+            return arr
+        # MoveIt RobotTrajectory
+        if hasattr(traj, 'joint_trajectory'):
+            pts = traj.joint_trajectory.points
+            return np.array([p.positions for p in pts], dtype=float)
+        # Plain JointTrajectory
+        if hasattr(traj, 'points'):
+            return np.array([p.positions for p in traj.points], dtype=float)
+        raise ValueError("Unsupported trajectory type for conversion to array.")
+
+    # --- RViz motion planning panel path (DisplayTrajectory) -----------------
+    def display_trajectory(self, traj, start_joints: np.ndarray = None, dt=0.2,
+                        topic='/move_group/display_planned_path'):
+        """
+        Publish a trajectory to RViz's MotionPlanning display.
+
+        traj: RobotTrajectory OR JointTrajectory OR (N,6) numpy array.
+        start_joints: optional (J,) numpy array in self.joint_names order.
+        dt: spacing [s] if traj is a numpy array.
+        """
+        if not hasattr(self, '_display_pub'):
+            self._display_pub = rospy.Publisher(topic, DisplayTrajectory, queue_size=10, latch=True)
+            rospy.sleep(0.2)
+
+        # Build RobotTrajectory message
+        if isinstance(traj, RobotTrajectory):
+            rt = traj
+        elif hasattr(traj, 'joint_trajectory'):
+            rt = RobotTrajectory()
+            rt.joint_trajectory = traj.joint_trajectory
+        else:
+            arr = self._traj_to_array(traj)  # your helper that returns (N,J)
+            jt = JointTrajectory()
+            jt.joint_names = self.joint_names
+            t = 0.0
+            for row in arr:
+                p = JointTrajectoryPoint()
+                p.positions = row.tolist()
+                t += dt
+                p.time_from_start = rospy.Duration.from_sec(t)
+                jt.points.append(p)
+            rt = RobotTrajectory()
+            rt.joint_trajectory = jt
+
+        # Fill and publish
+        msg = DisplayTrajectory()
+        if start_joints is not None:
+            msg.trajectory_start = self._robot_state_from_array(start_joints)
+        else:
+            msg.trajectory_start = self.robot.get_current_state()
+        msg.trajectory.append(rt)
+        self._display_pub.publish(msg)
+        rospy.loginfo("Published DisplayTrajectory with %d points.", len(rt.joint_trajectory.points))
+
+    # --- RViz markers (line + dots) of TCP path ------------------------------
+    def publish_path_markers(self, traj, frame_id="world", topic="~path_markers",
+                             line_scale=0.006, sphere_scale=0.012, rgba=(0.1, 0.8, 1.0, 0.9),
+                             use_moveit_fk=False):
+        """
+        Draw the Cartesian TCP path as a LINE_STRIP + SPHERE_LIST markers.
+
+        traj: RobotTrajectory / JointTrajectory / (N,J) array.
+        use_moveit_fk: if False (default) use RVL FK (fast); if True call /compute_fk.
+        """
+        if not hasattr(self, '_marker_pub'):
+            self._marker_pub = rospy.Publisher(topic, Marker, queue_size=10, latch=True)
+            rospy.sleep(0.2)
+
+        q_path = self._traj_to_array(traj)
+
+        # Compute TCP points
+        pts_xyz = []
+        if use_moveit_fk:
+            for q in q_path:
+                T = self.get_fwd_kinematics_moveit(list(q))  # returns pose in 'world'
+                if T is not None:
+                    pts_xyz.append(T[:3, 3])
+        else:
+            # RVL FK gives T_6_0 (tool in base); convert to world with T_0_W
+            for q in q_path:
+                T_6_0 = self.get_fwd_kinematics(q)
+                T_6_W = self.T_0_W @ T_6_0
+                pts_xyz.append(T_6_W[:3, 3])
+        if not pts_xyz:
+            rospy.logwarn("No points to publish for markers.")
+            return
+        pts_xyz = np.asarray(pts_xyz)
+
+        pts_msg = [Point(x=float(p[0]), y=float(p[1]), z=float(p[2])) for p in pts_xyz]
+
+        # Line
+        line = Marker()
+        line.header.frame_id = frame_id
+        line.header.stamp = rospy.Time.now()
+        line.ns = "traj"
+        line.id = 0
+        line.type = Marker.LINE_STRIP
+        line.action = Marker.ADD
+        line.scale.x = float(line_scale)
+        line.color.r, line.color.g, line.color.b, line.color.a = rgba
+        line.points = pts_msg
+
+        # Dots
+        dots = Marker()
+        dots.header.frame_id = frame_id
+        dots.header.stamp = rospy.Time.now()
+        dots.ns = "traj"
+        dots.id = 1
+        dots.type = Marker.SPHERE_LIST
+        dots.action = Marker.ADD
+        dots.scale.x = dots.scale.y = dots.scale.z = float(sphere_scale)
+        dots.color.r, dots.color.g, dots.color.b, dots.color.a = rgba
+        dots.points = pts_msg
+
+        self._marker_pub.publish(line)
+        self._marker_pub.publish(dots)
+        rospy.loginfo("Published path markers with %d points to %s.", len(pts_msg), topic)
+
+    # --- convenience: do both ------------------------------------------------
+    def visualize_trajectory(self, traj, start_joints: np.ndarray = None, dt=0.2,
+                            frame_id="world", marker_topic="~path_markers",
+                            use_moveit_fk=False):
+        """Show in MotionPlanning panel + draw line/dots markers."""
+        self.display_trajectory(traj, start_joints=start_joints, dt=dt)
+        self.publish_path_markers(traj, frame_id=frame_id, topic=marker_topic, use_moveit_fk=use_moveit_fk)

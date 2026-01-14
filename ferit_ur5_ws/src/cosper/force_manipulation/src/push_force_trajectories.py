@@ -90,7 +90,7 @@ def collision_detection_fcl(tool_mesh, tool_poses, cabinet_mesh, T_TCP_G: np.nda
         dist_result = fcl.DistanceResult()
         fcl.distance(cabinet_col_obj, tool_col_obj, dist_request, dist_result)
         # ret_dist = int(dist_result.min_distance < 0.0025)
-        ret_dist = int(dist_result.min_distance < 0.0)
+        ret_dist = int(dist_result.min_distance < 1e-7)
         # ret_dist = int(dist_result.min_distance < 0.0001)
 
         if static_col_obj:
@@ -103,6 +103,12 @@ def collision_detection_fcl(tool_mesh, tool_poses, cabinet_mesh, T_TCP_G: np.nda
         request = fcl.CollisionRequest()
         result = fcl.CollisionResult()
         ret_col = fcl.collide(cabinet_col_obj, tool_col_obj, request, result)
+        
+        # # Visualization for debugging
+        # tool_mesh_ = copy.deepcopy(tool_mesh)
+        # tool_mesh_.transform(T_G_DD)
+        # tool_mesh_.compute_vertex_normals()
+        # o3d.visualization.draw_geometries([tool_mesh_, cabinet_mesh])
 
         ## Debug
         # # if bool(ret) and not bool(collision[idx]):
@@ -184,20 +190,33 @@ def rotz_multiple(theta_arr):
     Rz[:, 2, 2] = 1
     return Rz
 
-def generate_tool_line_poses(height, T_TCP_G=np.ndarray, R_TCP_D=np.ndarray):
+def generate_tool_line_positions(height, sample_dist=0.02, top_offset=0.0115, side_offset=0.0115, z_offset=0.007):
+    num_samples = int(height / sample_dist)
+
+    sample_pts_D = np.zeros((num_samples, 3))
+    sample_pts_D[:, 0] = -side_offset
+    sample_pts_D[:, 1] = np.linspace(top_offset, height-top_offset, num_samples)
+    sample_pts_D[:, 2] = z_offset
+    return sample_pts_D
+
+def generate_tool_line_poses(height, 
+                             T_TCP_G=np.ndarray, 
+                             R_TCP_D=np.ndarray):
     sample_dist = 0.02
     top_offset = 0.0115
     side_offset = 0.0115
     z_offset = 0.007
 
-    num_samples = int(height / sample_dist)
+    sample_pts_D = generate_tool_line_positions(height, sample_dist, top_offset, side_offset, z_offset)
 
-    sample_pts_D = np.zeros((num_samples, 3))
-    sample_pts_D[:, 1] = np.linspace(top_offset, height-top_offset, num_samples)
-    sample_pts_D[:, 0] = -side_offset
-    sample_pts_D[:, 2] = z_offset
+    # num_samples = int(height / sample_dist)
 
-    T_TCP_D = np.zeros((num_samples, 4, 4))
+    # sample_pts_D = np.zeros((num_samples, 3))
+    # sample_pts_D[:, 1] = np.linspace(top_offset, height-top_offset, num_samples)
+    # sample_pts_D[:, 0] = -side_offset
+    # sample_pts_D[:, 2] = z_offset
+
+    T_TCP_D = np.zeros((sample_pts_D.shape[0], 4, 4))
     T_TCP_D[:, 3, 3] = 1
     T_TCP_D[:, :3, :3] = R_TCP_D.copy()
     T_TCP_D[:, :3, 3] = sample_pts_D.copy()
@@ -1060,7 +1079,7 @@ def generate_trajectories_and_approach3(
                         q = joints[i_sol, :]
                         q_rvl = joints_rvl[i_sol, :]
                         dist = chebyshev_distance(q, leaf.q)
-                        if dist > 0.5 * np.pi:
+                        if dist > 0.25 * np.pi:
                             continue
                         if visualize and not visualized:
                             # rvl_manipulator.visualize_current_state(q_rvl, T_6_0 @ T_G_6)

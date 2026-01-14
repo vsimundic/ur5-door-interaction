@@ -5,7 +5,51 @@ from gazebo_push_open.cabinet_model import Cabinet
 from gazebo_push_open.cabinet_model2 import Cabinet2
 from core.transforms import rot_z, rot_y
 from core.util import get_nearest_joints
+from enum import Enum
 import RVLPYDDManipulator as rvlpy
+
+class TouchType(Enum):
+    UNWANTED_TOUCH = 0
+    MISS = 1
+    WANTED_TOUCH = 2
+
+class RVLTool:
+    def __init__(self, a, b, c, d, h, tx, tz, rot_z_angle=-np.pi*0.25, rot_y_angle=np.deg2rad(3.0)):
+        self.a = a  # depth of the tool box
+        self.b = b  # width of bottom tool edge
+        self.c = c  # depth of the tool edge
+        self.d = d  # width of the top tool edge
+        self.h = h  # height of the tool
+
+        Tz = np.eye(4)
+        Tz[:3, :3] = rot_z(rot_z_angle)
+
+        Ty = np.eye(4)
+        Ty[:3, :3] = rot_y(rot_y_angle)
+
+        self.T_TCP_6 = np.eye(4)  
+        self.T_TCP_6[:3, 3] = np.array([tx, 0, tz])
+        self.T_TCP_6 = Tz @ self.T_TCP_6
+        self.T_TCP_6 = self.T_TCP_6 @ Ty
+        
+        # self.T_TCP_6 = Tz.copy()
+        # self.T_TCP_6[:3, 3] += -self.T_TCP_6[:3, 0] * tx * 0.5
+        # self.T_TCP_6[:3, 3] += -self.T_TCP_6[:3, 2] * tz * 0.5
+        # self.T_TCP_6 = self.T_TCP_6 @ Ty
+
+        self.T_tool_TCP = np.eye(4)
+        self.T_tool_TCP[:3, 3] = np.array([-a*0.5, 0, -h*0.5])
+
+        self.T_tool_6 = self.T_TCP_6 @ self.T_tool_TCP
+
+        # self.T_tool_6 = np.eye(4) # tool box center pose in the flange frame
+        # self.T_tool_6[:3, 3] = np.array([0, 0, tz - h * 0.5])  # position of the tool box center in the flange frame
+        # self.T_tool_6 = self.T_tool_6 @ Tz  # rotate the tool box
+        # self.T_tool_6[:3, 3] += self.T_tool_6[:3, 0] * -(tx + a * 0.5)  # move the tool box to the correct position
+        # self.T_tool_6 = self.T_tool_6 @ Ty  # rotate the tool box
+        # self.T_tool_6[:3, 3] += -self.T_tool_6[:3, 0] * 0.0003
+        # self.T_tool_6[:3, 3] += self.T_tool_6[:3, 2] * 0.00025
+
 
 def chebyshev_distance(q1, q2):
     q1 = np.array(q1)

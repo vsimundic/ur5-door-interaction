@@ -1143,6 +1143,10 @@ namespace RVL
 		int orthogonalViewMaskedThr;
 		float orthogonalViewwTexture;
 
+		// Simundic
+		std::string rgbDetectedDir;
+		std::string detectedStateImgPath;
+
 	private:
 		RECOG::DDD::DisplayCallbackData *pVisualizationData;
 		Array<RECOG::DDD::SurfelEdge> surfelEdges;

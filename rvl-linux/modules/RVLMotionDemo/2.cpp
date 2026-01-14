@@ -36,6 +36,7 @@ VTK_MODULE_INIT(vtkRenderingFreeType);
 #define RVLMOTION_METHOD_TOUCH 1
 #define RVLMOTION_MODE_REAL 0
 #define RVLMOTION_MODE_SIMULATION 1
+#define RVLMOTION_MODE_TEST 2
 
 using namespace RVL;
 
@@ -77,7 +78,8 @@ void CreateParamList(
     char **pToolFlangePoseFileName,
     char **pDoorExperimentsVisionFileName,
     char **pDoorExperimentsGTFileName,
-    char **pTouchFileName)
+    char **pTouchFileName,
+    char **pPLYFileName)
 {
     pParamList->m_pMem = pMem;
     RVLPARAM_DATA *pParamData;
@@ -89,6 +91,7 @@ void CreateParamList(
     pParamData = pParamList->AddParam("Motion.mode", RVLPARAM_TYPE_ID, &mode);
     pParamList->AddID(pParamData, "REAL", RVLMOTION_MODE_REAL);
     pParamList->AddID(pParamData, "SIM", RVLMOTION_MODE_SIMULATION);
+    pParamList->AddID(pParamData, "TEST", RVLMOTION_MODE_TEST);
     pParamData = pParamList->AddParam("DoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_state_angle_deg);
     pParamData = pParamList->AddParam("EndDoorSateAngle(deg)", RVLPARAM_TYPE_FLOAT, &dd_end_state_angle_deg);
     pParamData = pParamList->AddParam("nStates", RVLPARAM_TYPE_INT, &nStates);
@@ -112,6 +115,7 @@ void CreateParamList(
     pParamData = pParamList->AddParam("Touch.Door_experiments_vision_file_name", RVLPARAM_TYPE_STRING, pDoorExperimentsVisionFileName);
     pParamData = pParamList->AddParam("Touch.Door_experiments_gt_file_name", RVLPARAM_TYPE_STRING, pDoorExperimentsGTFileName);
     pParamData = pParamList->AddParam("Touch.Touches_file_name", RVLPARAM_TYPE_STRING, pTouchFileName);
+    pParamData = pParamList->AddParam("PLYFileName", RVLPARAM_TYPE_STRING, pPLYFileName);
 }
 
 int main(int argc, char **argv)
@@ -141,6 +145,7 @@ int main(int argc, char **argv)
     char *doorExperimentsVisionFileName = NULL;
     char *doorExperimentsGTFileName = NULL;
     char *touchFileName = NULL;
+    char *PLYFileName = NULL;
     float qHome[6];
     memset(qHome, 0, 6 * sizeof(float));
     Pose3D pose_A_S;
@@ -169,7 +174,8 @@ int main(int argc, char **argv)
                     &toolFlangePoseFileName,
                     &doorExperimentsVisionFileName,
                     &doorExperimentsGTFileName,
-                    &touchFileName);
+                    &touchFileName,
+                    &PLYFileName);
     ParamList.LoadParams(cfgFileName);
 
     // Test DDManipulator::LocalFreePose()
@@ -424,16 +430,23 @@ int main(int argc, char **argv)
         simParams.c = 0.005f;
         simParams.qDeg = -10.0f;
         simParams.ry = -(0.5f * simParams.sy + simParams.b);
-        // float a_tool = 0.019f;
-        // float b_tool = 0.064f;
-        // float c_tool = 0.007f;
-        // float d_tool = 0.049f;
-        // float h_tool = 0.02706f;
-        float a_tool = 0.0205;
-        float b_tool = 0.032;
-        float c_tool = 0.011;
-        float d_tool = 0.026;
-        float h_tool = 0.023;
+        float a_tool, b_tool, c_tool, d_tool, h_tool;
+        if (mode == RVLMOTION_MODE_SIMULATION)
+        {
+            a_tool = 0.019f;
+            b_tool = 0.064f;
+            c_tool = 0.007f;
+            d_tool = 0.049f;
+            h_tool = 0.02706f;
+        }
+        else
+        {
+            a_tool = 0.0205;
+            b_tool = 0.032;
+            c_tool = 0.011;
+            d_tool = 0.026;
+            h_tool = 0.023;
+        }
         FILE *fpToolFlangePose = fopen(toolFlangePoseFileName, "rb");
         if (fpToolFlangePose)
         {
@@ -475,7 +488,7 @@ int main(int argc, char **argv)
                 touch.Simulation(simulations);
             }
         }
-        else
+        else if (mode == RVLMOTION_MODE_REAL)
         {
             if (doorExperimentsVisionFileName)
             {
@@ -559,6 +572,15 @@ int main(int argc, char **argv)
             else
                 printf("ERROR: Experiment vision file name is not defined!\n");
         }
+        else // Test mode.
+        {
+            Mesh mesh;
+            float maxMeshTriangleEdgeLen = 0.020f; // m
+            mesh.LoadFromPLY(PLYFileName, maxMeshTriangleEdgeLen, true, &(touch.camera));
+            Pose3D pose_A_C;
+            float sy, sz, ry;
+            touch.ManualSegmentation(&mesh, simParams.sx, simParams.rx, simParams.b, pose_A_C, sy, sz, ry);
+        }
     }
 
     delete[] resultsFolder;
@@ -568,6 +590,7 @@ int main(int argc, char **argv)
     delete[] doorExperimentsVisionFileName;
     delete[] doorExperimentsGTFileName;
     delete[] touchFileName;
+    delete[] PLYFileName;
 
     return 0;
 }

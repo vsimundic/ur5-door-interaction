@@ -773,4 +773,5 @@ if __name__ == '__main__':
                             T_A_W=T_A_W,
                             save_path=None,
                             has_handle=False)
+    cabinet_model.change_door_angle(-7.0)
     cabinet_model.create_mesh()

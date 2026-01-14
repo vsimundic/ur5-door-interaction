@@ -22,54 +22,14 @@ from typing import List, Tuple
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import csv
+import yaml
 
 np.random.seed(12345)
 
-class TouchType(Enum):
-    UNWANTED_TOUCH = 0
-    MISS = 1
-    WANTED_TOUCH = 2
-
-class RVLTool:
-    def __init__(self, a, b, c, d, h, tx, tz, rot_z_angle=-np.pi*0.25, rot_y_angle=np.deg2rad(3.0)):
-        self.a = a  # depth of the tool box
-        self.b = b  # width of bottom tool edge
-        self.c = c  # depth of the tool edge
-        self.d = d  # width of the top tool edge
-        self.h = h  # height of the tool
-
-        Tz = np.eye(4)
-        Tz[:3, :3] = rot_z(rot_z_angle)
-
-        Ty = np.eye(4)
-        Ty[:3, :3] = rot_y(rot_y_angle)
-
-        self.T_TCP_6 = np.eye(4)  
-        self.T_TCP_6[:3, 3] = np.array([tx, 0, tz])
-        self.T_TCP_6 = Tz @ self.T_TCP_6
-        self.T_TCP_6 = self.T_TCP_6 @ Ty
-        
-        # self.T_TCP_6 = Tz.copy()
-        # self.T_TCP_6[:3, 3] += -self.T_TCP_6[:3, 0] * tx * 0.5
-        # self.T_TCP_6[:3, 3] += -self.T_TCP_6[:3, 2] * tz * 0.5
-        # self.T_TCP_6 = self.T_TCP_6 @ Ty
-
-        self.T_tool_TCP = np.eye(4)
-        self.T_tool_TCP[:3, 3] = np.array([-a*0.5, 0, -h*0.5])
-
-        self.T_tool_6 = self.T_TCP_6 @ self.T_tool_TCP
-
-        # self.T_tool_6 = np.eye(4) # tool box center pose in the flange frame
-        # self.T_tool_6[:3, 3] = np.array([0, 0, tz - h * 0.5])  # position of the tool box center in the flange frame
-        # self.T_tool_6 = self.T_tool_6 @ Tz  # rotate the tool box
-        # self.T_tool_6[:3, 3] += self.T_tool_6[:3, 0] * -(tx + a * 0.5)  # move the tool box to the correct position
-        # self.T_tool_6 = self.T_tool_6 @ Ty  # rotate the tool box
-        # self.T_tool_6[:3, 3] += -self.T_tool_6[:3, 0] * 0.0003
-        # self.T_tool_6[:3, 3] += self.T_tool_6[:3, 2] * 0.00025
-
 
 class DoorReplanningFSM:
-    def __init__(self, gt_idx=0, IS_OFFLINE=False, CORRECT_ON_TOUCH=False, LOAD_SESSION=False):
+    # def __init__(self, gt_idx=0, IS_OFFLINE=False, CORRECT_ON_TOUCH=False, LOAD_SESSION=False):
+    def __init__(self, config: dict):
         rospy.init_node('door_replanning_fsm_node')
 
         self.timestamp = rospy.get_time()
@@ -77,43 +37,42 @@ class DoorReplanningFSM:
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer)
 
-        self.IS_OFFLINE = IS_OFFLINE
-        self.CORRECT_ON_TOUCH = CORRECT_ON_TOUCH
-        self.LOAD_SESSION = LOAD_SESSION
-        self.grasp_one_finger = True  # True for one finger, False for two fingers
+        self.IS_OFFLINE = config.get("is_offline", False)
+        self.CORRECT_ON_TOUCH = config.get("correct_on_touch", False)
+        self.LOAD_SESSION = config.get("load_session", False)
+        self.grasp_one_finger = config.get("grasp_one_finger", True)
 
         # Paths and configurations
-        self.base_dir = '/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection'
+        # self.base_dir = '/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection'
+        self.base_dir = config.get("base_dir", None)
+        assert self.base_dir is not None, "Base directory must be specified in the configuration."
 
-        self.rng_state_path = os.path.join(self.base_dir, 'rng_state.pkl')
-
-        if not os.path.exists(self.rng_state_path):
-            with open(self.rng_state_path, 'wb') as f:
-                pickle.dump(np.random.get_state(), f)
-
-        self.gt_poses_path = os.path.join(self.base_dir, 'gt_cabinets/{}.pkl'.format('cabinet_gt_poses'))
-        self.offline_gt_poses_path = os.path.join(self.base_dir, 'gt_cabinets/{}.pkl'.format('offline_cabinet_gt_poses'))
-        self.gt_trajectories_path = os.path.join(self.base_dir, 'gt_cabinets/cabinet_gt_trajectories.pkl')
+        self.gt_poses_path = config.get("gt_poses_path", None)
+        self.offline_gt_poses_path = config.get("offline_gt_poses_path", None)
+        assert self.gt_poses_path is not None, "GT poses path must be specified in the configuration."
+        assert self.offline_gt_poses_path is not None, "Offline GT poses path must be specified in the configuration."
 
         with open(self.gt_poses_path, 'rb') as f:
             self.gt_poses = pickle.load(f)
         with open(self.offline_gt_poses_path, 'rb') as f:
             self.offline_gt_poses = pickle.load(f)
-        with open(self.gt_trajectories_path, 'rb') as f:
-            self.trajectories_per_pose = pickle.load(f)
         
         self.selected_poses = self.gt_poses
         
-        self.gt_idx = gt_idx
+        self.gt_idx = 0
         self.offline_gt_idx = 0
         self.scene_idx = 0
         self.session_idx = 0
         self.idx_to_save = 0
         self.touch_session_set = False
 
-        self.door_detector_config_path = '/home/RVLuser/rvl-linux/RVLRecognitionDemo_Cupec_DDD2_Detection.cfg'
-        self.rvl_ddmanipulator_cfg = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
-        self.rvl_touch_cfg = '/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec.cfg'
+        self.door_detector_config_path = config.get("door_detector_config_path", None)
+        self.rvl_ddmanipulator_cfg = config.get("rvl_ddmanipulator_cfg", None)
+        self.rvl_touch_cfg = config.get("rvl_touch_cfg", None)
+        assert self.door_detector_config_path is not None, "Door detector config path must be specified in the configuration."
+        assert self.rvl_ddmanipulator_cfg is not None, "RVL DDManipulator config path must be specified in the configuration."
+        assert self.rvl_touch_cfg is not None, "RVL Touch config path must be specified in the configuration."
+
         self.rvl_manipulator = rvlpy.PYDDManipulator()
         self.rvl_manipulator.create(self.rvl_ddmanipulator_cfg)
         # self.rvl_manipulator.set_robot_pose(self.robot.T_0_W)
@@ -122,28 +81,31 @@ class DoorReplanningFSM:
         self.py_touch.create(self.rvl_touch_cfg)
         self.touch_is_init = True
 
-        self.gripper_mesh_path = os.path.join('/home/RVLuser/rvl-linux/data/Robotiq3Finger_real/mesh.ply')
+        self.gripper_mesh_path = config.get("gripper_mesh_path", None)
+        assert self.gripper_mesh_path is not None, "Gripper mesh path must be specified in the configuration."
         self.gripper_mesh = o3d.io.read_triangle_mesh(self.gripper_mesh_path)
 
-        self.door_thickness = 0.018
-        self.static_depth = 0.4
-        self.max_width = 0.6
-        self.max_height = 0.8
-        self.gt_height = 0.495
-        self.gt_width = 0.395
+        self.door_thickness = config.get("door_thickness", 0.018)
+        self.static_depth = config.get("static_depth", 0.4)
+        self.max_width = config.get("max_width", 0.6)
+        self.max_height = config.get("max_height", 0.8)
+        self.gt_height = config.get("gt_height", 0.495)
+        self.gt_width = config.get("gt_width", 0.395)
 
-        self.tactile_sensor_depth = 0.006
-        self.tactile_sensor_width = 0.023
+        self.tactile_sensor_depth = config.get("tactile_sensor_depth", 0.006)
+        self.tactile_sensor_width = config.get("tactile_sensor_width", 0.023)
 
         # Cabinet model
         self.cabinet_model = None
         self.state_angle = None
         self.opening_angle = -45.0
-        self.push_latch_mechanism_length = 0.0445
-        self.latch_offset = 0.023
+        self.push_latch_mechanism_length = config.get("push_latch_mechanism_length", 0.05)
+        self.latch_offset = config.get("latch_offset", 0.023)
         self.T_6_0_capture = np.eye(4)
 
-        self.T_C_6 = np.load('/home/RVLuser/ferit_ur5_ws/data/camera_calibration_20250331/T_C_T.npy')
+        T_C_6_path = config.get("T_C_6_path", None)
+        self.T_C_6 = np.load(T_C_6_path) if T_C_6_path else None
+        # self.T_C_6 = config.get("T_C_6_path", None)
         # Unscale the T_C_6 matrix
         R_C_6 = self.T_C_6[:3, :3]
         I_ = R_C_6 @ R_C_6.T
@@ -157,7 +119,7 @@ class DoorReplanningFSM:
         # self.robot = UR5Commander()
         self.robot.T_C_6 = self.T_C_6
 
-        self.robot.T_G_6 = np.load(os.path.join(self.base_dir, 'T_G_6.npy'))
+        self.robot.T_G_6 = np.load(config.get("T_G_6_path", None))
         # self.robot.T_G_6[:2, 3] = 0.0
         # self.robot.T_G_6 = self.rvl_manipulator.get_T_G_6().astype(np.float64)
         # Tz = np.eye(4)
@@ -166,24 +128,27 @@ class DoorReplanningFSM:
         # np.save(os.path.join(self.base_dir, 'T_G_6.npy'), Tz @ self.robot.T_G_6)
 
         # Tool parameters
+        tool_cfg = config.get("tool", None)
+        assert tool_cfg is not None, "Tool configuration must be specified in the configuration."
         # tx_E = 0.155 - self.tactile_sensor_depth
-        tx_E = 0.15 * 0.5 - self.tactile_sensor_depth
-        tz_E = 0.278
-        
-        # Params from inspection in blender for the mesh
-        tx_G = 0.0721
-        tz_G = 0.1041 if self.grasp_one_finger else 0.100
+        tx_E = tool_cfg.get("tx_E", 0.155 - self.tactile_sensor_depth)
+        tz_E = tool_cfg.get("tz_E", 0.278)
 
-        a_tool = 0.0205
-        b_tool = 0.032
-        c_tool = 0.011
-        d_tool = 0.026
-        h_tool = 0.023
-        rotz_angle = -np.pi * 0.25 # to get the tcp on the one finger instead of two
+        # Params from inspection in blender for the mesh
+        tx_G = tool_cfg.get("tx_G", 0.0721)
+        tz_G = tool_cfg.get("tz_G_one_finger" if self.grasp_one_finger else "tz_G_two_fingers", 0.1041 if self.grasp_one_finger else 0.100)
+
+        a_tool = tool_cfg.get("a", 0.0205)
+        b_tool = tool_cfg.get("b", 0.032)
+        c_tool = tool_cfg.get("c", 0.011)
+        d_tool = tool_cfg.get("d", 0.026)
+        h_tool = tool_cfg.get("h", 0.023)
+        rotz_angle = tool_cfg.get("rotz_angle", -np.pi * 0.25) # to get the tcp on the one finger instead of two
         rvl_tool = RVLTool(a_tool, b_tool, c_tool, d_tool, h_tool, -tx_E, tz_E, rot_z_angle=rotz_angle)
         T_tool_6 = rvl_tool.T_tool_6 #type: np.ndarray
         self.T_TCP_6 = rvl_tool.T_TCP_6 #type: np.ndarray
         np.save(os.path.join(self.base_dir, 'T_tool_6.npy'), rvl_tool.T_tool_6)
+        self.py_touch.create_simple_tool(a_tool, b_tool, c_tool, d_tool, h_tool, T_tool_6)
 
         self.T_0_W = np.eye(4)
 
@@ -198,14 +163,14 @@ class DoorReplanningFSM:
         #     Tz_ = np.eye(4)
         #     Tz_[:3, :3] = rot_z(np.pi)
         #     self.T_TCP_G = Tz_ @ self.T_TCP_G  # Rotate around Z axis for one finger grasp
-        self.R_TCP_D = np.array([[0, 0, -1],
-                                [0, -1, 0],
-                                [-1, 0, 0]])
+        self.R_TCP_D = np.array(config.get("R_TCP_D", np.eye(3)))  # Rotation from TCP to door frame
 
         self.T_G_DD_all_full = generate_tool_line_poses(self.max_height, self.T_TCP_G, self.R_TCP_D).reshape(-1, 4, 4)
 
         LOAD_COLLISION_POSES = True
-        T_G_DD_all_colfree_path = os.path.join(self.base_dir, 'T_G_DD_all_colfree.npy')
+        T_G_DD_all_colfree_path = config.get("T_G_DD_all_colfree_path", None)
+        assert T_G_DD_all_colfree_path is not None, "Path for collision-free poses must be specified in the configuration."
+        
         if not os.path.exists(T_G_DD_all_colfree_path):
             LOAD_COLLISION_POSES = False
         # Collision detection
@@ -244,29 +209,35 @@ class DoorReplanningFSM:
             self.T_G_DD_all_colfree = np.load(T_G_DD_all_colfree_path)
             self.T_TCP_D_colfree = self.T_G_DD_all_colfree.reshape(-1, 4, 4) @ self.T_TCP_G[np.newaxis, ...]
 
+        # Camera
+        camera_cfg = config.get("camera", None)
+
         # Image capture parameters
-        self.rgb_topic = '/camera/color/image_raw'
-        self.depth_topic = '/camera/aligned_depth_to_color/image_raw'
-        self.camera_info_topic = '/camera/color/camera_info'
-        self.depth_encoding = '16UC1'
-        
+        self.rgb_topic = camera_cfg.get("rgb_topic", '/camera/color/image_raw')
+        self.depth_topic = camera_cfg.get("depth_topic", '/camera/aligned_depth_to_color/image_raw')
+        self.camera_info_topic = camera_cfg.get("camera_info_topic", '/camera/color/camera_info')
+        self.depth_encoding = camera_cfg.get("depth_encoding", '16UC1')
+
         self.home_q = None
 
-        self.py_touch.create_simple_tool(a_tool, b_tool, c_tool, d_tool, h_tool, T_tool_6)
-        camera_fu = 597.9033203125
-        camera_fv = 598.47998046875
-        camera_uc = 323.8436584472656
-        camera_vc = 236.32774353027344
-        camera_w = 640
-        camera_h = 480
+        camera_fu = camera_cfg.get("fu", 597.9033203125)
+        camera_fv = camera_cfg.get("fv", 598.47998046875)
+        camera_uc = camera_cfg.get("uc", 323.8436584472656)
+        camera_vc = camera_cfg.get("vc", 236.32774353027344)
+        camera_w = camera_cfg.get("width", 640)
+        camera_h = camera_cfg.get("height", 480)
         self.py_touch.set_camera_params(camera_fu, camera_fv, camera_uc, camera_vc, camera_w, camera_h)
-        self.touch_a = self.static_depth
-        self.touch_b = 0.0
-        self.touch_c = 0.005
 
-        self.cabinet_filename = os.path.join(self.base_dir, f'cabinets_estimation.csv')
-        self.cabinet_filename_gt = os.path.join(self.base_dir, f'cabinets_gt.csv')
-        self.touches_filename = os.path.join(self.base_dir, f'cabinets_touches.csv')
+        # Touch cfg
+        touch_cfg = config.get("touch", None)
+
+        self.touch_a = touch_cfg.get("a", self.static_depth)
+        self.touch_b = touch_cfg.get("b", 0.0)
+        self.touch_c = touch_cfg.get("c", 0.005)
+
+        self.cabinet_filename = config.get("offline_cabinet_filename" if self.IS_OFFLINE else "online_cabinet_filename", None)
+        self.cabinet_filename_gt = config.get("offline_cabinet_filename_gt" if self.IS_OFFLINE else "online_cabinet_filename_gt", None)
+        self.touches_filename = config.get("offline_touches_filename" if self.IS_OFFLINE else "online_touches_filename", None)
 
         # FSM states
         self.state = "INITIALIZE"
@@ -282,14 +253,12 @@ class DoorReplanningFSM:
         self.door_model_path = os.path.join(self.base_detection_dir, 'models/doorModel.json')
         self.cabinet_static_mesh_path = os.path.join(self.base_detection_dir, 'cabinet_model/cabinet_static.ply')
         self.cabinet_panel_mesh_path = os.path.join(self.base_detection_dir, 'cabinet_model/cabinet_panel.ply')
-        self.ft_loss_T_6_0_path = os.path.join(self.base_detection_dir, 'ft_loss_T_6_0.npy')
-        self.gt_door_model_path = os.path.join(self.base_detection_dir, 'models/T_A_W_gt.npy')
-        self.gt_door_width_path = os.path.join(self.base_detection_dir, 'models/width.npy')
         self.best_hyp_path = os.path.join(self.base_detection_dir, 'DDT.txt')
         self.cabinet_mesh_path = os.path.join(self.base_detection_dir, 'cabinet_model/cabinet_mesh.ply')
-        self.save_dir = os.path.join(self.base_detection_dir, 'detect_state_images')
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+        self.detect_state_save_dir = os.path.join(self.base_detection_dir, 'detect_state_images')
+        if not os.path.exists(self.detect_state_save_dir):
+            os.makedirs(self.detect_state_save_dir)
+        self.detected_state_img_path = os.path.join(self.detect_state_save_dir, 'detected_rgb.png')
 
 
     def initialize(self, is_new_scene=False):
@@ -302,8 +271,6 @@ class DoorReplanningFSM:
         if not self.touch_session_set:
             # Set DDManipulator parameters
             self.set_rvl_manipulator()
-
-        # self.save_models_info_for_rvl(self.state_angle)
 
 
     def set_rvl_manipulator(self, load_fcl_meshes=True):
@@ -322,6 +289,7 @@ class DoorReplanningFSM:
         if load_fcl_meshes:
             self.rvl_manipulator.load_cabinet_static_mesh_fcl(self.cabinet_static_mesh_path)
             self.rvl_manipulator.load_cabinet_panel_mesh_fcl(self.cabinet_panel_mesh_path)
+
 
     def scale_T_G_DD_all(self, height_scale=0.8):
         height_scale_array = np.invert(self.T_TCP_D_colfree[:, 1, 3] > self.cabinet_model.sz * height_scale)
@@ -351,7 +319,6 @@ class DoorReplanningFSM:
             T_D_S=self.T_D_S,
             T_TCP_6=self.T_TCP_6
         )
-        # np.save(os.path.join(self.base_detection_dir, 'trajectories.npy'), self.trajectories)
 
         states = np.linspace(self.state_angle, self.opening_angle, num_traj_pts)
         states = np.deg2rad(states)
@@ -375,42 +342,11 @@ class DoorReplanningFSM:
         return self.waypoint_trajectories, self.trajectories
 
 
-    def load_trajectory(self):
-        rospy.loginfo("[FSM] Loading trajectory...")
-        trajectory_path = os.path.join(self.base_detection_dir, 'trajectories.npy')
-        if os.path.exists(trajectory_path):
-            self.trajectories = np.load(trajectory_path)
-
-            if len(self.trajectories) < 1:
-                rospy.logerr("[FSM] No trajectories loaded. Exiting.")
-                self.state = "EXIT"
-                return
-            else:
-                self.extract_closest_trajectory()
-                # Save closest index to a file
-                closest_idx_path = os.path.join(self.base_detection_dir, 'closest_idx.npy')
-                np.save(closest_idx_path, self.closest_idx)
-
-            rospy.loginfo("[FSM] Trajectory loaded successfully.")
-            self.state = "EXECUTE_APPROACH_PATH"
-        else:
-            rospy.logerr("[FSM] Trajectory file not found. Exiting.")
-            self.state = "EXIT"
-
-    def extract_closest_trajectory(self, current_joints, trajectories, idx=0):
-        rospy.loginfo("[FSM] Extracting closest trajectory...")
-        first_joints = trajectories[:, idx, :]
-        cheb_distances = np.max(np.abs(first_joints - current_joints), axis=1)
-        self.closest_idx = np.argmin(cheb_distances)
-        #debug
-        # self.closest_idx = 9
-        rospy.loginfo(f"[FSM] Closest trajectory index: {self.closest_idx}")
-        return trajectories[self.closest_idx], self.closest_idx
-
     def zero_sensor(self):
         rospy.loginfo("[FSM] Zeroing force sensor...")
         self.robot.zero_ft_sensor()
         rospy.loginfo("[FSM] Force sensor zeroed.")
+
 
     def add_cabinet_model_to_scene(self, state_angle, is_doorless=False, scale_factor=1.0):
         rospy.loginfo("[FSM] Adding cabinet model to scene...")
@@ -585,20 +521,29 @@ class DoorReplanningFSM:
         estimated_angle = self.state_angle
         print(f"[replan] Estimated door angle at contact loss: {estimated_angle:.2f} degrees")
 
-        # Get new camera capture pose
-        T_C_W_new, joints_camera_capture = get_camera_pose_on_sphere_distance(self.cabinet_model, 
-                                                                              self.robot, 
-                                                                              self.T_6_0_capture,
-                                                                              estimated_angle)
-        if joints_camera_capture is None:
-            joints_camera_capture = self.robot.get_closest_ik_solution(self.T_6_0_capture, None)
-            
+        if False:
+
+            # Get new camera capture pose
+            T_C_W_new, joints_camera_capture = get_camera_pose_on_sphere_distance(self.cabinet_model, 
+                                                                                self.robot, 
+                                                                                self.T_6_0_capture,
+                                                                                estimated_angle)
             if joints_camera_capture is None:
-                rospy.logerr("[FSM] No valid camera capture pose found. Exiting.")
-                self.state = "EXIT"
-                return
-            
+                joints_camera_capture = self.robot.get_closest_ik_solution(self.T_6_0_capture, None)
+                
+                if joints_camera_capture is None:
+                    rospy.logerr("[FSM] No valid camera capture pose found. Exiting.")
+                    self.state = "EXIT"
+                    return
+                
+                T_C_W_new = self.robot.T_0_W @ self.T_6_0_capture @ self.robot.T_C_6
+
+        else:
             T_C_W_new = self.robot.T_0_W @ self.T_6_0_capture @ self.robot.T_C_6
+            joints_camera_capture = self.robot.get_closest_ik_solution(self.T_6_0_capture, None)
+            if joints_camera_capture is None:
+                joints_camera_capture = self.joint_values_capture
+
 
         # Backup from the current state
         T_6_0_current = self.robot.get_current_tool_pose()
@@ -625,7 +570,7 @@ class DoorReplanningFSM:
         success = False
         while not success:
             trajectory_capture = np.array([self.robot.get_current_joint_values(), joints_camera_capture])
-            planned_joints, _ = self.robot.plan_to_joint_goals2(trajectory_capture)
+            planned_joints, success = self.robot.plan_to_joint_goals2(trajectory_capture)
 
         success = self.execute_with_monitoring(planned_joints, force_threshold=30.0, max_velocity=0.5, max_acceleration=0.3)
 
@@ -633,12 +578,12 @@ class DoorReplanningFSM:
         self.robot.remove_mesh_from_scene("cabinet_model")
 
         # Capture door state
-        image_capture = OneShotImageCapture(self.save_dir, self.rgb_topic, self.depth_topic, self.camera_info_topic, self.depth_encoding)
+        image_capture = OneShotImageCapture(self.detect_state_save_dir, self.rgb_topic, self.depth_topic, self.camera_info_topic, self.depth_encoding)
         rgb_path, _, ply_path = image_capture.capture_single_image_and_save()
         T_C_W_init_capture = self.robot.T_0_W @ self.T_6_0_capture @ self.T_C_6_init
         # T_Cdet_Cdiff = np.linalg.inv(T_C_W_init_capture) @ T_C_W_new
         T_Cdiff_Cdet = np.linalg.inv(T_C_W_new) @ T_C_W_init_capture
-        door_state_detector = DoorStateDetector(detector_config_path=self.door_detector_config_path, best_hyp_path=self.best_hyp_path)
+        door_state_detector = DoorStateDetector(detector_config_path=self.door_detector_config_path, best_hyp_path=self.best_hyp_path, save_detected_img_path=self.detected_state_img_path)
         self.state_angle = door_state_detector.detect_state(rgb_path, ply_path, T_Cdiff_Cdet)
         self.state_angle = self.state_angle[0] # take the first element
         print(f"[replan] Detected door state: {self.state_angle}")
@@ -741,7 +686,7 @@ class DoorReplanningFSM:
             txt += f',{t}'
             txt += f',{state_angle}'
             f.write(txt + '\n')
-            
+
 
     def execute_with_monitoring(self, trajectory, force_threshold=30.0, max_velocity=0.5, max_acceleration=0.5):
         """Execute the trajectory with force monitoring."""
@@ -750,7 +695,8 @@ class DoorReplanningFSM:
         success = self.robot.send_joint_trajectory_action2(trajectory, max_velocity=max_velocity, max_acceleration=max_acceleration)
         monitor_thread.join()
         return success
-    
+
+
     def execute_with_monitoring_remember_joints(self, trajectory, force_threshold=30.0, max_velocity=0.5, max_acceleration=0.5):
         collision_joints = []
         monitor_thread = threading.Thread(target=monitor_force_and_cancel_remember_joints, args=(
@@ -761,9 +707,11 @@ class DoorReplanningFSM:
         monitor_thread.join()
         return success, collision_joints
 
+
     def execute_without_monitoring(self, trajectory):
         success = self.robot.send_joint_trajectory_action2(trajectory, max_velocity=0.5, max_acceleration=0.5)
         return success
+
 
     def execute_and_remember_joints_on_force_loss(self, trajectory, drop_delta_treshold=2.0, low_force_threshold=1.5):
         ft_loss_joints = [] # reset the joints
@@ -773,12 +721,12 @@ class DoorReplanningFSM:
         rospy.sleep(0.05)
         self.robot.send_joint_trajectory_action2(trajectory, max_velocity=0.05, max_acceleration=0.05)
         monitor_thread.join()
-
         ft_loss_joints = np.array(ft_loss_joints)
         if ft_loss_joints.shape[0] == 1:
             rospy.logwarn("[FSM] Force loss detected during backup. Remembered joints: %s", ft_loss_joints[0])
             T_6_0_ft_loss = self.robot.get_fwd_kinematics_moveit(ft_loss_joints[0].tolist())
         return ft_loss_joints, T_6_0_ft_loss
+
 
     def create_detected_cabinet_model(self, data_model_path):
         with open(data_model_path, 'r') as f:
@@ -818,6 +766,7 @@ class DoorReplanningFSM:
         self.joint_values_capture = joint_values
         self.state_angle = state_angle
 
+
     def create_gt_cabinet_model(self):
         width = self.gt_width
         height = self.gt_height
@@ -832,7 +781,7 @@ class DoorReplanningFSM:
                                 T_A_W=T_A_W_gt,
                                 save_path=None,
                                 has_handle=False)
-   
+
 
     def go_to_home_position(self):
         """Go to the home position of the robot."""
@@ -859,12 +808,14 @@ class DoorReplanningFSM:
             else:
                 break
 
+
     def get_closest_contact_pose_idx(self, contact_poses, T_6_0):
         # Calculate the angle based on the distance from the contact points
         contact_positions = contact_poses[:, :3, 3]
         distances = np.linalg.norm(contact_positions - T_6_0[:3, 3], axis=1)
         closest_idx = np.argmin(distances)
         return closest_idx
+
 
     def set_new_touch_scene(self, state_angle, state_angle_gt):
         self.idx_to_save += 1
@@ -933,6 +884,8 @@ class DoorReplanningFSM:
 
                 scene_idx = int(row[col_idx['scene_idx']])
                 load_idx = int(row[col_idx['load_idx']])
+                self.initialize_for_scene(load_idx, is_really_offline)
+                self.initialize(is_new_scene=True)
 
                 if prev_load_idx != load_idx: 
                     succ_trajs = 0
@@ -1045,7 +998,6 @@ class DoorReplanningFSM:
                 self.update_model_from_touch()
                 # self.correct_touch_model()
                 # plan trajectory from estimated cabinet
-                self.initialize_for_scene(load_idx, is_really_offline)
 
 
                 # self.rvl_manipulator.set_environment_from_touch()
@@ -1060,7 +1012,6 @@ class DoorReplanningFSM:
                     self.opening_angle = self.state_angle - 5.0 if is_really_offline else -45.0
                     # self.scale_T_G_DD_all()
                     # waypoint_trajectories, trajectories = self.plan_trajectory(num_traj_pts)
-                    waypoint_trajectories, trajectories = [], []
 
                 with open(self.touches_filename, 'r') as f_touches:
                     reader_touches = csv.reader(f_touches)
@@ -1147,7 +1098,8 @@ class DoorReplanningFSM:
                 trajs_done = 0
                 is_new_scene = True
 
-        return load_idx, trajs_done, scene_idx, IS_OFFLINE_, is_plan_traj, is_new_scene, waypoint_trajectories, trajectories
+        return load_idx, trajs_done, scene_idx, IS_OFFLINE_, is_plan_traj, is_new_scene
+
 
     def get_all_contact_positions_A(self, pos_tol, k) -> List[np.ndarray]:
         T_Arot_A = np.eye(4)
@@ -1165,7 +1117,8 @@ class DoorReplanningFSM:
         contact_positions = np.array(contact_positions)
         np.random.shuffle(contact_positions) # Shuffle the contact positions
         return contact_positions
-    
+
+   
     def get_contact_positions_A(self, waypoint_trajectories: List[Waypoint]) -> np.ndarray:
         contact_positions = []
         # Select contact positions from the trajectories
@@ -1182,6 +1135,7 @@ class DoorReplanningFSM:
         contact_positions = np.array(contact_positions)
         return contact_positions
 
+
     def gaussian_weighted_choice(self, candidates, distances, sigma=0.01, normalize=False):
         if normalize:
             max_dist = distances.max()
@@ -1192,6 +1146,7 @@ class DoorReplanningFSM:
         weights /= np.sum(weights)
         
         return np.random.choice(candidates, p=weights)
+
 
     def gaussian_weighted_choice_fixed_scale(self,
         candidates,
@@ -1205,6 +1160,7 @@ class DoorReplanningFSM:
         # Find the candidate closest to the sampled Z
         idx = np.argmin(np.abs(candidate_positions_z - sampled_z))
         return candidates[idx]
+
 
     def visualize_gaussian_probabilities(self, points: np.ndarray, ref_index: int, sigma: float = 0.02):
         assert points.ndim == 2 and points.shape[1] == 3, "Points must be of shape (N, 3)."
@@ -1228,6 +1184,7 @@ class DoorReplanningFSM:
 
         return probs
 
+
     def pick_z_distributed_indices(self, contact_positions: np.ndarray, k: int) -> List[int]:
         assert contact_positions.shape[0] >= k, "Not enough contact points to sample"
 
@@ -1239,6 +1196,7 @@ class DoorReplanningFSM:
         step = (len(sorted_positions) - 1) / (k - 1)
         selected = [sorted_indices[int(round(i * step))] for i in range(k)]
         return selected
+
 
     def pick_distributed_groups(self, contact_positions, pos_tol, k):
         keys = np.round(contact_positions[:, 2] / pos_tol, decimals=0).astype(int)
@@ -1267,7 +1225,8 @@ class DoorReplanningFSM:
             chosen_wp_indices.append(np.random.choice(candidates))
 
         return chosen_wp_indices
-    
+
+
     def match_contact_positions_by_z(self, contact_positions, contact_positions_original_A, num_trajectories, pos_tol: float = 0.01, centroid_tol: float = 0.01):
         contact_positions_original_A = np.array(contact_positions_original_A)
 
@@ -1306,23 +1265,8 @@ class DoorReplanningFSM:
 
         return chosen_wp_indices
 
-    def save_rng_state(self):
-        """Save the current state of the random number generator."""
-        rng_state = np.random.get_state()
-        with open(self.rng_state_path, 'wb') as f:
-            pickle.dump(rng_state, f)
-        rospy.loginfo("[FSM] Random number generator state saved.")
 
-    def load_rng_state(self):
-        """Load the saved state of the random number generator."""
-        if os.path.exists(self.rng_state_path):
-            with open(self.rng_state_path, 'rb') as f:
-                rng_state = pickle.load(f)
-            np.random.set_state(rng_state)
-            rospy.loginfo("[FSM] Random number generator state loaded.")
-        else:
-            rospy.logwarn("[FSM] No saved random number generator state found. Using default state.")
-
+    # === Run the FSM ===
     def run(self):
         """Run the FSM."""
         rospy.loginfo("[FSM] Starting FSM...")
@@ -1345,16 +1289,13 @@ class DoorReplanningFSM:
         
         is_plan_traj = False if IS_OFFLINE else True
         is_new_scene = True
-        init_loaded = False
-        waypoint_trajectories_master = []
-        trajectories_master = []
         if LOAD_SESSION:
             rospy.loginfo("[FSM] Loading session...")
-            self.py_touch.set_visualization(False)
-            scenes_done, trajs_done, self.idx_to_save, IS_OFFLINE_, is_plan_traj, is_new_scene, waypoint_trajectories_master, trajectories_master = self.load_session()
             self.py_touch.set_visualization(True)
+            scenes_done, trajs_done, self.idx_to_save, IS_OFFLINE_, is_plan_traj, is_new_scene = self.load_session()
+            self.py_touch.set_visualization(True)
+
             self.IS_OFFLINE = IS_OFFLINE_
-            init_loaded = True
             is_offline_mode_list = [False]  if not self.IS_OFFLINE else is_offline_mode_list
         else:
             self.save_models_init_info_for_rvl()
@@ -1363,7 +1304,6 @@ class DoorReplanningFSM:
             trajs_done = 0
             scenes_done = 0
 
-        # home_q = np.array([-np.pi/2, 0.0, -5/6*np.pi, -np.pi/6, np.pi/2, -3/4 * np.pi])
         self.home_q = np.array([-np.pi/2, -np.pi/2, 0.0, -np.pi/2, 0.0, -3/4 * np.pi])
         pos_tol = 1e-2
         centroid_tol = 3e-2
@@ -1376,7 +1316,7 @@ class DoorReplanningFSM:
                 num_scenes = num_offline_scenes
                 num_trajectories = 3
                 # self.state = "FRONT_SURFACE_TOUCHES"
-                self.state = "PLAN_TRAJECTORY"  # debug purpose
+                self.state = "PLAN_TRAJECTORY"
                 is_plan_traj = True # debug purpose
                 # self.state = "EXECUTE_APPROACH_PATH" # debug purpose
                 self.opening_angle = -12.0
@@ -1397,8 +1337,6 @@ class DoorReplanningFSM:
                 self.gt_idx = i_scene
                 self.initialize_for_scene(i_scene, IS_OFFLINE=IS_OFFLINE)
                 self.initialize(is_new_scene)
-
-                # self.load_rng_state()  # Load the random number generator state
 
                 self.scale_T_G_DD_all()
 
@@ -1567,20 +1505,9 @@ class DoorReplanningFSM:
                         """
 
                         if self.state == "PLAN_TRAJECTORY":
-                            # self.save_rng_state()  # Save the random number generator state
-
                             waypoint_trajectories_, trajectories_ = self.plan_trajectory(num_traj_pts)
-
                             if trajectories_.shape[0] < 1:
                                 rospy.logerr("[FSM] No trajectories generated.")
-                                # take a random trajectory that exists
-                                # trajectory = trajectories_master[np.random.randint(0, trajectories_master.shape[0])]
-                                # self.initialize(True)
-                                # self.cabinet_model.change_door_angle(self.state_angle)
-                                # self.T_D_S = self.cabinet_model.T_A_W @ self.cabinet_model.T_Arot_A @ self.cabinet_model.T_D_Arot
-                                # # self.rvl_manipulator.reset_vn_environment(self.T_D_S)
-                                # self.rvl_manipulator.clear()
-                                # del self.rvl_manipulator
                                 
                                 # self.state = "EXECUTE_APPROACH_PATH"
                                 self.state = "PLAN_TRAJECTORY" # plan again
@@ -1597,6 +1524,9 @@ class DoorReplanningFSM:
                                 num_trajectories=num_trajectories,
                                 pos_tol=pos_tol,
                                 centroid_tol=centroid_tol)
+                            
+                            joints, chosen_wp_indices = get_nearest_joints(trajectories_[:, 0], self.robot.get_current_joint_values())
+                            chosen_wp_indices = [chosen_wp_indices]
 
                             selected_trajectories_wp = [waypoint_trajectories_[i] for i in chosen_wp_indices]
                             selected_trajectories = [trajectories[i] for i in chosen_wp_indices]
@@ -1625,6 +1555,9 @@ class DoorReplanningFSM:
                             trajectory = selected_trajectories[i_trajectory]
                             waypoint_trajectory_ = selected_trajectories_wp[i_trajectory]
                             contact_poses = waypoint_trajectory_.get_full_trajectory_task_space()[2:, ...]
+                            
+                            # Display the trajectory in RViz 
+                            self.robot.visualize_trajectory(trajectory, start_joints=self.home_q)
 
                             # T_6_0_traj = waypoint_trajectory_.get_full_trajectory_task_space()[:3, ...]
                             # q_traj = waypoint_trajectory_.get_full_trajectory_joint_space()[:3, ...]
@@ -1900,5 +1833,9 @@ class DoorReplanningFSM:
 
 
 if __name__ == "__main__":
-    fsm = DoorReplanningFSM(gt_idx=0, IS_OFFLINE=False, CORRECT_ON_TOUCH=True, LOAD_SESSION=True)
+    with open(os.path.join(os.path.dirname(__file__), '../cfg/door_replanning_control.yaml'), 'r') as f:
+        config = yaml.safe_load(f)
+
+    # fsm = DoorReplanningFSM(gt_idx=0, IS_OFFLINE=False, CORRECT_ON_TOUCH=True, LOAD_SESSION=True)
+    fsm = DoorReplanningFSM(config)
     fsm.run()

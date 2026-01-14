@@ -24,10 +24,13 @@
 #include "cnpy.h"
 #include "vtkNew.h"
 
+#include <chrono>
+
 // #define RVLMOTION_TOUCH_VN
 
 using namespace RVL;
 using namespace MOTION;
+using namespace std::chrono;
 
 // Move to Util.
 
@@ -74,6 +77,116 @@ namespace RVL
         P2[ix] = k * P2[iy] + l;
 
         return true;
+    }
+
+    // This function should be moved to Util or some other general purpose toolbox.
+
+    // Function DetectPlane can be given a pointer to allocated memory using consensusSetMem.
+    // If this pointer is provided to the function, then the size of this allocated memory must be >= 2 * P.n.
+    // If the input value of consensusSetMem is NULL, then the function will allocate memory itself,
+    // but take care that it is deallocated after being used.
+    // Function also requires iRndVal to be initialized with a value from interval [0, rndVal.n>.
+
+    void DetectPlane(
+        Array<Vector3<float>> P,
+        float tol,
+        float PSuccess,
+        float *N,
+        float &d,
+        Array<int> &consensusSet,
+        Array<int> rndVal,
+        int &iRndVal,
+        int *&consensusSetMem)
+    {
+        if (consensusSetMem == NULL)
+            consensusSetMem = new int[2 * P.n];
+
+        int it = 0;
+        int sufficientNumIterations = 1;
+        Array<int> consensusSet_;
+        consensusSet.n = 0;
+        consensusSet.Element = consensusSetMem;
+        consensusSet_.Element = consensusSetMem + P.n;
+        int *idxSetTmp;
+        float e;
+        float E = 0.0f;
+        float E_;
+        float rInliers;
+        float fn = (float)(P.n);
+        Vector3<float> *pPSample[3];
+        int i;
+        int iSample;
+        float N_[3];
+        float d_;
+        float V[2][3];
+        float fTmp;
+        Vector3<float> *pP;
+        do
+        {
+            // Sample.
+
+            for (i = 0; i < 3; i++)
+            {
+                RVLRND(P.n, rndVal.Element, rndVal.n, iRndVal, iSample);
+                pPSample[i] = P.Element + iSample;
+            }
+
+            // Plane.
+
+            for (i = 0; i < 2; i++)
+            {
+                RVLDIF3VECTORS(pPSample[i + 1]->Element, pPSample[0]->Element, V[i]);
+                fTmp = sqrt(RVLDOTPRODUCT3(V[i], V[i]));
+                if (fTmp < 1e-10)
+                    break;
+                RVLSCALE3VECTOR2(V[i], fTmp, V[i]);
+            }
+            if (i < 2)
+                continue;
+            RVLCROSSPRODUCT3(V[0], V[1], N_);
+            fTmp = RVLDOTPRODUCT3(N_, N_);
+            if (fTmp < 0.2f)
+                continue;
+            RVLSCALE3VECTOR2(N_, fTmp, N_);
+            d_ = RVLDOTPRODUCT3(N_, pPSample[0]->Element);
+
+            // Consensus set.
+
+            consensusSet_.n = 0;
+            E_ = 0.0f;
+            pP = P.Element;
+            for (i = 0; i < P.n; i++, pP++)
+            {
+                e = RVLDOTPRODUCT3(N_, pP->Element) - d_;
+                if (RVLABS(e) <= tol)
+                {
+                    consensusSet_.Element[consensusSet_.n++] = i;
+                    E_ += e * e;
+                }
+            }
+
+            // If consensusSet_ is greater than the greatest so far, then store it in bestConsensusSet.
+
+            if (consensusSet_.n > consensusSet.n || (consensusSet_.n == consensusSet.n && E_ < E))
+            {
+                consensusSet.n = consensusSet_.n;
+                idxSetTmp = consensusSet.Element;
+                consensusSet.Element = consensusSet_.Element;
+                consensusSet_.Element = idxSetTmp;
+                E = E_;
+                RVLCOPY3VECTOR(N_, N);
+                d = d_;
+
+                // Estimate sufficient number of iterations.
+
+                rInliers = (float)(consensusSet.n) / fn;
+                sufficientNumIterations = (int)ceil(log(1.0f - PSuccess) / log(1.0f - rInliers * rInliers * rInliers));
+            }
+
+            //
+
+            it++;
+        } while (it < sufficientNumIterations);
     }
 }
 
@@ -1019,17 +1132,17 @@ std::vector<vtkSmartPointer<vtkActor>> Solid::Visualize(
             pLine++;
         }
         visLines.n = pLine - visLines.Element;
-        actors.push_back(pVisualizer->DisplayLines(visPts, visLines, color));
+        actors.push_back(pVisualizer->DisplayLines(visPts, visLines, color, 2.0f));
         RVLVISUALIZER_LINES_FREE(visPts, visLines);
     }
     if (vertices.n > 0)
     {
         Array<Point> visPts;
         Point visPt;
-        RVLCOPY3VECTOR(vertices.Element[4].P, visPt.P);
+        RVLCOPY3VECTOR(vertices.Element[0].P, visPt.P);
         visPts.n = 1;
         visPts.Element = &visPt;
-        actors.push_back(pVisualizer->DisplayPointSet<float, Point>(visPts, color, 6.0f));
+        // actors.push_back(pVisualizer->DisplayPointSet<float, Point>(visPts, color, 6.0f));
     }
 
     return actors;
@@ -1067,6 +1180,7 @@ void TouchEnvModel::Create(
     memset(bVerticesForUpdate, 0, nVertices * sizeof(bool));
     bPlanesForUpdate = new bool[nPlanes];
     memset(bPlanesForUpdate, 0, nPlanes * sizeof(bool));
+    bUpdated = false;
 }
 
 void TouchEnvModel::Clear()
@@ -1079,6 +1193,79 @@ void TouchEnvModel::Clear()
     RVL_DELETE_ARRAY(planesForUpdate.Element);
     RVL_DELETE_ARRAY(bVerticesForUpdate);
     RVL_DELETE_ARRAY(bPlanesForUpdate);
+}
+
+void MOTION::KeyPressCallback(vtkObject *caller, unsigned long eid, void *clientdata, void *calldata)
+{
+    vtkSmartPointer<vtkRenderWindowInteractor> interactor = reinterpret_cast<vtkRenderWindowInteractor *>(caller);
+    MOTION::DisplayCallbackData *pData = (MOTION::DisplayCallbackData *)clientdata;
+    Mesh *pMesh = pData->pMesh;
+    vtkSmartPointer<vtkPolyData> pd = pMesh->pPolygonData;
+
+    std::string keySym = "";
+    keySym = interactor->GetKeySym();
+
+    if (keySym == "Delete")
+    {
+        printf("Delete all vertices (y/n)?\n");
+        char confirmation;
+        scanf("%c", &confirmation);
+        if (confirmation == 'y')
+        {
+            pData->selectedPoints.clear();
+            printf("All vertices are deleted.\n");
+            pData->pVisualizer->Clear(pData->envActors);
+            pData->envActors.clear();
+            pd->Modified();
+            pData->pVisualizer->interactor->GetRenderWindow()->Render();
+        }
+    }
+}
+
+void MOTION::MouseRButtonDown(vtkIdType closestPointId, double *closestPoint, void *callData)
+{
+    MOTION::DisplayCallbackData *pData = (MOTION::DisplayCallbackData *)callData;
+    Mesh *pMesh = pData->pMesh;
+    vtkSmartPointer<vtkPolyData> pd = pMesh->pPolygonData;
+
+    RVLCOLORS
+
+    if (closestPointId >= 0 && closestPointId < pMesh->NodeArray.n)
+    {
+        printf("Vertex %d selected.\n", pData->selectedPoints.size());
+        pData->selectedPoints.push_back(closestPointId);
+
+        Array<Point> selectedPts;
+        selectedPts.Element = new Point[pData->selectedPoints.size()];
+        Point *pPtSrc;
+        Point *pPtTgt = selectedPts.Element;
+        for (int iPt = 0; iPt < pData->selectedPoints.size(); iPt++, pPtTgt++)
+        {
+            pPtSrc = pMesh->NodeArray.Element + pData->selectedPoints[iPt];
+            RVLCOPY3VECTOR(pPtSrc->P, pPtTgt->P);
+        }
+        selectedPts.n = pPtTgt - selectedPts.Element;
+        pData->pVisualizer->Clear(pData->envActors);
+        pData->envActors.clear();
+        pData->envActors.push_back(pData->pVisualizer->DisplayPointSet<float, Point>(selectedPts, green, 6.0f));
+        if (selectedPts.n >= 3)
+        {
+            Array<Pair<int, int>> visLines;
+            visLines.Element = new Pair<int, int>[selectedPts.n];
+            visLines.n = selectedPts.n;
+            for (int iLine = 0; iLine < visLines.n; iLine++)
+            {
+                visLines.Element[iLine].a = iLine;
+                visLines.Element[iLine].b = (iLine + 1) % visLines.n;
+            }
+            pData->envActors.push_back(pData->pVisualizer->DisplayLines(selectedPts, visLines, green));
+            delete[] visLines.Element;
+        }
+        delete[] selectedPts.Element;
+
+        pd->Modified();
+        pData->pVisualizer->interactor->GetRenderWindow()->Render();
+    }
 }
 
 void MOTION::InitCircleConvex(
@@ -1446,6 +1633,7 @@ void MOTION::TestCircleConvex(Array<int> rndVal)
 Touch::Touch()
 {
     bDoor = false;
+    bFitToLastTouch = false;
     // kappa = 1.0f / (0.00000285f * 0.7f * 1000.0f);
     kappa = 1.0f;
     zn = 1.0f;
@@ -1459,6 +1647,7 @@ Touch::Touch()
     alpha = 1e-6;
     beta = 1e-3;
     contactAngleThr = 85.0f;
+    // maxReconstructionError = 0.075f; // m
     maxReconstructionError = 0.05f; // m
     toolTiltDeg = 20.0f;            // deg
     maxOrientErrDeg = 5.0f;         // deg
@@ -1467,6 +1656,7 @@ Touch::Touch()
     maxnAttempts = 8;
     maxnContactCombinations = 10000;
     nBest = 500;
+    iSelectedSession = -1;
     float xInc_[15] = {0.1f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f, 1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4};
     memcpy(xInc, xInc_, 15 * sizeof(float));
     bRefPtConstraints = false;
@@ -1549,7 +1739,6 @@ void Touch::Create(char *cfgFileName)
 
     RVL_DELETE_ARRAY(rndVal.Element);
     rndVal.n = 1000000;
-    iRndVal = 0;
     RandomIndices(rndVal);
 }
 
@@ -1567,6 +1756,7 @@ void Touch::CreateParamList()
     pParamData = paramList.AddParam("Touch.alpha", RVLPARAM_TYPE_FLOAT, &alpha);
     pParamData = paramList.AddParam("Touch.nSamples", RVLPARAM_TYPE_INT, &nSamples);
     pParamData = paramList.AddParam("Touch.Optimization.Method", RVLPARAM_TYPE_ID, &optimizationMethod);
+    // pParamData = paramList.AddParam("Touch.maxReconstructionError", RVLPARAM_TYPE_FLOAT, &maxReconstructionError);
     paramList.AddID(pParamData, "BF", RVLMOTION_TOUCH_OPTIMIZATION_METHOD_BRUTEFORCE);
     paramList.AddID(pParamData, "RND", RVLMOTION_TOUCH_OPTIMIZATION_METHOD_RNDSAMPLING);
     pParamData = paramList.AddParam("Touch.Simulation.seed", RVLPARAM_TYPE_INT, &simulationSeed);
@@ -1577,7 +1767,10 @@ void Touch::CreateParamList()
     pParamData = paramList.AddParam("Touch.Simulation.session_size", RVLPARAM_TYPE_INT, &sessionSize);
     pParamData = paramList.AddParam("Touch.Visualization", RVLPARAM_TYPE_BOOL, &bVisualization);
     pParamData = paramList.AddParam("Touch.max_num_contact_combinations", RVLPARAM_TYPE_INT, &maxnContactCombinations);
+    pParamData = paramList.AddParam("Touch.max_num_best_contact_combinations_to_keep", RVLPARAM_TYPE_INT, &nBest);
     pParamData = paramList.AddParam("Touch.max_num_attempts", RVLPARAM_TYPE_INT, &maxnAttempts);
+    pParamData = paramList.AddParam("Touch.Simulation.selected_session", RVLPARAM_TYPE_INT, &iSelectedSession);
+    pParamData = paramList.AddParam("Touch.Optimization.fit_to_last_touch", RVLPARAM_TYPE_BOOL, &bFitToLastTouch);
 }
 
 void Touch::Clear()
@@ -1615,7 +1808,6 @@ void Touch::LM(
     // Parameters.
 
     int maxnIterations = 100;
-    float gamma = 1.5f;
 
     // x <- x0
 
@@ -1635,6 +1827,8 @@ void Touch::LM(
     int iTouch;
     cv::Mat cvJ(touches.n, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
     double *J = (double *)(cvJ.data);
+    cv::Mat cvJw(touches.n, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
+    double *Jw = (double *)(cvJw.data);
     cv::Mat cvr(touches.n, 1, CV_64FC1);
     double *r = (double *)(cvr.data);
     cv::Mat cvQ(RVLMOTION_TOUCH_NUM_PARAMS, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
@@ -1645,8 +1839,11 @@ void Touch::LM(
     double *dx = (double *)(cvdx.data);
     cv::Mat cvJg(touches.n, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
     double *Jg = (double *)(cvJg.data);
+    cv::Mat cvJgw(touches.n, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
+    double *Jgw = (double *)(cvJgw.data);
     cv::Mat cvg(touches.n, 1, CV_64FC1);
     double *g = (double *)(cvg.data);
+    memset(g, 0, touches.n * sizeof(double));
     cv::Mat cvJh(refPts.n, RVLMOTION_TOUCH_NUM_PARAMS, CV_64FC1);
     double *Jh = (double *)(cvJh.data);
     cv::Mat cvh(refPts.n, 1, CV_64FC1);
@@ -1664,6 +1861,7 @@ void Touch::LM(
     MOTION::TouchData *pTouch;
     Pair<float, float> err;
     int iConstraint;
+    int nConstraints;
     float dr;
     float dg;
     float dh;
@@ -1730,28 +1928,28 @@ void Touch::LM(
         // Cost.
 
         Er = 0.0f;
+        Eg = 0.0f;
         rmax = 0.0f;
+        gmax = 0.0f; // Only for testig purpose.
+        iConstraint = 0;
         for (iTouch = 0; iTouch < touches.n; iTouch++)
         {
-            Er += r[iTouch] * r[iTouch];
+            pTouch = touches.Element + iTouch;
+            Er += pTouch->w * r[iTouch] * r[iTouch];
             absr = RVLABS(r[iTouch]);
             if (absr > rmax)
                 rmax = absr;
-        }
-        ravg = sqrt(Er / (float)nTouchesWithContacts); // Only for testig purpose.
-        Eg = 0.0f;
-        if (ig.n > 0)
-        {
-            for (iConstraint = 0; iConstraint < ig.n; iConstraint++)
+            if (bg[iTouch])
             {
-                Eg += rho * g[iConstraint] * g[iConstraint];
+                Eg += rho * pTouch->w * g[iConstraint] * g[iConstraint];
                 if (iConstraint == 0 || g[iConstraint] > gmax)
                     gmax = g[iConstraint];
+                iConstraint++;
             }
-            Egavg = sqrt(Eg / (float)ig.n); // Only for testig purpose.
         }
-        else
-            Egavg = gmax = 0.0f; // Only for testig purpose.
+        ravg = sqrt(Er / (float)nTouchesWithContacts); // Only for testig purpose.
+        Egavg = sqrt(Eg / (float)ig.n);                // Only for testig purpose.
+
         Ex = 0.0f;
         Eh = 0.0f;
         if (bRefPtConstraints)
@@ -1795,6 +1993,7 @@ void Touch::LM(
         // Jacobian.
 
         memset(Jg, 0, touches.n * RVLMOTION_TOUCH_NUM_PARAMS * sizeof(double));
+        memset(Jgw, 0, touches.n * RVLMOTION_TOUCH_NUM_PARAMS * sizeof(double));
         for (i = 0; i < RVLMOTION_TOUCH_NUM_PARAMS; i++)
         {
             oldx = x[i];
@@ -1819,10 +2018,12 @@ void Touch::LM(
                 else
                     dr = 0.0f;
                 J[iTouch * RVLMOTION_TOUCH_NUM_PARAMS + i] = dr;
+                Jw[iTouch * RVLMOTION_TOUCH_NUM_PARAMS + i] = pTouch->w * dr;
                 if (bg[iTouch])
                 {
                     dg = (err.b - g[iConstraint]) / xInc[i];
                     Jg[iConstraint * RVLMOTION_TOUCH_NUM_PARAMS + i] = dg;
+                    Jgw[iConstraint * RVLMOTION_TOUCH_NUM_PARAMS + i] = pTouch->w * dg;
                     iConstraint++;
                 }
 #endif
@@ -1842,12 +2043,12 @@ void Touch::LM(
 
         // xnew <- solve ((J.T * J + Jg.T * Jg + alpha * C.inv + lm * I) * dx_  = -(J.T * r + Jg.T * g + alpha * C.inv * x))
 
-        cvQ = cvJ.t() * cvJ;
-        cvR = -cvJ.t() * cvr;
+        cvQ = cvJw.t() * cvJ;
+        cvR = -cvJw.t() * cvr;
         if (ig.n > 0)
         {
-            cvQ += rho * cvJg.t() * cvJg;
-            cvR -= rho * cvJg.t() * cvg;
+            cvQ += rho * cvJgw.t() * cvJg;
+            cvR -= rho * cvJgw.t() * cvg;
         }
         if (bRefPtConstraints)
         {
@@ -3625,10 +3826,26 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
     /// Touch and correct.
 
     FILE *fpLog = NULL;
+    FILE *fpSeed = NULL;
+    FILE *fpTimes = NULL;
+    int *rndSeed = NULL;
     if (resultsFolder)
     {
         fpLog = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "touch_success.log").data(), "w");
         fclose(fpLog);
+        fpSeed = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "seed.txt").data(), "r");
+        fpTimes = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "touch_times.log").data(), "w");
+        // fclose(fpTimes);
+        if (fpSeed)
+        {
+            int nSessions = simParams.size() / sessionSize;
+            if (nSessions * sessionSize < simParams.size())
+                nSessions++;
+            rndSeed = new int[nSessions];
+            for (i = 0; i < nSessions; i++)
+                fscanf(fpSeed, "%d\n", rndSeed + i);
+            fclose(fpSeed);
+        }
     }
 
     if (bRefPtConstraints)
@@ -3649,7 +3866,8 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
     float PTouch[3];
     float V[3];
     Pose3D pose_Ek_W_gt;
-    int iSimulation = 0;
+    int iSession = (iSelectedSession >= 0 ? iSelectedSession : 0);
+    int iSimulation = iSession * sessionSize;
     int iTask = 0;
     int iAttempt;
     uchar outcome;
@@ -3662,11 +3880,38 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
     MOTION::TouchEnvModel *pEnvSolidParams;
     MOTION::Contact contactGT;
     float h;
+    bool bVisualization_ = bVisualization;
+    std::vector<vtkSmartPointer<vtkActor>> toolActors;
+
+    bool correctionSuccess;
+
     while (simulation == RVLMOTION_TOUCH_SIMULATION_RND && touches_E.size() < nSimulationTouches ||
-           simulation == RVLMOTION_TOUCH_SIMULATION_OPEN && iSimulation < simParams.size())
+           simulation == RVLMOTION_TOUCH_SIMULATION_OPEN && (iSelectedSession < 0 && iSimulation < simParams.size() ||
+                                                             iSelectedSession >= 0 && iSession == iSelectedSession))
     {
         if (resultsFolder)
             fpLog = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "touch_success.log").data(), "a");
+
+        if (iTask == 0)
+        {
+            if (rndSeed)
+                iRndVal = rndSeed[iSession];
+            else
+            {
+                fpSeed = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "seed.txt").data(), "a");
+                fprintf(fpSeed, "%d\n", iRndVal);
+                fclose(fpSeed);
+            }
+        }
+
+        // pSimParams <- simulation parameters from simParams
+
+        pSimParams = simParams.data() + iSimulation;
+        printf("\nSimulation %d\n\n", pSimParams->idx);
+
+        //
+
+        bVisualization = (pVisualizationData->bOnlySelectedSample ? (pSimParams->idx == pVisualizationData->iSelectedSample ? bVisualization_ : false) : bVisualization_);
 
         touchPt.iPanel = touchPt.iFace = -1;
         // if (touches_E.size() == 0)
@@ -3678,15 +3923,10 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
             if (iTask == 0)
             {
                 printf("\n==========================\n\n");
-                printf("New session\n\n");
+                printf("Session %d\n\n", iSession);
                 printf("==========================\n\n");
             }
             printf("Task %d\n", iTask);
-
-            // pSimParams <- simulation parameters from simParams
-
-            pSimParams = simParams.data() + iSimulation;
-            printf("\nSimulation %d\n\n", pSimParams->idx);
 
             // Create scene.
 
@@ -3709,10 +3949,10 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
             pose_E_W.t[2] = h;
             fTmp = sqrt(RVLDOTPRODUCT3(pose_E_W.t, pose_E_W.t));
             float R_W_E[9];
-            float *X_E_W = R_W_E;
-            float *Y_E_W = R_W_E + 3;
-            float *Z_E_W = R_W_E + 6;
-            RVLSCALE3VECTOR2(pose_E_W.t, fTmp, Z_E_W);
+            float* X_E_W = R_W_E;
+            float* Y_E_W = R_W_E + 3;
+            float* Z_E_W = R_W_E + 6;
+            RVLSCALE3VECTOR2(pose_E_W.t, -fTmp, Z_E_W);
             float Z[3];
             RVLSET3VECTOR(Z, 0.0f, 0.0f, 1.0f);
             RVLCROSSPRODUCT3(Z_E_W, Z, X_E_W);
@@ -3720,6 +3960,13 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
             RVLCROSSPRODUCT3(Z_E_W, X_E_W, Y_E_W);
             RVLCOPYMX3X3T(R_W_E, pose_E_W.R);
             RVLINVTRANSF3D(pose_E_W.R, pose_E_W.t, pose_W_E.R, pose_W_E.t);
+            if (bVisualization)
+            {
+            Pose3D nullPose;
+            RVLUNITMX3(nullPose.R);
+            RVLNULL3VECTOR(nullPose.t);
+            // pVisualizer->DisplayReferenceFrame(&nullPose, 0.1f);
+            }
 
             // Allocate memory for a new scene.
 
@@ -3769,12 +4016,12 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
             UpdateDoorOrientation(&model_x);
             SceneBBox(&(pEnvSolidParams->model0), &bbox);
 
-            // if (bVisualization)
-            //{
-            //     envSolid_E.Visualize(pVisualizer, black);
-            //     pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, green);
-            //     pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
-            // }
+            if (bVisualization)
+            {
+                envSolid_E.Visualize(pVisualizer, black);
+                // pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, green);
+                // pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
+            }
             printf("GT:\n");
             PrintX(x_gt);
             E_gt = 0.0f;
@@ -3841,6 +4088,11 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
             {
                 Pose3D pose_D_E;
                 OpenDoorContactPoint(pose_Ek_W_gt, pose_E_W, pose_Ek_E, pose_D_E);
+                if (bVisualization && pVisualizationData->bPath)
+                {
+                    toolMoved.Move(&(tool.solid), &pose_Ek_E);
+                    pVisualizationData->robotActors = toolMoved.Visualize(pVisualizer, cyan);
+                }
                 float zMoveLen = 0.4f;
                 RVLCOPYCOLMX3X3(pose_Ek_E.R, 2, V);
                 RVLSCALE3VECTOR(V, zMoveLen, V);
@@ -3850,30 +4102,25 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
                 RVLSCALE3VECTOR(V, zMoveLen, V);
                 RVLDIF3VECTORS(path.Element[0].Element, V, path.Element[1].Element);
                 path.n = 2;
-                // if (bVisualization)
-                //{
-                //     Pose3D poseDebug = pose_Ek_E;
-                //     RVLCOPY3VECTOR(path.Element[0].Element, poseDebug.t);
-                //     toolMoved.Move(&(tool.solid), &poseDebug);
-                //     //toolMoved.Visualize(pVisualizer, white);
-                //     RVLDIF3VECTORS(poseDebug.t, pose_Ek_E.t, V);
-                //     RVLVISUALIZER_LINES_INIT(visPts, visLines, toolMoved.vertices.n)
-                //     for (int i = 0; i < toolMoved.vertices.n; i++)
-                //     {
-                //         RVLCOPY3VECTOR(toolMoved.vertices.Element[i].P, visPts.Element[2 * i].P);
-                //         RVLDIF3VECTORS(toolMoved.vertices.Element[i].P, V, visPts.Element[2 * i + 1].P);
-                //         visLines.Element[i].a = 2 * i;
-                //         visLines.Element[i].b = 2 * i + 1;
-                //     }
-                //     pVisualizer->DisplayLines(visPts, visLines, white);
-                //     RVLVISUALIZER_LINES_FREE(visPts, visLines)
-                //     RVLSCALE3VECTOR(V, 0.922f, V);
-                //     RVLSUM3VECTORS(pose_Ek_E.t, V, poseDebug.t);
-                //     toolMoved.Move(&(tool.solid), &poseDebug);
-                //     toolMoved.Visualize(pVisualizer, white);
-                //     //toolMoved.Move(&(tool.solid), &pose_Ek_E);
-                //     //toolMoved.Visualize(pVisualizer, white);
-                // }
+                if (bVisualization && pVisualizationData->bPath)
+                {
+                    Pose3D poseDebug = pose_Ek_E;
+                    RVLCOPY3VECTOR(path.Element[1].Element, poseDebug.t);
+                    toolMoved.Move(&(tool.solid), &poseDebug);
+                    toolActors = toolMoved.Visualize(pVisualizer, white);
+                    pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
+                    RVLNEGVECT3(V, V);
+                    pVisualizationData->robotActors.push_back(VisualizeMove(V));
+                    RVLCOPY3VECTOR(path.Element[0].Element, poseDebug.t);
+                    toolMoved.Move(&(tool.solid), &poseDebug);
+                    toolActors = toolMoved.Visualize(pVisualizer, white);
+                    pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
+                    RVLDIF3VECTORS(poseDebug.t, pose_Ek_E.t, V);
+                    pVisualizationData->robotActors.push_back(VisualizeMove(V));
+                    toolMoved.Move(&(tool.solid), &pose_Ek_E);
+                    toolActors = toolMoved.Visualize(pVisualizer, white);
+                    pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
+                }
             }
             SimulateMove(pose_Ek_E, path, pose_Ek_E, V, t, iLastSegment, &contactGT);
             switch (iLastSegment)
@@ -3918,11 +4165,11 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
                 printf("Success\n");
             if (bVisualization)
             {
-                envSolid_E.Visualize(pVisualizer, black);
-                pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, green);
-                pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
+                // envSolid_E.Visualize(pVisualizer, black);
+                pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, cyan);
+                // pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
                 toolMoved.Move(&(tool.solid), &pose_Ek_E);
-                toolMoved.Visualize(pVisualizer, yellow);
+                toolMoved.Visualize(pVisualizer, magenta);
                 pVisualizer->Run();
                 pVisualizationData->pVisualizer->Clear(pVisualizationData->envActors);
             }
@@ -3935,6 +4182,8 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
                 touch.bMiss = (outcome == RVLMOTION_TOUCH_OUTCOME_MISS);
                 touch.iFirstContact = -1;
                 touch.pEnvSolidParams = pEnvSolidParams;
+                touch.w = 1.0f;
+                touch.sceneIdx = pSimParams->idx;
                 touches_E.push_back(touch);
 
                 // Correct camera-robot model using information obtained by touches.
@@ -3961,7 +4210,20 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
                 // }
                 memset(x, 0, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
                 // if (!Correction(x, touches, contacts, xOpt, &contactGT, x_gt))
-                if (!Correction(x, touches, contacts, xOpt))
+
+                // Measure time taken by correction.
+                auto timeStart = std::chrono::high_resolution_clock::now();
+                correctionSuccess = Correction(x, touches, contacts, xOpt);
+                auto timeEnd = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(timeEnd - timeStart).count();
+                if (fpTimes)
+                {
+                    fprintf(fpTimes, "Session %d, Simulation %d, attempt %d, %lld ns\n", iSession, pSimParams->idx, iAttempt+1, duration);
+                    // fclose(fpTimes);
+                }
+
+                // if (!Correction(x, touches, contacts, xOpt))
+                if (!correctionSuccess)
                     break;
 
                 // Visualize the corrected model.
@@ -3969,18 +4231,20 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
                 UpdateEnvironmentModel(pEnvSolidParams, &model_e, xOpt, &model_x);
                 UpdateDoorOrientation(&model_x);
                 UpdateEnvironmentVNModel(&model_e, xOpt, &model_x);
-                if (bVisualization)
-                {
-                    pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, green);
-                    pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
-                    // pVisualizationData->envActors.push_back(model_x.pVNEnv->Display(pVisualizationData->pVisualizer, 0.01f, NULL, NULL, 0.0f, &bbox));
-                    pVisualizationData->pVisualizer->Run();
-                    pVisualizationData->pVisualizer->Clear(pVisualizationData->envActors);
-                }
 
                 //
 
                 memcpy(x, xOpt, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
+            }
+
+            if (bVisualization)
+            {
+                pVisualizationData->envActors = envSolidx.Visualize(pVisualizationData->pVisualizer, green);
+                pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
+                // pVisualizationData->envActors.push_back(model_x.pVNEnv->Display(pVisualizationData->pVisualizer, 0.01f, NULL, NULL, 0.0f, &bbox));
+                pVisualizationData->pVisualizer->Run();
+                pVisualizationData->pVisualizer->Clear(pVisualizationData->envActors);
+                pVisualizationData->pVisualizer->Clear(pVisualizationData->robotActors);
             }
         } // Attempts.
         while (outcome != RVLMOTION_TOUCH_OUTCOME_SUCCESS && iAttempt < maxnAttempts);
@@ -4013,10 +4277,13 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
         {
             ClearSession(touches_E, contacts);
             memset(x, 0, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
+            iSession++;
             iTask = 0;
         }
     } // Simulations.
     delete[] path.Element;
+
+    fclose(fpTimes);
 
     // Sample(10000, 0.1f, samples);
     //{
@@ -4040,6 +4307,7 @@ void Touch::Simulation(std::vector<MOTION::DoorExperimentParams> &simParams)
     // delete[] plane_E;
     // delete[] touches_W.Element;
     delete[] samples.Element;
+    RVL_DELETE_ARRAY(rndSeed);
 }
 
 void Touch::SimulateVisionWithError(
@@ -4049,7 +4317,7 @@ void Touch::SimulateVisionWithError(
     // Constants.
 
     float vertexDistThr = 0.8f * maxReconstructionError;
-    float vertexDistThr2 = vertexDistThr * vertexDistThr;
+    // float vertexDistThr2 = vertexDistThr * vertexDistThr;
 
     //
 
@@ -4168,7 +4436,7 @@ void Touch::SimulateVisionWithError(
                 maxDist2 = dist2;
         }
         maxVertexDist = sqrt(maxDist2);
-        int debug = 0;
+        // int debug = 0;
     } while (bNewRndx && maxVertexDist > vertexDistThr);
 
     //// a <- gz / (kappae * zne) * Z_E_C.T
@@ -4273,8 +4541,8 @@ void Touch::SimulateVisionWithError(
     Visualizer *pVisualizer = pVisualizationData->pVisualizer;
     if (bVisualization)
     {
-        pVisualizationData->envActors2 = envSolidx.Visualize(pVisualizer, darkGreen);
-        pVisualizationData->envActors2.push_back(pVisualizer->DisplayReferenceFrame(&(model_e.pose_A_E), 0.2f));
+        // pVisualizationData->envActors2 = envSolidx.Visualize(pVisualizer, darkGreen);
+        // pVisualizationData->envActors2.push_back(pVisualizer->DisplayReferenceFrame(&(model_e.pose_A_E), 0.2f));
     }
 
     // Environment VN model reconstructed with error.
@@ -4991,7 +5259,7 @@ bool Touch::Correction(
                     {
                         bTrueContact = true;
                         GTContacts[iTouch] = i;
-                        printf("True contact is considered.\n");
+                        // printf("True contact is considered.\n");
                         break;
                     }
                 }
@@ -5001,8 +5269,8 @@ bool Touch::Correction(
     if (pContactGT)
     {
         // if(pContactGT->type != RVLMOTION_TOUCH_CONTACT_TYPE_NONE)
-        if (!bTrueContact)
-            printf("True contact is NOT considered.\n");
+        // if (!bTrueContact)
+        //     printf("True contact is NOT considered.\n");
     }
 
     MOTION::TouchData *pNewTouch = touches_E.Element + touches_E.n - 1;
@@ -5161,7 +5429,12 @@ bool Touch::Correction(
 
     // Optimization.
 
-    printf("Optimization...\n");
+    // printf("Optimization...\n");
+    // if (touches_E.Element[touches_E.n - 1].sceneIdx == 119)
+    // {
+    //     int debug = 0;
+    //     printf("debug\n");
+    // }
     float x[RVLMOTION_TOUCH_NUM_PARAMS];
     MOTION::TouchLMError E, minE;
     minE.E = -1.0f;
@@ -5173,6 +5446,11 @@ bool Touch::Correction(
         memcpy(x, xInit, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
         // if (touchContactCombinations.w == 5 && iTouchContactCombination == 500)
         //     int debug = 0;
+        // if (touches_E.Element[touches_E.n - 1].sceneIdx == 119 && (iTouchContactCombination == 513 || iTouchContactCombination == 600))
+        // {
+        //     int debug = 0;
+        //     printf("debug\n");
+        // }
         touchContacts_ = touchContactCombinations.Element + iTouchContactCombination * touchContactCombinations.w;
         pTouch_E = touches_E.Element;
         for (iTouch = 0; iTouch < touches_E.n; iTouch++, pTouch_E++)
@@ -5188,10 +5466,14 @@ bool Touch::Correction(
         LM(x, touches_E, x, &E);
         if (bUseGTContacts && iTouchContactCombination == 0)
         {
-            printf("GT contacts:\n");
-            for (iTouch = 0; iTouch < touches_E.n; iTouch++)
-                PrintContact(contacts.data() + touches_E.Element[iTouch].iFirstContact + touchContacts_[iTouch]);
-            printf("E=%f*1e-6 ravg=%f gmax=%f Ex=%f*1e-6\n", 1e6 * E.E, E.ravg, E.gmax, 1e6 * E.Ex);
+            // printf("GT contacts:\n");
+            pTouch_E = touches_E.Element;
+            for (iTouch = 0; iTouch < touches_E.n; iTouch++, pTouch_E++)
+            {
+                pTouch_E->contact = contacts[pTouch_E->iFirstContact + touchContacts_[iTouch]];
+                // PrintTouch(pTouch_E);
+            }
+            // printf("E=%f*1e-6 ravg=%f gmax=%f Ex=%f*1e-6\n", 1e6 * E.E, E.ravg, E.gmax, 1e6 * E.Ex);
         }
         // Only for debugging purpose!!!
         // if (touches_E.Element[1].contact.type == RVLMOTION_TOUCH_CONTACT_TYPE_POINT_PLANE &&
@@ -5219,9 +5501,12 @@ bool Touch::Correction(
         memcpy(pSolution->x, x, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
         pSolution->cost = E.E;
         pSolution->contacts = touchContacts_;
-        if (iTouchContactCombination % 1000 == 0 && iTouchContactCombination > 0)
-            printf("%d/%d\n", iTouchContactCombination, touchContactCombinations.h);
+        // if (iTouchContactCombination % 1000 == 0 && iTouchContactCombination > 0)
+            // printf("%d/%d\n", iTouchContactCombination, touchContactCombinations.h);
     }
+
+    // Memorize up to nBest top solutions.
+
     if (optimizationMethod == RVLMOTION_TOUCH_OPTIMIZATION_METHOD_RNDSAMPLING)
     {
         MOTION::TouchSolution *pTopSolution;
@@ -5260,23 +5545,89 @@ bool Touch::Correction(
             bestSolutions.n = touchContactCombinations.h;
         }
     }
-    printf("Optimal solution:\n");
-    printf("Solution %d\n", iOptimalSolution);
-    for (iTouch = 0; iTouch < touches_E.n; iTouch++)
+
+    // Adjust the optimal solution to fit the last scene.
+
+    pTouch_E = touches_E.Element;
+    for (iTouch = 0; iTouch < touches_E.n; iTouch++, pTouch_E++)
     {
-        pTouch_E = touches_E.Element + iTouch;
-        printf("touch %d: scene %d ", iTouch, pTouch_E->pEnvSolidParams->idx);
-        MOTION::Contact contact;
         if (pTouch_E->nContacts > 0)
-        {
-            contact = contacts[optimalContacts[iTouch]];
-            PrintContact(&contact);
-        }
-        else
-            printf("no contact\n");
+            pTouch_E->contact = contacts[optimalContacts[iTouch]];
     }
-    PrintX(xOpt);
-    printf("E=%f*1e-6 ravg=%f gmax=%f Ex=%f*1e-6\n", 1e6 * minE.E, minE.ravg, minE.gmax, 1e6 * minE.Ex);
+    if (bFitToLastTouch)
+    {
+        int iLastScene = touches_E.Element[touches_E.n - 1].sceneIdx;
+        Array<int> lastSceneTouches;
+        lastSceneTouches.Element = new int[touches_E.n];
+        lastSceneTouches.n = 0;
+        pTouch_E = touches_E.Element;
+        for (iTouch = 0; iTouch < touches_E.n; iTouch++, pTouch_E++)
+            if (pTouch_E->sceneIdx == iLastScene)
+                lastSceneTouches.Element[lastSceneTouches.n++] = iTouch;
+        lastSceneTouches.Element[0] = touches_E.n - 1;
+        lastSceneTouches.n = 1;
+        float e;
+        float maxe;
+        Pair<float, float> err;
+        int i;
+        float w = 1.0f;
+        for (int iTrial = 0; iTrial < 15; iTrial++)
+        {
+            UpdatEnvSolidParams(NULL, &touches_E, &model_e, xOpt, &model_x);
+            maxe = 0.0f;
+            for (i = 0; i < lastSceneTouches.n; i++)
+            {
+                iTouch = lastSceneTouches.Element[i];
+                pTouch_E = touches_E.Element + iTouch;
+                err = Error(pTouch_E, true);
+                e = RVLABS(err.a);
+                if (e > maxe)
+                    maxe = e;
+                if (err.b > maxe)
+                    maxe = err.b;
+            }
+            if (maxe <= 0.001f)
+                break;
+            w *= 2.0f;
+            for (i = 0; i < lastSceneTouches.n; i++)
+            {
+                iTouch = lastSceneTouches.Element[i];
+                pTouch_E = touches_E.Element + iTouch;
+                pTouch_E->w = w;
+            }
+            memcpy(x, xInit, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
+            LM(x, touches_E, xOpt, &E);
+        }
+        for (i = 0; i < lastSceneTouches.n; i++)
+        {
+            iTouch = lastSceneTouches.Element[i];
+            pTouch_E = touches_E.Element + iTouch;
+            pTouch_E->w = 1.0f;
+        }
+        delete[] lastSceneTouches.Element;
+    }
+    else
+        UpdatEnvSolidParams(NULL, &touches_E, &model_e, xOpt, &model_x);
+
+    // Print the optimal solution.
+
+    // printf("Optimal solution:\n");
+    // printf("Solution %d\n", iOptimalSolution);
+    // pTouch_E = touches_E.Element;
+    // for (iTouch = 0; iTouch < touches_E.n; iTouch++, pTouch_E++)
+    // {
+    //     // printf("touch %d: scene %d ", iTouch, pTouch_E->pEnvSolidParams->idx);
+    //     MOTION::Contact contact;
+    //     if (pTouch_E->nContacts > 0)
+    //         PrintTouch(pTouch_E);
+    //     else
+    //         printf("no contact\n");
+    // }
+    // PrintX(xOpt);
+    // printf("E=%f*1e-6 ravg=%f gmax=%f Ex=%f*1e-6\n", 1e6 * minE.E, minE.ravg, minE.gmax, 1e6 * minE.Ex);
+
+    //
+
     delete[] optimalContacts;
     delete[] touchContactCombinations.Element;
 
@@ -5315,6 +5666,104 @@ void Touch::ClearSession(
     scenes.n = 0;
     contacts.clear();
     touches.clear();
+}
+
+void Touch::ManualSegmentation(
+    Mesh *pMesh,
+    float sx,
+    float rx,
+    float b,
+    Pose3D &ose_A_C,
+    float &sy,
+    float &sz,
+    float &ry)
+{
+    RVLCOLORS
+
+    Visualizer *pVisualizer = pVisualizationData->pVisualizer;
+
+    // Parameters.
+
+    float tol = 0.01f;
+
+    // Select vertices of a polygon.
+
+    pVisualizer->SetKeyPressCallback(MOTION::KeyPressCallback, pVisualizationData);
+    pVisualizer->SetCellPicker();
+    pVisualizer->SetMouseRButtonDownCallback(MOTION::MouseRButtonDown, pVisualizationData);
+    pVisualizer->SetMesh(pMesh);
+    pVisualizationData->pMesh = pMesh;
+    pVisualizer->AssociateActorWithPointPicker(pVisualizer->actor);
+    pVisualizer->Run();
+    pVisualizer->Clear(pVisualizationData->envActors);
+
+    // Extract the image points within the selected polygon.
+
+    std::vector<cv::Point> contour;
+    cv::Point imgPt;
+    int iPix;
+    for (int iPt = 0; iPt < pVisualizationData->selectedPoints.size(); iPt++)
+    {
+        iPix = pVisualizationData->selectedPoints[iPt];
+        imgPt.x = iPix % camera.w;
+        imgPt.y = iPix / camera.w;
+        contour.push_back(imgPt);
+    }
+    std::vector<std::vector<cv::Point>> fillContAll;
+    fillContAll.push_back(contour);
+    cv::Mat binaryImage = cv::Mat::zeros(camera.h, camera.w, CV_8UC1);
+    cv::fillPoly(binaryImage, fillContAll, cv::Scalar(1));
+    uchar *segmentation = (uchar *)(binaryImage.data);
+
+    Array<Vector3<float>> selectedPts;
+    int nPix = camera.w * camera.h;
+    selectedPts.Element = new Vector3<float>[nPix];
+    selectedPts.n = 0;
+    Point *pPtSrc;
+    Vector3<float> *pPtTgt;
+    for (iPix = 0; iPix < nPix; iPix++)
+    {
+        if (segmentation[iPix])
+        {
+            pPtSrc = pMesh->NodeArray.Element + iPix;
+            pPtTgt = selectedPts.Element + selectedPts.n;
+            RVLCOPY3VECTOR(pPtSrc->P, pPtTgt->Element);
+            selectedPts.n++;
+        }
+    }
+    // pVisualizer->DisplayPointSet<float, Point>(selectedPts, green, 3.0f);
+    // pVisualizer->Run();
+
+    // RANSAC
+
+    float N[3];
+    float d;
+    Array<int> consensusSet;
+    int *consensusSetMem = NULL;
+    iRndVal = 0;
+    DetectPlane(selectedPts, tol, 0.999f, N, d, consensusSet, rndVal, iRndVal, consensusSetMem);
+
+    // Visualization.
+
+    Array<Point> visPts;
+    visPts.Element = new Point[consensusSet.n];
+    visPts.n = consensusSet.n;
+    Point *pPtTgt_ = visPts.Element;
+    Vector3<float> *pPtSrc_;
+    for (int i = 0; i < consensusSet.n; i++, pPtTgt_++)
+    {
+        pPtSrc_ = selectedPts.Element + consensusSet.Element[i];
+        RVLCOPY3VECTOR(pPtSrc_->Element, pPtTgt_->P);
+    }
+    pVisualizer->DisplayPointSet<float, Point>(visPts, green, 3.0f);
+    pVisualizer->Run();
+    delete[] visPts.Element;
+
+    delete[] consensusSetMem;
+
+    //
+
+    delete[] selectedPts.Element;
 }
 
 void Touch::Reconstruct(
@@ -5555,6 +6004,9 @@ void Touch::UpdatEnvSolidParams(
         else
             pEnvModel = pTouches->Element[iTouch].pEnvSolidParams;
 
+        if (pEnvModel->bUpdated)
+            continue;
+
         // bAll = true;    // Only for debugging purpose!!!
 
         // Update vertices.
@@ -5592,7 +6044,12 @@ void Touch::UpdatEnvSolidParams(
                 pPlaneTgt = pEnvModel->modelx.plane + iSurface;
                 CorrectPlane(pPlaneSrc, a, b, M, V, pPlaneTgt);
             }
+
+        pEnvModel->bUpdated = true;
     }
+
+    for (int iScene = 0; iScene < scenes.n; iScene++)
+        scenes.Element[iScene].bUpdated = false;
 }
 
 void Touch::UpdateEnvironmentModel(
@@ -6183,6 +6640,10 @@ void Touch::TestCorrection(
     RVLCOLORS
     Visualizer *pVisualizer = pVisualizationData->pVisualizer;
 
+    FILE *fpTimes = NULL;
+    if (resultsFolder)
+        fpTimes = fopen((std::string(resultsFolder) + RVLFILEPATH_SEPARATOR + "touch_times_real.log").data(), "w");
+
     // Camera model.
 
     model_e.camera = camera;
@@ -6216,7 +6677,10 @@ void Touch::TestCorrection(
     Pose3D pose_W_E_gt;
     Pose3D pose_W_A;
     std::vector<vtkSmartPointer<vtkActor>> toolActors;
+    std::vector<vtkSmartPointer<vtkActor>> envActors;
     float V3Tmp[3];
+    bool correctionSuccess;
+
     for (int iScene = 0; iScene < expData.size(); iScene++, pExpData++)
     {
         // Init session.
@@ -6231,10 +6695,12 @@ void Touch::TestCorrection(
         // Actual scene.
 
         if (iScene == 0)
+        {
             CreateScene(pExpData->sxgt, pExpData->sygt, pExpData->szgt, pExpData->rxgt, pExpData->rygt, pExpData->a, pExpData->b, pExpData->c, pExpData->qDeg_gt);
+            envSolid_E.Copy(&envSolid);
+        }
         else
             CreateSceneSolid(pExpData->sxgt, pExpData->sygt, pExpData->szgt, pExpData->rxgt, pExpData->rygt, pExpData->a, pExpData->b, pExpData->c, pExpData->qDeg_gt, true);
-        envSolid_E.Copy(&envSolid);
         Pose3D pose_W_0;
         RVLINVTRANSF3D(doorPose.R, doorPose.t, pose_W_A.R, pose_W_A.t);
         RVLCOMPTRANSF3D(pExpData->pose_A_0_gt.R, pExpData->pose_A_0_gt.t, pose_W_A.R, pose_W_A.t, pose_W_0.R, pose_W_0.t);
@@ -6242,7 +6708,8 @@ void Touch::TestCorrection(
         // RVLTRANSF3(envSolid.solids[4]->vertices.Element[5].P, pose_W_0.R, pose_W_0.t, V3Tmp);
         RVLCOMPTRANSF3DWITHINV(pExpData->pose_E_0.R, pExpData->pose_E_0.t, pose_W_0.R, pose_W_0.t, pose_W_E_gt.R, pose_W_E_gt.t, V3Tmp);
         envSolid_E.Move(&envSolid, &pose_W_E_gt);
-        envSolid_E.Visualize(pVisualizer, black);
+        if (bVisualization)
+            pVisualizationData->envActors2 = envSolid_E.Visualize(pVisualizer, black);
 
         // Reconstructed scene.
 
@@ -6286,8 +6753,12 @@ void Touch::TestCorrection(
         // Initialize the environment model intended for correction.
 
         UpdateEnvironmentModel(pEnvSolidParams, &model_e, x, &model_x);
-        pVisualizationData->envActors2 = envSolidx.Visualize(pVisualizer, darkGreen);
-        pVisualizer->Run();
+        if (bVisualization)
+        {
+            envActors = envSolidx.Visualize(pVisualizer, darkGreen);
+            pVisualizationData->envActors2.insert(pVisualizationData->envActors2.end(), envActors.begin(), envActors.end());
+            pVisualizer->Run();
+        }
 
         // Touch and correct.
 
@@ -6302,27 +6773,42 @@ void Touch::TestCorrection(
                 sessionTouches.push_back(touch);
                 sessionTouches_.n = sessionTouches.size();
                 sessionTouches_.Element = sessionTouches.data();
-                if (Correction(x, sessionTouches_, contacts, xOpt))
+                
+                auto startTime = std::chrono::high_resolution_clock::now();
+
+                correctionSuccess = Correction(x, sessionTouches_, contacts, xOpt);
+
+                auto endTime = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+
+                if (fpTimes)
+                    fprintf(fpTimes, "Scene %d, %lld ns\n", pExpData->sceneIdx, duration);
+
+                // if (Correction(x, sessionTouches_, contacts, xOpt))
+                if (correctionSuccess)
                 {
-                    pose_Ek_E = touches[iTouch].pose;
-                    toolMoved.Move(&(tool.solid), &pose_Ek_E);
-                    toolActors = toolMoved.Visualize(pVisualizer, yellow);
-                    pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
-                    // for (int iScene_ = 0; iScene_ < scenes.n; iScene_++)
-                    int iScene_ = scenes.n - 1;
+                    if (bVisualization)
                     {
-                        UpdateEnvironmentModel(scenes.Element + iScene_, &model_e, xOpt, &model_x);
-                        pVisualizationData->envActors = envSolidx.Visualize(pVisualizer, green);
+                        pose_Ek_E = touches[iTouch].pose;
+                        toolMoved.Move(&(tool.solid), &pose_Ek_E);
+                        toolActors = toolMoved.Visualize(pVisualizer, yellow);
+                        pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
+                        // for (int iScene_ = 0; iScene_ < scenes.n; iScene_++)
+                        int iScene_ = scenes.n - 1;
+                        {
+                            UpdateEnvironmentModel(scenes.Element + iScene_, &model_e, xOpt, &model_x);
+                            pVisualizationData->envActors = envSolidx.Visualize(pVisualizer, green);
+                        }
+                        UpdateDoorOrientation(&model_x);
+                        Box<float> bbox;
+                        SceneBBox(&(pEnvSolidParams->model0), &bbox);
+                        UpdateEnvironmentVNModel(&model_e, xOpt, &model_x);
+                        // pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
+                        // pVisualizationData->envActors.push_back(model_x.pVNEnv->Display(pVisualizationData->pVisualizer, 0.01f, NULL, NULL, 0.0f, &bbox));
+                        pVisualizer->Run();
+                        pVisualizer->Clear(pVisualizationData->envActors);
+                        pVisualizer->Clear(pVisualizationData->robotActors);
                     }
-                    UpdateDoorOrientation(&model_x);
-                    Box<float> bbox;
-                    SceneBBox(&(pEnvSolidParams->model0), &bbox);
-                    UpdateEnvironmentVNModel(&model_e, xOpt, &model_x);
-                    // pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_x.pose_A_E), 0.2f));
-                    // pVisualizationData->envActors.push_back(model_x.pVNEnv->Display(pVisualizationData->pVisualizer, 0.01f, NULL, NULL, 0.0f, &bbox));
-                    pVisualizer->Run();
-                    pVisualizer->Clear(pVisualizationData->envActors);
-                    pVisualizer->Clear(pVisualizationData->robotActors);
                 }
                 else
                     printf("No touch.\n");
@@ -6351,9 +6837,14 @@ void Touch::TestCorrection(
         ////pVisualizationData->envActors.push_back(model_x.pVNEnv->Display(pVisualizationData->pVisualizer, 0.01f, NULL, NULL, 0.0f, &bbox));
         // pVisualizer->Run();
 
-        pVisualizer->Clear(pVisualizationData->envActors2);
-        pVisualizer->Clear(pVisualizationData->robotActors);
+        if (bVisualization)
+        {
+            pVisualizer->Clear(pVisualizationData->envActors2);
+            pVisualizer->Clear(pVisualizationData->robotActors);
+        }
     }
+    if (fpTimes)
+        fclose(fpTimes);
 }
 
 void Touch::LoadExperimentFileFormat(
@@ -6394,17 +6885,17 @@ void Touch::LoadExperimentDataFromFile(
             if (std::getline(ss, value, ','))
                 pSample->idx = std::stoi(value);
         }
-        if (item == "session_idx")
+        else if (item == "session_idx")
         {
             if (std::getline(ss, value, ','))
                 pSample->sessionIdx = std::stoi(value);
         }
-        if (item == "scene_idx")
+        else if (item == "scene_idx")
         {
             if (std::getline(ss, value, ','))
                 pSample->sceneIdx = std::stoi(value);
         }
-        if (item == "sx")
+        else if (item == "sx")
         {
             if (std::getline(ss, value, ','))
                 pSample->sx = std::stof(value);
@@ -6436,7 +6927,7 @@ void Touch::LoadExperimentDataFromFile(
         }
         else if (item == "R_A_S")
             LoadArray(ss, 9, pSample->pose_A_0_gt.R);
-        else if (item == "t_A_S")
+        else if (item == "t_A_S" || item == "t_A_0")
             LoadArray(ss, 3, pSample->pose_A_0_gt.t);
         else if (item == "z_rot")
         {
@@ -6460,6 +6951,8 @@ void Touch::LoadExperimentDataFromFile(
             LoadArray(ss, 9, pSample->pose_E_0.R);
         else if (item == "t_E_0" || item == "t_E_0_contact")
             LoadArray(ss, 3, pSample->pose_E_0.t);
+        else
+            std::getline(ss, value, ',');
     }
 }
 
@@ -6470,6 +6963,8 @@ void Touch::LoadTouch(
 {
     pTouch->iFirstContact = -1;
     pTouch->bMiss = false;
+    pTouch->bSuccessful = false;
+    pTouch->w = 1.0f;
     std::stringstream ss(touchFileData);
     std::string value;
     int iItem;
@@ -6494,6 +6989,8 @@ void Touch::LoadTouch(
                 int type = std::stoi(value);
                 if (type == 1)
                     pTouch->bMiss = true;
+                else if (type == 2)
+                    pTouch->bSuccessful = true;
             }
         }
         else if (item == "R_Ek_E")
@@ -6520,7 +7017,11 @@ void Touch::InitVisualizer(
     pVisualizationData->paramList.Init();
     pParamData = pVisualizationData->paramList.AddParam("Touch.Visualize_optimization", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bOptimization));
     pParamData = pVisualizationData->paramList.AddParam("Touch.Visualize_contacts", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bContacts));
+    pParamData = pVisualizationData->paramList.AddParam("Touch.Visualize_only_selected_scene", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bOnlySelectedSample));
+    pParamData = pVisualizationData->paramList.AddParam("Touch.Visualze_scene", RVLPARAM_TYPE_INT, &(pVisualizationData->iSelectedSample));
+    pParamData = pVisualizationData->paramList.AddParam("Touch.Visualize_path", RVLPARAM_TYPE_BOOL, &(pVisualizationData->bPath));
     pVisualizationData->paramList.LoadParams(cfgFileName);
+    pVisualizationData->pVisualizer->SetBackgroundColor(1.0, 1.0, 1.0);
 }
 
 void Touch::SetVisualizeOptimization(bool bVisualizeOptimization)
@@ -6528,18 +7029,39 @@ void Touch::SetVisualizeOptimization(bool bVisualizeOptimization)
     pVisualizationData->bOptimization = bVisualizeOptimization;
 }
 
-void Touch::PrintContact(MOTION::Contact *pContact)
+vtkSmartPointer<vtkActor> Touch::VisualizeMove(float *V)
 {
+    RVLCOLORS
+    RVLVISUALIZER_LINES_INIT(visPts, visLines, toolMoved.vertices.n)
+    for (int i = 0; i < toolMoved.vertices.n; i++)
+    {
+        RVLCOPY3VECTOR(toolMoved.vertices.Element[i].P, visPts.Element[2 * i].P);
+        RVLDIF3VECTORS(toolMoved.vertices.Element[i].P, V, visPts.Element[2 * i + 1].P);
+        visLines.Element[i].a = 2 * i;
+        visLines.Element[i].b = 2 * i + 1;
+    }
+    vtkSmartPointer<vtkActor> actor = pVisualizationData->pVisualizer->DisplayLines(visPts, visLines, white);
+    RVLVISUALIZER_LINES_FREE(visPts, visLines)
+
+    return actor;
+}
+
+void Touch::PrintTouch(MOTION::TouchData *pTouch)
+{
+    Pair<float, float> err = Error(pTouch, true);
+    err.a *= 1000.0f;
+    err.b *= 1000.0f;
+    MOTION::Contact *pContact = &(pTouch->contact);
     if (pContact->type == RVLMOTION_TOUCH_CONTACT_TYPE_POINT_PLANE)
     {
-        printf("tool_vertex %d panel %d face %d\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b);
+        printf("tool_vertex %d panel %d face %d err=(%f, %f)\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b, err.a, err.b);
     }
     else if (pContact->type == RVLMOTION_TOUCH_CONTACT_TYPE_PLANE_POINT)
     {
         if (pContact->bMiss)
-            printf("tool_edge %d panel %d vertex %d\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b);
+            printf("tool_edge %d panel %d vertex %d err=(%f, %f)\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b, err.a, err.b);
         else
-            printf("tool_face %d panel %d vertex %d\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b);
+            printf("tool_face %d panel %d vertex %d err=(%f, %f)\n", pContact->iToolFeature, pContact->iEnvFeature.a, pContact->iEnvFeature.b, err.a, err.b);
     }
     else if (pContact->type == RVLMOTION_TOUCH_CONTACT_TYPE_EDGE_EDGE)
     {
@@ -6552,7 +7074,7 @@ void Touch::PrintContact(MOTION::Contact *pContact)
             SolidEdge *pToolEdge = tool.solid.edges.Element + pContact->iToolFeature;
             printf("tool_edge %d-%d ", pToolEdge->iVertex, RVLSOLID_EDGE_END_VERTEX(pToolEdge, tool.solid));
         }
-        printf("panel %d edge %d-%d\n", pContact->iEnvFeature.a, pEnvEdge->iVertex, RVLSOLID_EDGE_END_VERTEX_(pEnvEdge, pEnvSolid));
+        printf("panel %d edge %d-%d err=(%f, %f)\n", pContact->iEnvFeature.a, pEnvEdge->iVertex, RVLSOLID_EDGE_END_VERTEX_(pEnvEdge, pEnvSolid), err.a, err.b);
     }
     else
         printf("ERROR: Unknown type of contact!\n");
@@ -7052,7 +7574,8 @@ void Touch::Update_pose_D_A()
     float *Y_D_E = R_D_E + 3;
     float *Z_D_E = R_D_E + 6;
     RVL::Array<RVL::SolidVertex> vertices_ = envSolidx.solids[nPanels - 1]->vertices;
-    float V3Tmp[3]; float fTmp;
+    float V3Tmp[3];
+    float fTmp;
     RVLDIF3VECTORS(vertices_.Element[7].P, vertices_.Element[4].P, X_D_E);
     RVLNORM3(X_D_E, fTmp);
     RVLDIF3VECTORS(vertices_.Element[1].P, vertices_.Element[7].P, Y_D_E);
@@ -7061,7 +7584,7 @@ void Touch::Update_pose_D_A()
     RVLCOPYMX3X3T(R_D_E, pose_D_E_x.R);
     RVLCOPY3VECTOR(vertices_.Element[7].P, pose_D_E_x.t);
 
-    Pose3D pose_D_A; 
+    Pose3D pose_D_A;
     Pose3D pose_E_A;
     RVLINVTRANSF3D(model_x.pose_A_E.R, model_x.pose_A_E.t, pose_E_A.R, pose_E_A.t);
     // RVLCOMPTRANSF3D(pose_D_E_x.R, pose_D_E_x.t, pose_E_A.R, pose_E_A.t, pose_D_Arot_x.R, pose_D_Arot_x.t);
@@ -7129,16 +7652,14 @@ void Touch::InitSession(RVL::MOTION::DoorExperimentParams *pExpData, bool useGT)
         Pose3D pose_W_A, pose_W_0;
         // RVLINVTRANSF3D(doorPose.R, doorPose.t, pose_W_A.R, pose_W_A.t);
         // RVLCOMPTRANSF3D(pExpData->pose_A_0_gt.R, pExpData->pose_A_0_gt.t, pose_W_A.R, pose_W_A.t, pose_W_0.R, pose_W_0.t);
-        
+
         Pose3D pose_A_Arot;
         RVLINVTRANSF3D(pose_Arot_A.R, pose_Arot_A.t, pose_A_Arot.R, pose_A_Arot.t);
         RVLINVTRANSF3D(doorPose.R, doorPose.t, pose_W_A.R, pose_W_A.t);
-        
+
         Pose3D pose_A_0_gt;
         RVLCOMPTRANSF3D(pExpData->pose_A_0_gt.R, pExpData->pose_A_0_gt.t, pose_A_Arot.R, pose_A_Arot.t, pose_A_0_gt.R, pose_A_0_gt.t);
         RVLCOMPTRANSF3D(pose_A_0_gt.R, pose_A_0_gt.t, pose_W_A.R, pose_W_A.t, pose_W_0.R, pose_W_0.t);
-
-
 
         // Transform the VN model to base r.f. 0
         int iFeature;
@@ -7149,7 +7670,7 @@ void Touch::InitSession(RVL::MOTION::DoorExperimentParams *pExpData, bool useGT)
             RVLPLANETRANSF3(pFeatureSrc->N, pFeatureSrc->d, pose_W_0.R, pose_W_0.t, tmp, pFeatureSrc->d);
             RVLCOPY3VECTOR(tmp, pFeatureSrc->N);
         }
-    
+
         if (scenes.Element == NULL)
         {
             scenes.Element = new MOTION::TouchEnvModel[sessionSize];
@@ -7164,19 +7685,18 @@ void Touch::InitSession(RVL::MOTION::DoorExperimentParams *pExpData, bool useGT)
 
         SetVerticesAndPlanes(surfaces, vertices, pose_W_0, &model_gt);
         // TransformModelVertices(&model_gt, &pose_W_0);
-        
+
         // RVL_DELETE_ARRAY(scenes.Element);
     }
 
     // Visualize gripper mesh.
     std::string toolMeshFileName = "/home/RVLuser/rvl-linux/data/Robotiq3Finger_real/mesh.ply";
     if (pToolMesh)
-    delete pToolMesh;
+        delete pToolMesh;
     pToolMesh = new Mesh;
     pToolMesh->LoadPolyDataFromPLY((char *)(toolMeshFileName.data()));
     std::string toolPoseFileName = "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_G_6.npy";
     loadTransfMatrixFromNPY(toolPoseFileName, pose_G_Ek);
-
 }
 
 void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
@@ -7190,15 +7710,15 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
         scenes.n = 0;
         bestSolutions.n = 0;
     }
-    
+
     // MOTION::TouchEnvModel *pEnvSolidParams;
     envSolidParams_ = scenes.Element + scenes.n;
     envSolidParams_->idx = scenes.n;
     scenes.n++;
     envSolidParams_->Create(&envSolid, vertices.n, surfaces.n);
-   
+
     // Associate model_e and model_x with the new scene.
-    
+
     model_e.pEnvSolidParams = &(envSolidParams_->model0);
     model_x.pEnvSolidParams = &(envSolidParams_->modelx);
 
@@ -7208,7 +7728,7 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
 
     Pose3D pose_W_0, pose_W_A, pose_W_E_gt;
     float V3Tmp[3];
-    
+
     float q = pExpData->qDeg_gt * DEG2RAD;
     float cs = cos(q);
     float sn = sin(q);
@@ -7217,7 +7737,7 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
     Pose3D pose_A_Arot;
     RVLINVTRANSF3D(pose_Arot_A.R, pose_Arot_A.t, pose_A_Arot.R, pose_A_Arot.t);
     RVLINVTRANSF3D(doorPose.R, doorPose.t, pose_W_A.R, pose_W_A.t);
-    
+
     Pose3D pose_A_0_gt;
     RVLCOMPTRANSF3D(pExpData->pose_A_0_gt.R, pExpData->pose_A_0_gt.t, pose_A_Arot.R, pose_A_Arot.t, pose_A_0_gt.R, pose_A_0_gt.t);
     RVLCOMPTRANSF3D(pose_A_0_gt.R, pose_A_0_gt.t, pose_W_A.R, pose_W_A.t, pose_W_0.R, pose_W_0.t);
@@ -7233,8 +7753,7 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
     envSolid_E.Move(&envSolid, &pose_W_E_gt);
     pVisualizer->Clear(gtActors);
     gtActors = envSolid_E.Visualize(pVisualizer, black);
-    
-    
+
     // CreateSceneSolid(pExpData->sx, pExpData->sy, pExpData->sz, pExpData->rx, pExpData->ry, pExpData->a, pExpData->b, pExpData->c, pExpData->qDeg, true);
     CreateScene(pExpData->sx, pExpData->sy, pExpData->sz, pExpData->rx, pExpData->ry, pExpData->a, pExpData->b, pExpData->c, pExpData->qDeg);
     CopyVerticesAndPlanesFromSolid();
@@ -7269,12 +7788,11 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
         RVLPLANETRANSF3(pFeatureSrc->N, pFeatureSrc->d, pose_W_E.R, pose_W_E.t, pFeatureTgt->N, pFeatureTgt->d);
 
     model_gt.pVNEnv->CopyDescriptor(model_e.d);
-        
+
     memset(x_, 0, RVLMOTION_TOUCH_NUM_PARAMS * sizeof(float));
 
     UpdateEnvironmentModel(envSolidParams_, &model_e, xOpt, &model_x);
     UpdateDoorOrientation(&model_x);
-
 
     // float gz = x_[4];
     // float hz = x_[5];
@@ -7306,12 +7824,12 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
     Update_pose_D_A();
     Update_pose_D_0(pExpData->pose_E_0);
 
-    pVisualizer->renderer->RemoveActor(actor_D_E);
-    actor_D_E = pVisualizer->DisplayReferenceFrame(&pose_D_E_x, 0.2f);
-    
+    // pVisualizer->renderer->RemoveActor(actor_D_E);
+    // actor_D_E = pVisualizer->DisplayReferenceFrame(&pose_D_E_x, 0.2f);
+
     if (bVisualization)
         pVisualizer->Run();
-    
+
     // Visualize environment model
     // envSolid_E.Clear();
     // envSolid_E.Copy(&envSolid);
@@ -7323,7 +7841,6 @@ void Touch::InitScene(RVL::MOTION::DoorExperimentParams *pExpData)
     // }
     // pVisualizationData->envActors2.clear();
     // pVisualizationData->envActors2 = envSolidx.Visualize(pVisualizer, darkGreen);
-
 
     // pVisualizer->Clear(xActors);
     // xActors = envSolidx.Visualize(pVisualizer, darkGreen);
@@ -7374,12 +7891,11 @@ void Touch::TestCorrection3(
         pVisualizer->map->SetInputConnection(transformFilter->GetOutputPort());
         pVisualizer->map->InterpolateScalarsBeforeMappingOff();
         actor->SetMapper(pVisualizer->map);
-        pVisualizer->renderer->AddViewProp(actor.GetPointer());
+        // pVisualizer->renderer->AddViewProp(actor.GetPointer());
 
         // Visualize tool
         toolActors = toolMoved.Visualize(pVisualizer, yellow);
         pVisualizationData->robotActors.insert(pVisualizationData->robotActors.end(), toolActors.begin(), toolActors.end());
-
 
         // pVisualizationData->envActors.push_back(pVisualizer->DisplayReferenceFrame(&(model_e.pose_A_E), 0.2f));
         // {
@@ -7435,8 +7951,8 @@ void Touch::TestCorrection3(
         pVisualizer->Clear(xActors);
         xActors = envSolidx.Visualize(pVisualizer, darkGreen);
 
-        pVisualizer->renderer->RemoveActor(actor_D_E);
-        actor_D_E = pVisualizer->DisplayReferenceFrame(&pose_D_E_x, 0.2f);
+        // pVisualizer->renderer->RemoveActor(actor_D_E);
+        // actor_D_E = pVisualizer->DisplayReferenceFrame(&pose_D_E_x, 0.2f);
 
         // pVisualizer->Clear(pVisualizationData->envActors2);
         pVisualizer->Clear(pVisualizationData->robotActors);
@@ -7448,7 +7964,6 @@ void Touch::TestCorrection3(
     else
         printf("No touch.\n");
 }
-
 
 void Touch::loadTransfMatrixFromNPY(std::string fileName, Pose3D &pose)
 {
