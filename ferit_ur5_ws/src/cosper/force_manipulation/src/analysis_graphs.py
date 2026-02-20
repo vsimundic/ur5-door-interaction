@@ -118,15 +118,17 @@ offline_num_attempts_per_scene = [None] * (max_length - len(offline_num_attempts
 online_num_attempts_per_scene = [None] * (max_length - len(online_num_attempts_per_scene)) + online_num_attempts_per_scene
 offline_calib_attempts = sum(x for x in offline_num_attempts_per_scene[:3] if x is not None)
 
+x = np.arange(1, max_length + 1)
+
 # ----------- Plot 1: Attempts per Scene ----------- #
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.figure(figsize=(6.5, 4))
 
-plt.plot(offline_num_attempts_per_scene, label='W/ Offline Calibration', color='tab:blue', linewidth=2, marker='o', markersize=5)
-plt.plot(online_num_attempts_per_scene, label='W/o Offline Calibration', color='tab:orange', linewidth=2, marker='s', markersize=5)
+plt.plot(x, offline_num_attempts_per_scene, label='W/ Offline Calibration', color='tab:blue', linewidth=2, marker='o', markersize=5)
+plt.plot(x, online_num_attempts_per_scene, label='W/o Offline Calibration', color='tab:orange', linewidth=2, marker='s', markersize=5)
 plt.xlabel('Scene', fontsize=12)
 plt.ylabel('Number of Actions', fontsize=12)
-plt.xticks(range(max_length), fontsize=10)
+plt.xticks(x, fontsize=10)
 plt.yticks(fontsize=10)
 plt.axvline(x=3 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offline Calibration End')
 plt.grid(True, linestyle='--', alpha=0.6)
@@ -161,9 +163,9 @@ max_len = max(len(offline_final_D_dists), len(online_final_D_dists))
 online_offset = max_len - len(online_final_D_dists)
 
 # Create x-axis ranges
-offline_x = list(range(max_len))
-online_x = list(range(online_offset, max_len))
-
+offline_x = list(range(1, max_len+1))
+online_x = list(range(online_offset + 1, max_len + 1))
+x = list(range(1, max_len + 1))
 # Plot D distances
 plt.style.use('seaborn-v0_8-whitegrid')
 plt.figure(figsize=(6.5, 4))
@@ -179,7 +181,7 @@ plt.axvline(x=3 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offli
 
 plt.xlabel('Scene', fontsize=12)
 plt.ylabel('Distance to Ground Truth Back Panel [cm]', fontsize=12)
-plt.xticks(range(max_len), fontsize=10)
+plt.xticks(x, fontsize=10)
 plt.yticks(fontsize=10)
 plt.grid(True, linestyle='--', linewidth=0.6, alpha=0.7)
 plt.legend(fontsize=11, loc='upper right', frameon=False)

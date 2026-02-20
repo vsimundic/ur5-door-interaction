@@ -165,6 +165,8 @@ for filename, label in camera_param_logs.items():
         })
 
 df_camera = pd.DataFrame(camera_scene_data)
+# Update scene to be 1-20 instead of 0-19
+df_camera["Scene"] = df_camera["Scene"] + 1
 # save to csv
 df_camera.to_csv(os.path.join(analysis_dir, "camera_parameters_average_attempts_per_scene.csv"), index=False)
 sns.lineplot(data=df_camera, x="Scene", y="Average Actions", hue="Configuration",
@@ -172,7 +174,7 @@ sns.lineplot(data=df_camera, x="Scene", y="Average Actions", hue="Configuration"
 axs[0].set_xlabel("Scene", fontsize=12)
 axs[0].set_ylabel("Average Number of Actions", fontsize=12)
 axs[0].set_title("Camera Perturbation Parameters", fontsize=14)
-axs[0].set_xticks(range(0, 20))
+axs[0].set_xticks(range(1, 21))
 axs[0].tick_params(axis='x', labelsize=10)
 axs[0].tick_params(axis='y', labelsize=10)
 axs[0].grid(True, linestyle='--', linewidth=0.6, alpha=0.7)
@@ -194,6 +196,8 @@ for filename, label in correction_param_logs.items():
         })
 
 df_correction = pd.DataFrame(correction_scene_data)
+# Update scene to be 1-20 instead of 0-19
+df_correction["Scene"] = df_correction["Scene"] + 1
 # save to csv
 df_correction.to_csv(os.path.join(analysis_dir, "correction_parameters_average_attempts_per_scene.csv"), index=False)
 sns.lineplot(data=df_correction, x="Scene", y="Average Actions", hue="Configuration",
@@ -201,7 +205,7 @@ sns.lineplot(data=df_correction, x="Scene", y="Average Actions", hue="Configurat
 axs[1].set_xlabel("Scene", fontsize=12)
 axs[1].set_ylabel("Average Number of Actions", fontsize=12)
 axs[1].set_title("Optimization Parameters", fontsize=14)
-axs[1].set_xticks(range(0, 20))
+axs[1].set_xticks(range(1, 21))
 axs[1].tick_params(axis='x', labelsize=10)
 axs[1].tick_params(axis='y', labelsize=10)
 axs[1].grid(True, linestyle='--', linewidth=0.6, alpha=0.7)
@@ -256,7 +260,7 @@ for i, (label, color) in enumerate(zip(bins_labels, colors)):
 
 # Save binned data to CSV
 binned_df = pd.DataFrame(
-    {f"Scene {scene_id}": binned_data[scene_id] for scene_id in scene_ids},
+    {f"Scene {scene_id+1}": binned_data[scene_id] for scene_id in scene_ids},
     index=bins_labels
 )
 binned_df.to_csv(os.path.join(analysis_dir, "simulation_scene_attempts_distribution_baseline.csv"), index_label="Attempts")
@@ -264,7 +268,7 @@ binned_df.to_csv(os.path.join(analysis_dir, "simulation_scene_attempts_distribut
 # Axis settings
 plt.xlabel("Scene", fontsize=12)
 plt.ylabel("Count", fontsize=12)
-plt.xticks(x, [str(s) for s in scene_ids], fontsize=10)
+plt.xticks(x, [str(s+1) for s in scene_ids], fontsize=10)
 plt.yticks(fontsize=10)
 plt.grid(True, linestyle='--', linewidth=0.6, alpha=0.7)
 
