@@ -89,50 +89,50 @@ RUN pip3 install python-fcl==0.7.0.6
 
 
 ###### DETECTRON2 ######
-WORKDIR /home/RVLuser
-# COPY ../detectron2/ /home/RVLuser/detectron2
+WORKDIR /opt
+
+# 1. Install base dependencies and upgrade pip natively
 RUN apt-get update && apt-get install -y \
-    python3-opencv ca-certificates python3-dev git wget sudo ninja-build
-# RUN ln -sv /usr/bin/python3 /usr/bin/python
+    python3-opencv ca-certificates python3-dev git wget sudo ninja-build python3-setuptools \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m pip install --upgrade pip
 
-RUN wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && \
-    python3 get-pip.py --user && \
-    rm get-pip.py
+# 2. Install all required python dependencies
+RUN pip3 install --no-cache-dir \
+    cython==0.29.36 \
+    pycocotools==2.0.6 \
+    matplotlib==3.7.2 \
+    omegaconf>=2.4.0 \
+    hydra-core>=1.1 \
+    tensorboard \
+    onnx \
+    'git+https://github.com/facebookresearch/fvcore'
 
+# 3. Install PyTorch for CUDA 11.1
+RUN pip3 install --no-cache-dir torch==1.10.0+cu111 torchvision==0.11.1+cu111 \
+    -f https://download.pytorch.org/whl/cu111/torch_stable.html
 
-# Install dependencies for detectron2
-RUN apt-get install python3-setuptools
-RUN pip3 install --upgrade cython==0.29.36
-RUN pip3 install pycocotools==2.0.6
-RUN pip3 install matplotlib==3.7.2
-# Install omegaconf and hydra-core with compatible versions
-RUN pip3 install omegaconf>=2.4.0 hydra-core>=1.1
+# 4. INSTALL DETECTRON2 VIA PRE-BUILT WHEEL
+RUN python3 -m pip install detectron2 -f \
+  https://dl.fbaipublicfiles.com/detectron2/wheels/cu111/torch1.10/index.html
 
-# install dependencies
-# See https://pytorch.org/ for other options if you use a different version of CUDA
-RUN pip3 install tensorboard onnx # cmake from apt-get is too old
-RUN pip3 install torch==1.10 torchvision==0.11.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
+# 5. Clone Detectron2 safely into /opt
+RUN git clone https://github.com/facebookresearch/detectron2 /opt/detectron2
 
-RUN pip3 install 'git+https://github.com/facebookresearch/fvcore'
-# install detectron2
-# RUN git clone https://github.com/facebookresearch/detectron2 detectron2_repo
-# set FORCE_CUDA because during `docker build` cuda is not accessible
+# 6. Set environment variables to force CUDA compilation for TensorMask
 ENV FORCE_CUDA="1"
-# This will by default build detectron2 for all common cuda architectures and take a lot more time,
-# because inside `docker build`, there is no way to tell which architecture will be used.
 ARG TORCH_CUDA_ARCH_LIST="Kepler;Kepler+Tesla;Maxwell;Maxwell+Tegra;Pascal;Volta;Turing"
 ENV TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}"
-
-RUN apt-get update
-
-# WORKDIR /home/RVLuser/detectron2
-# RUN pip3 install -e detectron2
-# RUN python3 setup.py build develop
 ENV FVCORE_CACHE="/tmp"
 
-# RUN pip3 install -e /home/RVLuser/detectron2/projects/TensorMask
-# WORKDIR /home/RVLuser/detectron2/projects/TensorMask
-# RUN python3 setup.py build develop
+# 7. Compile TensorMask's custom CUDA extensions
+WORKDIR /opt/detectron2/projects/TensorMask
+RUN python3 setup.py build develop
+
+# 8. Add TensorMask to the PYTHONPATH so your ROS scripts can import it
+ENV PYTHONPATH="${PYTHONPATH}:/opt/detectron2/projects/TensorMask"
+
+WORKDIR /
 
 
 ###### ROS-UR5 ######
