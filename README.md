@@ -22,9 +22,9 @@ Install Docker from the [official page](https://docs.docker.com/desktop/install/
 
 Clone and enter the repository:
 ```bash
-git clone https://gitlab.com/vsimundic/rvl-ur5-detectron2-docker
+git clone --recurse-submodules https://github.com/vsimundic/ur5-door-interaction.git
 
-cd rvl-ur5-detectron2-docker
+cd ur5-door-interaction
 ```
 
 Run the shell script to build the Docker image:
