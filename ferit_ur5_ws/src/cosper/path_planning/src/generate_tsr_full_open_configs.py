@@ -12,11 +12,11 @@ from tqdm import tqdm
 
 np.random.seed(69)
 
-doors = np.load('/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/door_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/door_configurations_axis_left.npy')
 
-pkg_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning'
+pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
 doors_tsr_configs_path = os.path.join(pkg_path, 'tsr_data', 'full_open_configs')
-urdf_path = '/home/RVLuser/ferit_ur5_ws/cabinet_handle_test.urdf'
+urdf_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.urdf'
 
 if not os.path.exists(doors_tsr_configs_path):
     os.makedirs(doors_tsr_configs_path)
@@ -42,7 +42,7 @@ for i_door in tqdm(range(doors.shape[0])):
                             T_A_S=T_A_S,
                             save_path=os.path.join(doors_tsr_configs_path, 'cabinet_%d.urdf'%i_door),
                             has_handle=True)
-    cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/cabinet_handle_test.ply'
+    cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.ply'
 
     # cabinet_model.save_mesh(os.path.join(doors_tsr_configs_path, 'cabinet_%d.stl'%i_door))
 

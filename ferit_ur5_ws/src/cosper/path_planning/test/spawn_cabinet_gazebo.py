@@ -22,12 +22,12 @@ from core.gazebo import get_joint_info, get_link_pose
 
 rospy.init_node('spawn_cabinet_node')
 
-doors = np.load('/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/door_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/door_configurations_axis_left.npy')
 
-pkg_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning'
+pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
 doors_tsr_configs_path = os.path.join(pkg_path, 'tsr_data', 'grasp_open_configs')
 
-moveit_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results_single_contact_handle_moveit.csv'
+moveit_results_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact_results_single_contact_handle_moveit.csv'
 mesh_save_path = '/home/RVLuser/ferit_ur5_ws/test_cabinet.ply'
 urdf_save_path = '/home/RVLuser/ferit_ur5_ws/test_cabinet.urdf'
 moveit_df = read_csv_DataFrame(moveit_results_path)

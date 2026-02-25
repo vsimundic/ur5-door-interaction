@@ -80,16 +80,14 @@ rospy.init_node('node_generate_door_configurations')
 rospack = RosPack()
 
 # pkg_path = rospack.get_path('path_planning')
-pkg_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning'
+pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
 # Choose epxeriment
 exp_name = 'real_exp' # simulation_exp, real_exp
 
 if exp_name == 'simulation_exp':
     cfg_path = os.path.join(pkg_path, 'config/config_simulations_axis_left.yaml')
-    # save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left.npy')
 elif exp_name == 'real_exp':
     cfg_path = os.path.join(pkg_path, 'config/config_multi-c_our_handleless_axis_left_real3.yaml')
-    # save_path = os.path.join(pkg_path, 'cabinet_configurations_axis_left_real2.npy')
 config = read_config(cfg_path)
 
 save_path = config['cabinet_configs_path']

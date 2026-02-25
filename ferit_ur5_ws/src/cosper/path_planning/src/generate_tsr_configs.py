@@ -9,11 +9,11 @@ from tqdm import tqdm
 
 # np.random.seed(69)
 
-doors = np.load('/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinet_configurations_axis_left.npy')
 
-pkg_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning'
+pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
 doors_tsr_configs_path = os.path.join(pkg_path, 'tsr_data', 'cabinet_configs')
-urdf_path = '/home/RVLuser/ferit_ur5_ws/cabinet_handle_test.urdf'
+urdf_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.urdf'
 
 if not os.path.exists(doors_tsr_configs_path):
     os.makedirs(doors_tsr_configs_path)

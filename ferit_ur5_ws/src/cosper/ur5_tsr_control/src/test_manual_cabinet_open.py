@@ -65,7 +65,7 @@ def main():
     rospy.init_node('test_tsr_cabinet_open_node', anonymous=True)
 
     # Cabinet URDF path
-    urdf_path = '/home/RVLuser/ferit_ur5_ws/cabinet_handle_test.urdf'
+    urdf_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.urdf'
 
     # Read door data from csv
     csv_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/push_simulation/simulation_results_real_robot_20240305_final.csv'
@@ -116,7 +116,7 @@ def main():
                                 T_A_S=T_A_S,
                                 save_path=urdf_path,
                                 has_handle=True)
-        cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/cabinet_handle_test.ply'
+        cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.ply'
         cabinet_model.save_mesh(cabinet_mesh_filename)
 
         cabinet_model.delete_model_gazebo()

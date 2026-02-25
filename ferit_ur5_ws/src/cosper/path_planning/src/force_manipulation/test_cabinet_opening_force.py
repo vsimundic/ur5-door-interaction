@@ -15,15 +15,21 @@ from utils import *
 # from path_planning.src.force_manipulation.force_utils import *
 from force_utils import *
 import threading
+from rospkg import RosPack
 
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
     
-    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real.csv'
+	rp = RosPack()
+	pkg_path = rp.get_path('path_planning')
+	# From package path, take out the workspace path
+	workspace_path = pkg_path[:pkg_path.find('/src/')]
+
+    read_results_path = os.path.join(workspace_path, data, 'multi-contact/results_multi-c_our_handleless_real.csv')
     data = read_csv_DataFrame(read_results_path)
 
-    real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results.txt'
-    traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories'
+    real_results_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/results.txt')
+    traj_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories')
 
     START_FROM_BEGGINING = False
     
@@ -40,7 +46,7 @@ if __name__ == '__main__':
     # rvl_cfg_path = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
 
 	# Load door configurations
-    door_configs_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left_real.npy'
+    door_configs_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinet_configurations_axis_left_real.npy'
     doors = np.load(door_configs_path)
     num_doors = int(doors.shape[0]*0.5)
 

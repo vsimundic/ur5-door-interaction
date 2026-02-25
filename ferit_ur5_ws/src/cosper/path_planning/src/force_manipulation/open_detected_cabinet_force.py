@@ -16,26 +16,31 @@ from utils import *
 from force_utils import *
 import threading
 import json
+from rospkg import RosPack
 
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
     
-    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real.csv'
+	rp = RosPack()
+	pkg_path = rp.get_path('path_planning')
+	# From package path, take out the workspace path
+	workspace_path = pkg_path[:pkg_path.find('/src/')]
+
+    read_results_path = os.path.join(workspace_path, data, 'multi-contact/results_multi-c_our_handleless_real.csv')
     data = read_csv_DataFrame(read_results_path)
 
-    real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results.txt'
-    traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories'
-
+    real_results_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/results.txt')
+    traj_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories')
     rvl_cfg_path = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
 
     # Robot handler
     robot = UR5Controller()
     robot.get_current_joint_values()
     T_R_W = np.eye(4)
-    T_C_6 = np.load('/home/RVLuser/ferit_ur5_ws/data/camera_calibration_20250331/T_C_T.npy')
+    T_C_6 = np.load(os.path.join(workspace_path, data, 'camera_calibration_20250331/T_C_T.npy'))
 
     # Load door model
-    door_model_path = '/home/RVLuser/ferit_ur5_ws/data/door_detection/models/doorModel.json'
+    door_model_path = os.path.join(workspace_path, data, 'door_detection/models/doorModel.json')
     with open(door_model_path, 'r') as f:
         data = json.load(f)
     

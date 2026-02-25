@@ -9,16 +9,22 @@ from gazebo_push_open.cabinet_model import Cabinet
 # from cabinet_model import generate_cabinet_urdf_from_door_panel, get_cabinet_world_pose
 import numpy as np
 from utils import *
+from rospkg import RosPack
 
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
-    
-    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real3.csv'
+
+	rp = RosPack()
+	pkg_path = rp.get_path('path_planning')
+	# From package path, take out the workspace path
+	workspace_path = pkg_path[:pkg_path.find('/src/')]
+
+    read_results_path = os.path.join(workspace_path, data, 'multi-contact/results_multi-c_our_handleless_real3.csv')
     data = read_csv_DataFrame(read_results_path)
 
-    real_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/results3.txt'
-    traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories_3'
-    door_configs_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left_real3.npy'
+    real_results_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/results3.txt')
+    traj_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories_3')
+    door_configs_path = os.path.join(workspace_path, data, 'multi-contact/cabinet_configurations_axis_left_real3.npy')
 
     START_FROM_BEGGINING = False
     

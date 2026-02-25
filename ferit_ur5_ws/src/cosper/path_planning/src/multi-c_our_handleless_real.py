@@ -30,7 +30,9 @@ if __name__ == '__main__':
 
 	rp = RosPack()
 	pkg_path = rp.get_path('path_planning')
-	
+	# From package path, take out the workspace path
+	workspace_path = pkg_path[:pkg_path.find('/src/')]
+
 	# Config
 	cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real3.yaml' % method_name)
 	config = read_config(cfg_path)
@@ -53,7 +55,7 @@ if __name__ == '__main__':
 	rvl_cfg = config['rvl_config_path'] 
 	
     # Trajectories path
-	traj_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/Exp-real_robot_cabinet_open/trajectories_3'
+	traj_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open','trajectories_3')
 	if not os.path.exists(traj_path):
 		os.makedirs(traj_path)
 	# If False, the data loads and the experiment starts where it stopped

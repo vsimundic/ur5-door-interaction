@@ -24,7 +24,7 @@ cabinet_pose:
   rot_angle_min_deg: -180
   rot_angle_max_deg: 180
   axis_pos: -1
-cabinet_urdf_save_path: "/home/RVLuser/ferit_ur5_ws/cabinet.urdf"
+cabinet_urdf_save_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet.urdf"
 cabinet_mesh_save_path: "/home/RVLuser/ferit_ur5_ws/cabinet.ply"
 
 ## Feasible poses setup
@@ -48,16 +48,16 @@ feasible_poses:
   # feasible_poses_path: "/home/RVLuser/rvl-linux/python/DDMan/feasible_poses.npy"
   # feasible_poses_path: "/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis.npy"
   feasible_poses_path: "/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis_fcl.npy"
-  contact_free_poses_path: "/home/RVLuser/ferit_ur5_ws/src/cosper/push_simulation/config/contact_free_poses.npy"
-  valid_contact_poses_path: "/home/RVLuser/ferit_ur5_ws/src/cosper/push_simulation/config/valid_contact_poses.npy"
+  contact_free_poses_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/contact_free_poses.npy"
+  valid_contact_poses_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/valid_contact_poses.npy"
   visualization: False
 
 rvl_config_path: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_exp1.cfg"
 tool_model_params: "/home/RVLuser/rvl-linux/data/Robotiq3Finger"
-cabinet_configs_path: "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/cabinet_configurations_axis_left.npy"
+cabinet_configs_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinet_configurations_axis_left.npy"
 gazebo_launch_path: "/home/RVLuser/ferit_ur5_ws/src/ur5_configs/ur5_robotiq_ft_3f_moveit_config/launch/demo_gazebo.launch"
-gripper_tool_pose: "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/T_G_T.npy"
-robot_world_pose: "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/config/T_R_W.npy"
+gripper_tool_pose: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/T_G_T.npy"
+robot_world_pose: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/T_R_W.npy"
 
-results_path: "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_single-c_our_handleless.csv"
-screenshots_path: "/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/screenshots_single-c_our_handleless"
+results_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/simulations/results_single-c_our_handleless.csv"
+screenshots_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/screenshots_single-c_our_handleless"

@@ -1,2 +1,0 @@
-path_found,traj_success,contact_free,door_opened,door_width,door_height,x,y,z,rot_z,state_angle,axis_pos
-True,False,True,False,0.4105020669399432,0.5578196062516284,-0.6720636823461996,0.6713171460404409,0.3029098031258142,82.17582491776221,-7.631172303671645,-1.0

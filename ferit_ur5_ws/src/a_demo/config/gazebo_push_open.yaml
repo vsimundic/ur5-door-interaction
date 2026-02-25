@@ -30,7 +30,7 @@ cabinet_pose:
   rot_angle_min_deg: 0
   rot_angle_max_deg: 0
   axis_pos: -1
-cabinet_urdf_save_path: "/home/RVLuser/ferit_ur5_ws/cabinet.urdf"
+cabinet_urdf_save_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet.urdf"
 cabinet_mesh_save_path: "/home/RVLuser/ferit_ur5_ws/cabinet.ply"
 
 ## Feasible poses setup

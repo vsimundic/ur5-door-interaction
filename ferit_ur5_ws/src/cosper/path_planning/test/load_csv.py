@@ -11,7 +11,7 @@ def rot_z(angle_rad):
     
     return R
 
-results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results_simulation_tsr_single_contact.csv'
+results_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact_results_simulation_tsr_single_contact.csv'
 
 data = pd.read_csv(filepath_or_buffer=results_path, sep=',', header=0)
 

@@ -22,7 +22,7 @@ import csv
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
     
-    read_results_path = '/home/RVLuser/ferit_ur5_ws/src/cosper/path_planning/results/results_multi-c_our_handleless_real.csv'
+    read_results_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/simulations/results_multi-c_our_handleless_real.csv'
     data = read_csv_DataFrame(read_results_path)
 
     success_data = data.loc[((data['path_found'] == True) & 

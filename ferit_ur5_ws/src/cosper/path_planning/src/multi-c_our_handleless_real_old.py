@@ -26,8 +26,10 @@ if __name__ == '__main__':
 
 	rp = RosPack()
 	pkg_path = rp.get_path('path_planning')
+	# From package path, take out the workspace path
+	workspace_path = pkg_path[:pkg_path.find('/src/')]
 
-	save_path = os.path.join(pkg_path, 'config/real_robot/Exp-real_robot_cabinet_open')
+	save_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open')
 	if not os.path.isdir(save_path):
 		os.makedirs(save_path)
 
