@@ -9,7 +9,7 @@ This repository contains a Docker container which involves:
 
 ### Docker installation
 
-You will need a PC that supports **Nvidia drivers and CUDA** (don't need to install them on your own) in order to launch TensorMask.
+You will need a PC that supports **Nvidia drivers and CUDA** in order to launch TensorMask.
 
 Ubuntu: 
 Install Docker from the [official page](https://docs.docker.com/engine/install/ubuntu/). Don't forget to do the [postinstall steps](https://docs.docker.com/engine/install/linux-postinstall/).
@@ -17,6 +17,7 @@ Install Docker from the [official page](https://docs.docker.com/engine/install/u
 Windows:
 Install Docker from the [official page](https://docs.docker.com/desktop/install/windows-install/). To run the necessary shell scripts, you can use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
+Additionally, install the NVIDIA Container Toolkit.
 
 ### Container setup (Linux)
 
@@ -71,6 +72,19 @@ Inside the container, you may consider installing some extensions: Python, C/C++
 
 You don't need to setup any VSCode environments as they are already set to work with the container's paths (for RVL, ur5_Ws and detectron2). 
 
+## Data Setup
+
+Before running the project, you must download and place the required data files in the correct directories.
+
+1. **Project Root Data**
+   - Download **[summit_LOAD.zip](https://puh.srce.hr/s/mfYM3TjfLNXWBwp)**.
+   - Unzip the contents into the `data/` directory located at the root of this repository.
+   - *Final path example:* `ur5-door-interaction/data/summit_LOAD/...`
+
+2. **Workspace Data**
+   - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
+   - Unzip the contents into the `data/` directory inside `ferit_ur5_ws`.
+   - *Final path example:* `ur5-door-interaction/ferit_ur5_ws/data/...`
 
 ## Usage
 
