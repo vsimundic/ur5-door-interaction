@@ -1,7 +1,7 @@
 # RUN DOCKER
-docker stop rvl_ur5_detectron2
+docker stop ur5_door_interaction
 
-docker rm rvl_ur5_detectron2
+docker rm ur5_door_interaction
 
 docker run --ipc=host --gpus all --runtime=runc --interactive -it \
 --shm-size=10gb \
@@ -12,6 +12,6 @@ docker run --ipc=host --gpus all --runtime=runc --interactive -it \
 --workdir="/home/RVLuser" \
 --privileged \
 --net=host \
---name=rvl_ur5_detectron2 rvl:ur5_detectron2
+--name=ur5_door_interaction ur5_di:latest
 
-# docker exec -it rvl_ur5_detectron2 bash
+# docker exec -it ur5_door_interaction bash

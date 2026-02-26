@@ -1,4 +1,4 @@
 # BUILD DOCKER
 # docker build --progress=plain -t rvl:ur5 . 2>&1 | tee build.log
-docker build --progress=plain -t rvl:ur5_detectron2 .
+docker build --progress=plain -t ur5_di:latest .
 
