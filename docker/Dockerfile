@@ -97,10 +97,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 RUN python3 -m pip install --upgrade pip
 
-# 2. Install all required python dependencies
+# 2. Install core build dependencies first so PyCocoTools can compile
 RUN pip3 install --no-cache-dir \
-    cython==0.29.36 \
-    pycocotools==2.0.6 \
+    numpy \
+    cython==0.29.36
+
+# 3. Install remaining python dependencies
+# Pip will fetch the latest version which has fixed these Cython build errors.
+RUN pip3 install --no-cache-dir \
+    pycocotools \
     matplotlib==3.7.2 \
     omegaconf>=2.4.0 \
     hydra-core>=1.1 \
@@ -168,7 +173,7 @@ RUN pip3 install pyyaml
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Install open3d for point cloud processing and visualization
-RUN pip3 install open3d
+RUN pip3 install --ignore-installed blinker open3d
 # Install Pillow for image processing
 RUN pip3 install Pillow==9.0.0
 
