@@ -22,8 +22,8 @@ camera_info_topic: "/camera/color/camera_info"
 bag_reproduce_rate: 0.5
 
 # Detectron2 config
-model_path: "/home/RVLuser/detectron2/projects/TensorMask/checkpoints/tensormask_R_50_FPN_1x.pkl"
-config_path: "/home/RVLuser/detectron2/projects/TensorMask/configs/tensormask_R_50_FPN_1x.yaml"
+model_path: "/home/RVLuser/weights/TensorMask/tensormask_R_50_FPN_1x.pkl"
+config_path: "/opt/detectron2/projects/TensorMask/configs/tensormask_R_50_FPN_1x.yaml"
 roi_heads_threshold: 0.5
 instance_threshold: 0.4
 visualize_images: True

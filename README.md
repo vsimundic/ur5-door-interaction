@@ -1,11 +1,11 @@
-# Door opening pipeline from Human demonstration
+# Robot Door Opening Pipeline From Human Demonstration
 
-This repository contains a Docker container which involves:
+This repository contains a Docker setup which involves:
 - Robotic Vision Library (RVL),
 - ROS with packages for controlling the UR5 robot and
 - TensorMask from detectron2.
 
-## Installation
+# Installation
 
 ### Docker installation
 
@@ -48,7 +48,7 @@ After installation, run the Docker container:
 ```
 The scripts will first stop and remove the current container if it exists. If it doesn't it will output an error that it can't stop or remove the container, but they can be ignored.
 
-The container is now initialized and running. You can run `ls` command to check if the rvl-linux, detectron2 and ur5_ws directories are listed. If not, exit the current instance of the container and change the first part of the first --volume argument to look like this:
+The container is now initialized and running. You can run `ls` command to check if the rvl-linux and ferit_ur5_ws directories are listed. If not, exit the current instance of the container and change the first part of the first --volume argument to look like this:
 ```bash
 --volume="/path/to/your/project/dir:/home/RVLuser" \
 ```
@@ -59,7 +59,7 @@ Rerun the container with:
 
 If you need more terminals inside the container, you can create a new one with:
 ```bash
-docker exec -it rvl_ur5_detectron2 bash
+docker exec -it ur5_door_interaction bash
 ```
 
 
@@ -70,7 +70,10 @@ A tutorial on the developing inside a container can be found [here](https://code
 
 Inside the container, you may consider installing some extensions: Python, C/C++, ROS, CMake, Makefile Tools. These aren't necessary, but are helpful. 
 
-You don't need to setup any VSCode environments as they are already set to work with the container's paths (for RVL, ur5_Ws and detectron2). 
+You don't need to setup any VSCode environments as they are already set to work with the container's paths (for RVL, ur5_ws and detectron2). 
+
+
+# Door and Drawer Detection
 
 ## Data Setup
 
@@ -86,83 +89,44 @@ Before running the project, you must download and place the required data files 
    - Unzip the contents into the `data/` directory inside `ferit_ur5_ws`.
    - *Final path example:* `ur5-door-interaction/ferit_ur5_ws/data/...`
 
-## Usage
+3. **TensorMask weights**
+   - Store the following pre-trained weights in `data/weights/` directory:
+   ```bash
+   mkdir -p data/weights/TensorMask
+   wget https://dl.fbaipublicfiles.com/detectron2/TensorMask/tensormask_R_50_FPN_1x/152549419/model_final_8f325c.pkl -O data/weights/TensorMask/tensormask_R_50_FPN_1x.pkl
+   ```
 
-The current 'user' RVLuser is already root.
-
-### RVL usage
-
-Inside the container, navigate to RVL's root directory:
+## Build
+Build RVL:
 ```bash
-cd /home/RVLuser/rvl-linux
-```
-Build the library with:
-```bash
+cd rvl-linux
 make
-```
-Configure the necessary .cfg files in the root directory of the library and run the program. For example:
+``` 
+
+## Demo Usage
+
+### Detectron2 Rosbag Segmentation
+
+TODO: find a bagfile.
+
+### Door and Drawer Detection
+In `rvl-linux` directory, there is a file called `RVLRecognitionDemo.cfg`, which represents the main config file. This file is used to load specific config files which use different parts of code. For this demo, we use `RVLRecognitionDemo_Cupec_DDD2_Detection_LOAD.cfg`. Please make sure that this specific config file is NOT commented in `RVLRecognitionDemo.cfg`.
+
+Also, please make sure that you download the `summit_LOAD.zip` and unpack it in the right directory. You can change the path of the directory, but then adjust the paths in `RVLRecognitionDemo_Cupec_DDD2_Detection_LOAD.cfg`.
+
+While inside `rvl-linux`, run:
 ```bash
 ./build/bin/RVLRecognitionDemo
 ```
-
-### ROS usage
-Inside the container, in one terminal, initialize roscore:
-```bash
-roscore
-```
-In another terminal, navigate to the ur5_ws directory:
-```bash
-cd /home/RVLuser/ferit_ur5_ws
-```
-build the packages:
-```bash
-# ~catkin_make~
-catkin build
-```
-source the project:
-```bash
-source devel/setup.bash
-```
-<!-- and run the Python node that takes images from a camera, generates PLY files and runs DDDetector to detect the doors:
-```bash
-rosrun ao_manipulation detect_AO_model_node.py
-``` -->
-
-### Detectron2 usage
-Inside the container, navigate to TensorMask directory:
-```bash
-cd /home/RVLuser/detectron2/projects/TensorMask
-```
-Run an example: (needs testing)
-```bash
-python3 train_net.py --config-file configs/tensormask_R_50_FPN_1x.yaml --eval-only MODEL.WEIGHTS checkpoints/tensormask_R_50_FPN_1x.pkl
-```
-
-### Path planning & Gazebo
-
-Enter the ferit_ur5_ws directory (make if needed) and source:
-```bash
-cd /home/RVLuser/ferit_ur5_ws
-catkin_make
-source devel/setup.bash
-```
-Run the Gazebo simulation with:
-```bash
-roslaunch ur5_robotiq3f_moveit_config demo_gazebo.launch
-```
-
-In another terminal (also sourced), start the node for opening a cabinet from one feasible point:
-```bash
-roslaunch a_demo gazebo_push_open_demo.launch
-```
+![Door detection](figs/door_detection.png)
 
 
-<!-- ## Contributing
+# Multicontact Path Planning for Door Opening
+TBD
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change. -->
+# Failure Recovery in Door Opening
+TBD
 
-
-## License
+# License
 
 [MIT](https://choosealicense.com/licenses/mit/)
