@@ -59,20 +59,8 @@ Additionally, install the NVIDIA Container Toolkit.
    docker exec -it ur5_door_interaction bash
    ```
 
-### VSCode Setup
 
-While the container is running, you can attach VSCode to it. See the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/containers).
-
-Recommended extensions inside the container:
-- Python
-- C/C++
-- ROS
-- CMake
-- Makefile Tools
-
-VSCode paths for RVL, ferit_ur5_ws, and detectron2 are pre-configured.
-
-## Door and Drawer Detection
+# Door and Drawer Detection
 
 ### Data Setup
 
@@ -83,12 +71,7 @@ Before running the project, download and place the required data files in the co
    - Unzip into `data/` at the repository root.
    - *Example Path:* `ur5-door-interaction/data/kitchen_data/...`
 
-2. **Workspace Data**
-   - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
-   - Unzip into `ferit_ur5_ws/data/`.
-   - *Example Path:* `ur5-door-interaction/ferit_ur5_ws/data/...`
-
-3. **TensorMask Weights**
+2. **TensorMask Weights**
    - Store the pre-trained weights in `data/weights/`:
      ```bash
      mkdir -p data/weights/TensorMask
@@ -191,16 +174,23 @@ Results are saved to `DDT.txt`. Each line represents a detected moving part (Doo
 | 12 | ty | Float | Position Y |
 | 13 | tz | Float | Position Z |
 | 14 | Reserved | Float | Always 0.0 |
-| 15 | Size X | Float | Dimension 0 (s[0]) |
-| 16 | Size Y | Float | Dimension 1 (s[1]) |
+| 15 | Width | Float | Dimension 0 (s[0]) |
+| 16 | Height | Float | Dimension 1 (s[1]) |
 | 17 | Radius/Param 0 | Float | Additional parameter 0 (r[0]) |
 | 18 | Radius/Param 1 | Float | Additional parameter 1 (r[1]) |
 | 19 | Opening Direction | Float | Direction of opening |
 
-## Multicontact Path Planning for Door Opening
-*TBD*
+# Multicontact Path Planning for Door Opening
 
-## Failure Recovery in Door Opening
+### Data Setup
+1. **Workspace Data**
+   - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
+   - Unzip into `ferit_ur5_ws/data/`.
+   - *Example Path:* `ur5-door-interaction/ferit_ur5_ws/data/...`
+
+
+
+# Failure Recovery in Door Opening
 *TBD*
 
 ## License
