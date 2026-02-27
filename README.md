@@ -24,7 +24,7 @@ Additionally, install the NVIDIA Container Toolkit.
 1. Clone and enter the repository:
    ```bash
    git clone --recurse-submodules https://github.com/vsimundic/ur5-door-interaction.git
-   cd ur5-door-interaction
+   cd ur5-door-interaction/docker
    ```
 
 2. Run the shell script to build the Docker image:
@@ -32,13 +32,9 @@ Additionally, install the NVIDIA Container Toolkit.
    ./build_docker.sh
    ```
 
-3. Enable X11 forwarding (required for GUI apps):
+3. Enable X11 forwarding (required for GUI):
    ```bash
-   xhost +
-   ```
-   *Note: This command needs to be run on every login. To avoid this, add it to your `.bashrc`:*
-   ```bash
-   echo "xhost +" >> ~/.bashrc 
+   xhost +local:root
    ```
 
 4. Run the Docker container:
@@ -47,22 +43,14 @@ Additionally, install the NVIDIA Container Toolkit.
    ```
    *The script will attempt to stop and remove any existing container instance first. You can ignore errors if no container was running.*
 
-   **Verification:**
-   Run `ls` inside the container to check if `rvl-linux` and `ferit_ur5_ws` directories are listed. If not, exit and modify the volume mapping in `run_docker.sh`:
-   ```bash
-   --volume="/path/to/your/project/dir:/home/RVLuser" \
-   ```
-   Then rerun `./run_docker.sh`.
-
 5. Open additional terminals inside the container:
    ```bash
    docker exec -it ur5_door_interaction bash
    ```
 
-
 # Door and Drawer Detection
 
-### Data Setup
+## Data Setup
 
 Before running the project, download and place the required data files in the correct directories.
 
@@ -78,9 +66,9 @@ Before running the project, download and place the required data files in the co
      wget https://dl.fbaipublicfiles.com/detectron2/TensorMask/tensormask_R_50_FPN_1x/152549419/model_final_8f325c.pkl -O data/weights/TensorMask/tensormask_R_50_FPN_1x.pkl
      ```
 
-### Demo Usage
+## Demo Usage
 
-#### 1. Detectron2 Rosbag Segmentation
+### 1. Detectron2 Rosbag Segmentation
 
 Build the segmentation workspace:
 ```bash
@@ -124,7 +112,7 @@ kitchen0001/
 
 ![Human segmentation](figs/human_segmentation.png)
 
-#### 2. Running Detection (RVL)
+### 2. Running Detection (RVL)
 
 The main configuration file is `rvl-linux/RVLRecognitionDemo.cfg`. It loads specific sub-configs.
 For this demo, ensure `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` is **uncommented** in `RVLRecognitionDemo.cfg`.
@@ -152,7 +140,7 @@ For this demo, ensure `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` is **uncomme
 
 *If the program crashes, verify all paths in the config files.*
 
-### Results
+## Results
 
 A window displaying hypotheses will appear. Press `q` to cycle through them until the window closes.
 
@@ -182,12 +170,31 @@ Results are saved to `DDT.txt`. Each line represents a detected moving part (Doo
 
 # Multicontact Path Planning for Door Opening
 
-### Data Setup
+## Data Setup
+
 1. **Workspace Data**
    - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
    - Unzip into `ferit_ur5_ws/data/`.
    - *Example Path:* `ur5-door-interaction/ferit_ur5_ws/data/...`
 
+## Demo Usage
+
+### 1. RVL Multicontact Planning
+The main configuration file is `rvl-linux/RVLMotionDemo.cfg`. It loads specific sub-configs.
+For this demo, ensure `RVLMotionDemo_Cupec.cfg` is **uncommented** in `RVLMotionDemo.cfg`.
+
+*Note: If you changed the `kitchen_data` path, update `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` accordingly.*
+
+**Step A: Creating PLY files**
+
+1. In `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg`, set `Save PLY` to `yes`.
+2. Build and run RVL:
+   ```bash
+   cd rvl-linux
+   make
+   ./build/bin/RVLRecognitionDemo
+   ```
+   This populates the `PLY_seg` directory.
 
 
 # Failure Recovery in Door Opening
