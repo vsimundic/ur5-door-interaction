@@ -67,6 +67,8 @@ class SegmentVideosNode:
             rospy.loginfo(bag)
 
             subprocess.call(['rosbag', 'play', bag, '-r', str(self.config['bag_reproduce_rate'])]) # Waits here until the rosbag stops playing
+            rospy.sleep(2.0)
+            self.save_scene_sequence_file()
             [sub.sub.unregister() for sub in [self.rgb_subscriber, self.depth_subscriber]]
         
         rospy.signal_shutdown('shutdown')
@@ -95,6 +97,14 @@ class SegmentVideosNode:
             rospy.loginfo('Saved camera information to file.')
 
         self.camera_info_subscriber.unregister()
+
+    def save_scene_sequence_file(self):
+        file_path = os.path.join(self.save_path_root, 'SceneSequence.txt')
+        with open(file_path, 'w') as f:
+            for i in range(self.image_counter):
+                f.write(f"{i:04d}.png\n")
+            f.write("end\n")
+        rospy.loginfo(f"Saved SceneSequence.txt to {file_path}")
 
     def set_save_paths(self, root_path):
         # Save paths
