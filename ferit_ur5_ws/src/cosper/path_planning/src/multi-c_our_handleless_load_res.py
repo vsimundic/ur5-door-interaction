@@ -42,7 +42,7 @@ if __name__ == '__main__':
     config = read_config(cfg_path)
     
     # Save/load path for results
-    # csv_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/simulations/results_multi-c_our_handleless_noFCL.csv'
+    # csv_path = '/home/RVLuser/data/multi-contact/simulations/results_multi-c_our_handleless_noFCL.csv'
     csv_path = config['results_path']
 
     # Gazebo simulation launch file (UR5 moveit config launch)

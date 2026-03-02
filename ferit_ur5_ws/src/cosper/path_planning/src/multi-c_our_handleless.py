@@ -21,9 +21,8 @@ if __name__ == '__main__':
 
     IS_SAVING_RESULTS = True
     IS_SAVING_IMAGES = False
-    START_FROM_BEGINNING = False
+    START_FROM_BEGINNING = True
     method_name = 'our'
-
     # TF buffer setup
     tf_buffer = Buffer()
     tf_listener = TransformListener(tf_buffer)

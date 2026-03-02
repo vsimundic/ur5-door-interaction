@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 lock_T_G_DD = False
 
-read_results_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact_results_single_contact_handle_moveit copy.csv'
+read_results_path = '/home/RVLuser/data/multi-contact_results_single_contact_handle_moveit copy.csv'
 data = read_csv_DataFrame(read_results_path)
 
 flags = [[False, False, False],
@@ -31,12 +31,12 @@ successful_indices = data.loc[((data['path_found'] == True) &
                         (data['contact_free'] == True) & 
                         (data['door_opened'] == True))].index.to_list()
 print(successful_indices)
-doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/door_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/data/multi-contact/door_configurations_axis_left.npy')
 
 T_R_W = np.eye(4)
 T_R_W[2, 3] = 0.005
 
-save_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/ikfast_successful_matrices/'
+save_path = '/home/RVLuser/data/multi-contact/ikfast_successful_matrices/'
 
 
 np.save(os.path.join(save_path, 'T0_B.npy'), T_R_W)

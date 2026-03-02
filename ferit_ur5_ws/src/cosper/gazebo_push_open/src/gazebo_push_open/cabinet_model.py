@@ -1044,12 +1044,12 @@ if __name__ == '__main__':
 
     # cabinet_model.save_door_panel_mesh('')
 
-    # cabinet_model.save_mesh_without_doors('/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_static.ply')
+    # cabinet_model.save_mesh_without_doors('/home/RVLuser/data/multi-contact/cabinets/cabinet_static.ply')
     
     # cabinet_model.visualize(None)
     
     # origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
-    # cab_stat_mesh = o3d.io.read_triangle_mesh('/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_static.ply')
+    # cab_stat_mesh = o3d.io.read_triangle_mesh('/home/RVLuser/data/multi-contact/cabinets/cabinet_static.ply')
     # cab_stat_mesh.translate(np.array([0, -0.01-0.005, 0]))
 
     cabinet_model.change_door_angle(0)
@@ -1057,7 +1057,7 @@ if __name__ == '__main__':
     cabinet_mesh.transform(np.linalg.inv(cabinet_model.T_A_O_init))
     origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)
     o3d.visualization.draw_geometries([cabinet_mesh, origin_rf])
-    o3d.io.write_triangle_mesh('/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_whole.ply', cabinet_mesh)
+    o3d.io.write_triangle_mesh('/home/RVLuser/data/multi-contact/cabinets/cabinet_whole.ply', cabinet_mesh)
 
     exit()
 

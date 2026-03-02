@@ -12,13 +12,13 @@ from tqdm import tqdm
 
 np.random.seed(69)
 
-doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/door_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/data/multi-contact/door_configurations_axis_left.npy')
 
-pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
+pkg_path = '/home/RVLuser/data/multi-contact'
 doors_tsr_configs_path = os.path.join(pkg_path, 'tsr_data', 'grasp_open_configs')
-urdf_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.urdf'
+urdf_path = '/home/RVLuser/data/multi-contact/cabinets/cabinet_handle_test.urdf'
 
-moveit_results_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact_results_single_contact_handle_moveit copy.csv'
+moveit_results_path = '/home/RVLuser/data/multi-contact_results_single_contact_handle_moveit copy.csv'
 
 moveit_df = read_csv_DataFrame(moveit_results_path)
 successful_indices = moveit_df.index[((moveit_df['path_found'] == True) & 
@@ -28,7 +28,7 @@ successful_indices = moveit_df.index[((moveit_df['path_found'] == True) &
 print(successful_indices)
 moveit_traj_save_path = os.path.join(pkg_path, 'moveit_traj_data')
 
-npy_save_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/ikfast_successful_matrices/'
+npy_save_path = '/home/RVLuser/data/multi-contact/ikfast_successful_matrices/'
 
 if not os.path.exists(doors_tsr_configs_path):
     os.makedirs(doors_tsr_configs_path)
@@ -57,7 +57,7 @@ for i_door in tqdm([successful_indices[0]]):
                             T_A_S=T_A_S,
                             save_path=os.path.join(doors_tsr_configs_path, 'cabinet_%d.urdf'%i_traj),
                             has_handle=True)
-    cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.ply'
+    cabinet_mesh_filename = '/home/RVLuser/data/multi-contact/cabinets/cabinet_handle_test.ply'
 
     # cabinet_model.save_mesh(os.path.join(doors_tsr_configs_path, 'cabinet_%d.stl'%i_traj))
 

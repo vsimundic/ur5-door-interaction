@@ -13,6 +13,7 @@ cabinet_door_dims:
   max_height: 0.8
 
   depth: 0.018
+  static_side_width: 0.018
   static_depth: 0.4
 
 # door axis pose
@@ -24,7 +25,7 @@ cabinet_pose:
   rot_angle_min_deg: -180
   rot_angle_max_deg: 180
   axis_pos: -1
-cabinet_urdf_save_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet.urdf"
+cabinet_urdf_save_path: "/home/RVLuser/data/multi-contact/cabinets/cabinet.urdf"
 cabinet_mesh_save_path: "/home/RVLuser/ferit_ur5_ws/cabinet.ply"
 
 ## Feasible poses setup
@@ -47,8 +48,8 @@ feasible_poses:
     sphere_to_TCS_distance: 0.004609
   # feasible_poses_path: "/home/RVLuser/rvl-linux/python/DDMan/feasible_poses.npy"
   feasible_poses_path: "/home/RVLuser/rvl-linux/data/Robotiq3Finger/feasible_poses_left_axis.npy"
-  contact_free_poses_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/contact_free_poses.npy"
-  valid_contact_poses_path: "/home/RVLuser/ferit_ur5_ws/data/multi-contact/valid_contact_poses.npy"
+  contact_free_poses_path: "/home/RVLuser/data/multi-contact/contact_free_poses.npy"
+  valid_contact_poses_path: "/home/RVLuser/data/multi-contact/valid_contact_poses.npy"
   visualization: False
 
 rvl_config_path: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec.cfg"

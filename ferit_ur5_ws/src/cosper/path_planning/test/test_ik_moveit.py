@@ -26,8 +26,8 @@ successful_indices = [19, 22, 38, 43, 51, 59, 67, 74, 81, 83, 87, 89, 93, 118, 1
 
 idx = successful_indices[0]
 
-pathT0_w = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/ikfast_successful_matrices/cabinet_%d_T0_w2.npy' % idx
-pathTw_e = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/ikfast_successful_matrices/cabinet_%d_Tw_e2.npy' % idx
+pathT0_w = '/home/RVLuser/data/multi-contact/ikfast_successful_matrices/cabinet_%d_T0_w2.npy' % idx
+pathTw_e = '/home/RVLuser/data/multi-contact/ikfast_successful_matrices/cabinet_%d_Tw_e2.npy' % idx
 
 T0_w = np.load(pathT0_w)
 Tw_e = np.load(pathTw_e)

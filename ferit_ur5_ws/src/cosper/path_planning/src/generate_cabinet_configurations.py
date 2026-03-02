@@ -79,10 +79,10 @@ def line_seg_to_circle_dist_all(cir, p1, p2s):
 rospy.init_node('node_generate_door_configurations')
 rospack = RosPack()
 
-# pkg_path = rospack.get_path('path_planning')
-pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
+pkg_path = rospack.get_path('path_planning')
+# pkg_path = '/home/RVLuser/data/multi-contact'
 # Choose epxeriment
-exp_name = 'real_exp' # simulation_exp, real_exp
+exp_name = 'simulation_exp' # simulation_exp, real_exp
 
 if exp_name == 'simulation_exp':
     cfg_path = os.path.join(pkg_path, 'config/config_simulations_axis_left.yaml')
@@ -120,7 +120,7 @@ cabinet_door_dims = config['cabinet_door_dims'] # w_door, h_door, static_d, d_do
 cabinet_pose = config['cabinet_pose']
 axis_pos = cabinet_pose['axis_pos']
 static_side_width = cabinet_door_dims['static_side_width']
-axis_distance = cabinet_door_dims['axis_distance']
+axis_distance = cabinet_door_dims['axis_distance'] if exp_name == 'real_exp' else 0.0
 
 # Params for height from floor
 # static_side_width = 0.017

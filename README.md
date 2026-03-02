@@ -57,7 +57,7 @@ Before running the project, download and place the required data files in the co
 1. **Project Root Data**
    - Download **[kitchen_data.zip](https://puh.srce.hr/s/XLZYmHE58zi9NzA)**.
    - Unzip into `data/` at the repository root.
-   - *Example Path:* `ur5-door-interaction/data/kitchen_data/...`
+   - *Example Path (host):* `ur5-door-interaction/data/kitchen_data/...`
 
 2. **TensorMask Weights**
    - Store the pre-trained weights in `data/weights/`:
@@ -168,33 +168,78 @@ Results are saved to `DDT.txt`. Each line represents a detected moving part (Doo
 | 18 | Radius/Param 1 | Float | Additional parameter 1 (r[1]) |
 | 19 | Opening Direction | Float | Direction of opening |
 
-# Multicontact Path Planning for Door Opening
+
+
+# Multi-Contact Path Planning for Door Opening
 
 ## Data Setup
 
-1. **Workspace Data**
+1. **Robotiq 3F Data**
+   - Download **[Robotiq3Finger.zip](https://puh.srce.hr/s/kNGCqm63mc24zw6)**
+   - Unzip into `data/`.
+   - *Example Path (host):* `ur5-door-interaction/data/Robotiq3Finger/...`
+
+1. **Project Root Data**
    - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
-   - Unzip into `ferit_ur5_ws/data/`.
-   - *Example Path:* `ur5-door-interaction/ferit_ur5_ws/data/...`
+   - Unzip into `data/`.
+   - *Example Path (host):* `ur5-door-interaction/data/multi-contact/...`
 
 ## Demo Usage
 
-### 1. RVL Multicontact Planning
+### 0. RVL Generating Feasible Poses
+Run the script for generating feasible poses:
+```bash
+cd rvl-linux/python/DDMan
+python3 push_demo.py
+```
+
+`valid_contact_poses.npy` and `feasible_poses_left_axis.npy` will be saved in `/home/RVLuser/data/Robotiq3Finger`.
+
+### 1. RVL Multi-Contact Path Planning
 The main configuration file is `rvl-linux/RVLMotionDemo.cfg`. It loads specific sub-configs.
 For this demo, ensure `RVLMotionDemo_Cupec.cfg` is **uncommented** in `RVLMotionDemo.cfg`.
 
-*Note: If you changed the `kitchen_data` path, update `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` accordingly.*
+*Note: If you changed paths, update `RVLMotionDemo_Cupec.cfg` accordingly.*
 
-**Step A: Creating PLY files**
+Build and run RVL:
+```bash
+cd rvl-linux
+make
+./build/bin/RVLRecognitionDemo
+```
 
-1. In `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg`, set `Save PLY` to `yes`.
-2. Build and run RVL:
-   ```bash
-   cd rvl-linux
-   make
-   ./build/bin/RVLRecognitionDemo
-   ```
-   This populates the `PLY_seg` directory.
+![Multi-Contact Path Planning RVL](figs/multi-contact-rvl-animated.gif)
+
+### 2. ROS Gazebo Multi-Contact Path Planning With UR5
+
+Build the `ferit_ur5_ws` workspace:
+```bash
+cd ferit_ur5_ws
+catkin build
+source devel/setup.bash
+```
+
+*Note: All config files used for this method are placed in `ferit_ur5_ws/src/cosper/path_planning/config`*
+
+1. **Generating Cabinet Configurations**
+
+Run this script:
+```bash
+rosrun path_planning generate_cabinet_configurations.py
+```
+
+Cabinet configurations is by default stored in `/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left.npy`.
+
+2. **Run the Multi-Contact Simulations**
+
+Run this script:
+```bash
+rosrun path_planning multi-c_our_handleless.py
+```
+
+The script runs through all cabinets saving results by default in `/home/RVLuser/data/multi-contact/simulations/results_multi-c_our_handleless.csv`. 
+
+![Multi-Contact Path Planning Gazebo](figs/multi-contact-gazebo-3x.gif)
 
 
 # Failure Recovery in Door Opening

@@ -46,7 +46,7 @@ if __name__ == '__main__':
     # rvl_cfg_path = '/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg'
 
 	# Load door configurations
-    door_configs_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinet_configurations_axis_left_real.npy'
+    door_configs_path = '/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left_real.npy'
     doors = np.load(door_configs_path)
     num_doors = int(doors.shape[0]*0.5)
 

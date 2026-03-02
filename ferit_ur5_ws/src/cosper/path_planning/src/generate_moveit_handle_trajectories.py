@@ -22,7 +22,7 @@ def rvl_generate_handle_path(rvl_ik_solver, robot: UR5Commander, cabinet_model:C
     # Generate opening traj with handle until its not possible anymore
     q_moveit_traj = [q_init]
 
-    np.save('/home/RVLuser/ferit_ur5_ws/data/multi-contact/T_T_B_handle.npy', T_T_B_handle_rots[0])
+    np.save('/home/RVLuser/data/multi-contact/T_T_B_handle.npy', T_T_B_handle_rots[0])
 
     # Generate multiple first points from which it will expand
     # q, n_sol, _ = rvl_ik_solver.inv_kinematics_all_sols(T_T_B_handle_rots[0], bTCP)

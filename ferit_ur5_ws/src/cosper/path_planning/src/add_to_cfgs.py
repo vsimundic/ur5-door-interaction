@@ -13,11 +13,11 @@ import core.meshes as fc_meshes # ferit_core_meshes
 
 np.random.seed(69)
 
-doors = np.load('/home/RVLuser/ferit_ur5_ws/data/multi-contact/door_configurations_axis_left.npy')
+doors = np.load('/home/RVLuser/data/multi-contact/door_configurations_axis_left.npy')
 
-pkg_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact'
+pkg_path = '/home/RVLuser/data/multi-contact'
 doors_tsr_configs_path = os.path.join(pkg_path, 'tsr_data', 'cabinet_configs')
-urdf_path = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.urdf'
+urdf_path = '/home/RVLuser/data/multi-contact/cabinets/cabinet_handle_test.urdf'
 
 T_B_S = np.eye(4)
 T_B_S[2, 3] = 0.005
@@ -45,7 +45,7 @@ for i_door in tqdm(range(doors.shape[0])):
                             T_A_S=T_A_S,
                             save_path=urdf_path,
                             has_handle=True)
-    # cabinet_mesh_filename = '/home/RVLuser/ferit_ur5_ws/data/multi-contact/cabinets/cabinet_handle_test.ply'
+    # cabinet_mesh_filename = '/home/RVLuser/data/multi-contact/cabinets/cabinet_handle_test.ply'
     
     mesh_file = os.path.join(doors_tsr_configs_path, 'cabinet_%d.ply' % i_door)
     mesh_file_dae = os.path.join(doors_tsr_configs_path, 'cabinet_%d.dae' % i_door)
