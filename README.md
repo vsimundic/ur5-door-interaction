@@ -1,9 +1,11 @@
 # Robot Door Opening Pipeline From Human Demonstration
 
 This repository contains a Docker setup which involves:
-- Robotic Vision Library (RVL)
-- ROS with packages for controlling the UR5 robot
-- TensorMask from detectron2
+- **[Robotic Vision Library (RVL)](https://github.com/vsimundic/rvl-linux)**
+- **ROS** with packages for controlling the UR5 robot
+- **TensorMask** from detectron2
+
+---
 
 ## Installation
 
@@ -11,46 +13,45 @@ This repository contains a Docker setup which involves:
 
 You will need a PC that supports **Nvidia drivers and CUDA** in order to launch TensorMask.
 
-**Ubuntu:**
-Install Docker from the [official page](https://docs.docker.com/engine/install/ubuntu/). Do not forget to do the [postinstall steps](https://docs.docker.com/engine/install/linux-postinstall/).
+- **Ubuntu:** Install Docker from the [official page](https://docs.docker.com/engine/install/ubuntu/). Do not forget to do the [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/).
+- **Windows:** Install Docker from the [official page](https://docs.docker.com/desktop/install/windows-install/). To run the necessary shell scripts, you can use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
-**Windows:**
-Install Docker from the [official page](https://docs.docker.com/desktop/install/windows-install/). To run the necessary shell scripts, you can use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
-
-Additionally, install the NVIDIA Container Toolkit.
+Additionally, install the **NVIDIA Container Toolkit**.
 
 ### Container Setup (Linux)
 
-1. Clone and enter the repository:
+1. **Clone and enter the repository:**
    ```bash
    git clone --recurse-submodules https://github.com/vsimundic/ur5-door-interaction.git
    cd ur5-door-interaction/docker
    ```
 
-2. Run the shell script to build the Docker image:
+2. **Run the shell script to build the Docker image:**
    ```bash
    ./build_docker.sh
    ```
 
-3. Enable X11 forwarding (required for GUI):
+3. **Enable X11 forwarding** (required for GUI):
    ```bash
    xhost +local:root
    ```
 
-4. Run the Docker container:
+4. **Run the Docker container:**
    ```bash
    ./run_docker.sh
    ```
-   *The script will attempt to stop and remove any existing container instance first. You can ignore errors if no container was running.*
+   > *Note: The script will attempt to stop and remove any existing container instance first. You can ignore errors if no container was running.*
 
-5. Open additional terminals inside the container:
+5. **Open additional terminals inside the container:**
    ```bash
    docker exec -it ur5_door_interaction bash
    ```
 
-# Door and Drawer Detection
+---
 
-## Data Setup
+## Door and Drawer Detection
+
+### Data Setup
 
 Before running the project, download and place the required data files in the correct directories.
 
@@ -66,9 +67,9 @@ Before running the project, download and place the required data files in the co
      wget https://dl.fbaipublicfiles.com/detectron2/TensorMask/tensormask_R_50_FPN_1x/152549419/model_final_8f325c.pkl -O data/weights/TensorMask/tensormask_R_50_FPN_1x.pkl
      ```
 
-## Demo Usage
+### Demo Usage
 
-### 1. Detectron2 Rosbag Segmentation
+#### 1. Detectron2 Rosbag Segmentation
 
 Build the segmentation workspace:
 ```bash
@@ -99,7 +100,7 @@ rosrun human_seg segment_videos.py
 
 **Segmentation Result:**
 The output directory structure will look like this:
-```
+```text
 kitchen0001/
 ├── camera_info.yaml
 ├── depth_seg/
@@ -112,15 +113,14 @@ kitchen0001/
 
 ![Human segmentation](figs/human_segmentation.png)
 
-### 2. Running Detection (RVL)
+#### 2. Running Detection (RVL)
 
 The main configuration file is `rvl-linux/RVLRecognitionDemo.cfg`. It loads specific sub-configs.
 For this demo, ensure `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` is **uncommented** in `RVLRecognitionDemo.cfg`.
 
-*Note: If you changed the `kitchen_data` path, update `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` accordingly.*
+> *Note: If you changed the `kitchen_data` path, update `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` accordingly.*
 
 **Step A: Creating PLY files**
-
 1. In `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg`, set `Save PLY` to `yes`.
 2. Build and run RVL:
    ```bash
@@ -128,19 +128,18 @@ For this demo, ensure `RVLRecognitionDemo_Cupec_DDD2_Detection.cfg` is **uncomme
    make
    ./build/bin/RVLRecognitionDemo
    ```
-   This populates the `PLY_seg` directory.
+   *This populates the `PLY_seg` directory.*
 
 **Step B: Running Detection**
-
 1. Change `Save PLY` to `no` in the config file.
 2. Run the demo again:
    ```bash
    ./build/bin/RVLRecognitionDemo
    ```
 
-*If the program crashes, verify all paths in the config files.*
+> *If the program crashes, verify all paths in the config files.*
 
-## Results
+### Results
 
 A window displaying hypotheses will appear. Press `q` to cycle through them until the window closes.
 
@@ -153,7 +152,7 @@ A window displaying hypotheses will appear. Press `q` to cycle through them unti
 Results are saved to `DDT.txt`. Each line represents a detected moving part (Door/Drawer) with 19 tab-separated values:
 
 | Column | Name | Type | Description |
-|--------|------|------|-------------|
+|:---:|:---|:---:|:---|
 | 1 | Object Class | Integer | Class ID of the object |
 | 2-4 | R00-R02 | Float | Rotation matrix row 0 |
 | 5-7 | R10-R12 | Float | Rotation matrix row 1 |
@@ -168,38 +167,37 @@ Results are saved to `DDT.txt`. Each line represents a detected moving part (Doo
 | 18 | Radius/Param 1 | Float | Additional parameter 1 (r[1]) |
 | 19 | Opening Direction | Float | Direction of opening |
 
+---
 
+## Multi-Contact Path Planning for Door Opening
 
-# Multi-Contact Path Planning for Door Opening
-
-## Data Setup
+### Data Setup
 
 1. **Robotiq 3F Data**
    - Download **[Robotiq3Finger.zip](https://puh.srce.hr/s/kNGCqm63mc24zw6)**
    - Unzip into `data/`.
    - *Example Path (host):* `ur5-door-interaction/data/Robotiq3Finger/...`
 
-1. **Project Root Data**
+2. **Project Root Data**
    - Download **[ur5_ws_data.zip](https://puh.srce.hr/s/TtGAjke5JrFkHcD)**.
    - Unzip into `data/`.
    - *Example Path (host):* `ur5-door-interaction/data/multi-contact/...`
 
-## Demo Usage
+### Demo Usage
 
-### 0. RVL Generating Feasible Poses
+#### 0. RVL Generating Feasible Poses
 Run the script for generating feasible poses:
 ```bash
 cd rvl-linux/python/DDMan
 python3 push_demo.py
 ```
+> `valid_contact_poses.npy` and `feasible_poses_left_axis.npy` will be saved in `/home/RVLuser/data/Robotiq3Finger`.
 
-`valid_contact_poses.npy` and `feasible_poses_left_axis.npy` will be saved in `/home/RVLuser/data/Robotiq3Finger`.
-
-### 1. RVL Multi-Contact Path Planning
+#### 1. RVL Multi-Contact Path Planning
 The main configuration file is `rvl-linux/RVLMotionDemo.cfg`. It loads specific sub-configs.
 For this demo, ensure `RVLMotionDemo_Cupec.cfg` is **uncommented** in `RVLMotionDemo.cfg`.
 
-*Note: If you changed paths, update `RVLMotionDemo_Cupec.cfg` accordingly.*
+> *Note: If you changed paths, update `RVLMotionDemo_Cupec.cfg` accordingly.*
 
 Build and run RVL:
 ```bash
@@ -210,7 +208,7 @@ make
 
 ![Multi-Contact Path Planning RVL](figs/multi-contact-rvl-animated.gif)
 
-### 2. ROS Gazebo Multi-Contact Path Planning With UR5
+#### 2. ROS Gazebo Multi-Contact Path Planning With UR5
 
 Build the `ferit_ur5_ws` workspace:
 ```bash
@@ -219,31 +217,28 @@ catkin build
 source devel/setup.bash
 ```
 
-*Note: All config files used for this method are placed in `ferit_ur5_ws/src/cosper/path_planning/config`*
+> *Note: All config files used for this method are placed in `ferit_ur5_ws/src/cosper/path_planning/config`.*
 
-1. **Generating Cabinet Configurations**
-
-Run this script:
+**Generating Cabinet Configurations:**
 ```bash
 rosrun path_planning generate_cabinet_configurations.py
 ```
+> *Cabinet configurations are by default stored in `/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left.npy`.*
 
-Cabinet configurations is by default stored in `/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left.npy`.
-
-2. **Run the Multi-Contact Simulations**
-
-Run this script:
+**Run the Multi-Contact Simulations:**
 ```bash
 rosrun path_planning multi-c_our_handleless.py
 ```
-
-The script runs through all cabinets saving results by default in `/home/RVLuser/data/multi-contact/simulations/results_multi-c_our_handleless.csv`. 
+> *The script runs through all cabinets saving results by default in `/home/RVLuser/data/multi-contact/simulations/results_multi-c_our_handleless.csv`.*
 
 ![Multi-Contact Path Planning Gazebo](figs/multi-contact-gazebo-3x.gif)
 
+---
 
-# Failure Recovery in Door Opening
+## Failure Recovery in Door Opening
 *TBD*
+
+---
 
 ## License
 
