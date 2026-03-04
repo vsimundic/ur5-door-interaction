@@ -1,4 +1,4 @@
 [submodule "rvl-linux"]
     path = rvl-linux
     url = https://github.com/vsimundic/rvl-linux.git
-    branch = simundic-linux
+    branch = ur5-integration
