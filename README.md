@@ -1,9 +1,20 @@
 # Robot Door Opening Pipeline From Human Demonstration
 
+> **For more information, please visit our [site](https://multi-contact-door.github.io/).**
+
 This repository contains a Docker setup which involves:
 - **[Robotic Vision Library (RVL)](https://github.com/vsimundic/rvl-linux)**
 - **ROS** with packages for controlling the UR5 robot
 - **TensorMask** from detectron2
+
+---
+
+## Table of Contents
+1. [Installation](#installation)
+2. [Door and Drawer Detection](#door-and-drawer-detection)
+3. [Multi-Contact Path Planning for Door Opening](#multi-contact-path-planning-for-door-opening)
+4. [Failure Recovery in Door Opening](#failure-recovery-in-door-opening)
+5. [License](#license)
 
 ---
 
@@ -236,7 +247,107 @@ rosrun path_planning multi-c_our_handleless.py
 ---
 
 ## Failure Recovery in Door Opening
-*TBD*
+
+### Data Setup
+
+1. **Experiments Data**
+   - Download **[Exp-correct_calibration-20250616.zip](https://puh.srce.hr/s/66gqY3Yz5oicXjx)**
+   - Unzip into `data/`.
+   - *Example Path (host):* `ur5-door-interaction/data/Exp-correct_calibration-20250616/...`
+
+2. **Robot Experiments Data**
+   - Download **[Exp-cabinet_detection-20250508.zip](https://puh.srce.hr/s/iEKamaT6BGdEZ5x)**
+   - Unzip into `data/`.
+   - *Example Path (host):* `ur5-door-interaction/data/Exp-cabinet_detection-20250508/...`
+
+
+### Demo Usage
+
+Same as in the multi-contact method, the main configuration file is `rvl-linux/RVLMotionDemo.cfg`. However, in this method, please ensure **`RVLMotionDemo_Touch_Cupec_sim.cfg`** or **`RVLMotionDemo_Touch_Cupec_real.cfg`** is **uncommented** in `RVLMotionDemo.cfg`.
+
+#### 1. Simulation Experiments
+Ensure **`RVLMotionDemo_Touch_Cupec_sim.cfg`** is **uncommented** in `RVLMotionDemo.cfg`.
+
+> To see the correction process, set `Touch.Visualization` in `RVLMotionDemo_Touch_Cupec_sim.cfg` to **`yes`**.
+
+Run the correction method:
+```bash
+cd rvl-linux
+./build/bin/RVLMotionDemo
+```
+> By default, the results are saved in `/home/RVLuser/data/Exp-correct_calibration-20250616/ExpRez/touch_success.log`.
+
+![Correction Method Sim](figs/correction_method_sim.jpg)
+
+
+#### 2. Correction Method in Real-World Experiments
+
+While the real-world experiments were carried out on the real robot, you can check how the correction method worked in both offline and online experiments. 
+Ensure **`RVLMotionDemo_Touch_Cupec_real.cfg`** is **uncommented** in `RVLMotionDemo.cfg`, while everything else is commented.
+
+> To see the correction process, set `Touch.Visualization` in `RVLMotionDemo_Touch_Cupec_sim.cfg` to **`yes`**.
+
+> The data for the real-world experiments are located in `Exp-correct_calibration-20250616/real_exp/`.
+
+Run the correction method:
+```bash
+cd rvl-linux
+./build/bin/RVLMotionDemo
+```
+
+
+#### 3. Commands for Running on Real Robot
+
+**Equipment used:**
+- UR5
+- Robotiq 3-Finger Gripper
+- Intel Realsense L515
+- Xela uSPa 44
+
+Launch the components in the listed order, each in a separate terminal.
+
+**Terminal 1:** Bring up the UR5 driver.
+```bash
+source devel/setup.bash
+roslaunch ur_robot_driver ur5_bringup.launch robot_ip:=192.168.10.14 kinematics_config:="/home/RVLuser/ferit_ur5_ws/ur5_calibration.yaml"
+```
+
+**Terminal 2:** Launch the MoveIt planner.
+```bash
+source devel/setup.bash
+roslaunch ur5_robotiq_ft_3f_moveit_config moveit_planning_execution.launch
+```
+
+**Terminal 3:** Initialize the Xela tactile sensor.
+```bash
+export PATH="/xela_suite_linux:/etc/xela:${PATH}"
+slcand -o -s8 -t hw -S 3000000 /dev/ttyUSB
+ifconfig slcan0 up
+source devel/setup.bash
+roslaunch xela_server_ros service.launch
+```
+
+**Terminal 4:** Launch the Robotiq force/torque sensor streamer.
+```bash
+source devel/setup.bash
+roslaunch robotiq_ft_sensor robotiq_ft_streamer.launch
+```
+
+**Terminal 5:** Launch the RealSense camera with aligned depth.
+```bash
+source devel/setup.bash
+roslaunch realsense2_camera rs_camera.launch enable_pointcloud:=true depth_width:=640 depth_height:=480 depth_fps:=15 color_width:=640 color_height:=480 color_fps:=15 align_depth:=true
+```
+
+**Terminal 6:** Launch the Framework for Correction and Recovery
+
+> Please check `door_replanning_control.yaml` located in `ferit_ur5_ws/src/cosper/force_manipulation/cfg` for details. 
+
+
+```bash
+source devel/setup.bash
+rosrun force_manipulation door_replanning_control.py
+```
 
 ---
 
