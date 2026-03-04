@@ -280,6 +280,8 @@ cd rvl-linux
 ![Correction Method Sim](figs/correction_method_sim.jpg)
 
 
+![Correction Method](figs/vfti/correction.gif)
+
 #### 2. Correction Method in Real-World Experiments
 
 While the real-world experiments were carried out on the real robot, you can check how the correction method worked in both offline and online experiments. 
