@@ -33,7 +33,7 @@ Additionally, install the **NVIDIA Container Toolkit**.
 
 1. **Clone and enter the repository:**
    ```bash
-   git clone --recurse-submodules https://github.com/vsimundic/ur5-door-interaction.git
+   git clone -b simundic-thesis --recurse-submodules https://github.com/vsimundic/ur5-door-interaction.git
    cd ur5-door-interaction/docker
    ```
 
