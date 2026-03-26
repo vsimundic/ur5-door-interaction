@@ -1,7 +1,7 @@
 [submodule "rvl-linux"]
     path = rvl-linux
     url = https://github.com/vsimundic/rvl-linux.git
-    branch = ur5-integration
+    branch = simundic-linux
 
 [submodule "robotiq_3f_description"]
     path = ferit_ur5_ws/src/ur5_configs/robotiq_3f/robotiq_3f_description
