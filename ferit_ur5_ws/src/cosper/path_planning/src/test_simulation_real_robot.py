@@ -13,18 +13,19 @@ from rospkg import RosPack
 
 if __name__ == '__main__':
     rospy.init_node('test_node_simulations')
-
-	rp = RosPack()
-	pkg_path = rp.get_path('path_planning')
+    rp = RosPack()
+	
+    pkg_path = rp.get_path('path_planning')
 	# From package path, take out the workspace path
-	workspace_path = pkg_path[:pkg_path.find('/src/')]
+	
+    workspace_path = os.path.dirname(pkg_path[:pkg_path.find('/src/')])
 
-    read_results_path = os.path.join(workspace_path, data, 'multi-contact/results_multi-c_our_handleless_real3.csv')
+    read_results_path = os.path.join(workspace_path, 'data', 'multi-contact/simulations/results_multi-c_our_handleless_real3.csv')
     data = read_csv_DataFrame(read_results_path)
 
-    real_results_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/results3.txt')
-    traj_path = os.path.join(workspace_path, data, 'multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories_3')
-    door_configs_path = os.path.join(workspace_path, data, 'multi-contact/cabinet_configurations_axis_left_real3.npy')
+    real_results_path = os.path.join(workspace_path, 'data', 'multi-contact/real_robot/Exp-real_robot_cabinet_open/results3.txt')
+    traj_path = os.path.join(workspace_path, 'data', 'multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories_3')
+    door_configs_path = os.path.join(workspace_path, 'data', 'multi-contact/cabinet_configurations_axis_left_real3.npy')
 
     START_FROM_BEGGINING = False
     

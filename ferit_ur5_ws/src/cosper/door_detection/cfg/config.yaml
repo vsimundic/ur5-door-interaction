@@ -1,0 +1,24 @@
+# Paths
+# base_dir: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection/online_detection"
+rgb_dir: "RGB_images"
+depth_dir: "DEPTH_images"
+ply_dir: "PLY_seg"
+detector_config_path: "/home/RVLuser/rvl-linux/RVLRecognitionDemo_Cupec_DDD2_Detection.cfg"
+camera_calibration_path: "/home/RVLuser/data/camera_calibration_20250331/T_C_T.npy"
+
+# Camera settings
+camera:
+  rgb_topic: "/camera/color/image_raw"
+  depth_topic: "/camera/aligned_depth_to_color/image_raw"
+  fu: 597.9033203125
+  fv: 598.47998046875
+  uc: 323.8436584472656
+  vc: 236.32774353027344
+  width: 640
+  height: 480
+  depth_scale: 0.050
+
+# Capture settings
+capture:
+  max_images: 5
+  save_fps: 5.0

@@ -23,7 +23,7 @@ if __name__ == '__main__':
 	rp = RosPack()
 	pkg_path = rp.get_path('path_planning')
 	# From package path, take out the workspace path
-	workspace_path = pkg_path[:pkg_path.find('/src/')]
+	workspace_path = os.path.dirname(pkg_path[:pkg_path.find('/src/')])
 
     read_results_path = os.path.join(workspace_path, data, 'multi-contact/results_multi-c_our_handleless_real.csv')
     data = read_csv_DataFrame(read_results_path)

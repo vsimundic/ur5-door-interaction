@@ -1,0 +1,57 @@
+<launch>
+
+  <!-- ================================================================ -->
+  <!-- Arguments                                                         -->
+  <!-- ================================================================ -->
+  <arg name="robot_ip"           default="192.168.88.245"/>
+  <arg name="kinematics_config"  default="/home/RVLuser/ferit_ur5_ws/ur5_calibration.yaml"/>
+  <arg name="ttyusb"             default="/dev/ttyUSB0"/>
+
+  <!-- ================================================================ -->
+  <!-- 1. UR5 Robot Driver                                               -->
+  <!-- ================================================================ -->
+  <include file="$(find ur_robot_driver)/launch/ur5_bringup.launch">
+    <arg name="robot_ip"          value="$(arg robot_ip)"/>
+    <arg name="kinematics_config" value="$(arg kinematics_config)"/>
+  </include>
+
+  <!-- ================================================================ -->
+  <!-- 2. MoveIt Planning Execution                                      -->
+  <!-- ================================================================ -->
+  <include file="$(find ur5_robotiq_ft_3f_moveit_config)/launch/moveit_planning_execution.launch"/>
+
+  <!-- ================================================================ -->
+  <!-- 3. XELA Tactile Sensor                                            -->
+  <!--    Runs the shell script as a node so roslaunch manages its       -->
+  <!--    lifecycle (start/stop with the rest of the launch).            -->
+  <!-- ================================================================ -->
+  <!-- <node name="xela_setup"
+        pkg="multi_contact_force"
+        type="start_xela.sh"
+        args="$(arg ttyusb)"
+        output="screen"
+        launch-prefix="bash -c"
+        required="false"/> -->
+
+  <!-- ================================================================ -->
+  <!-- 4. Robotiq FT Sensor Streamer                                     -->
+  <!-- ================================================================ -->
+  <include file="$(find robotiq_ft_sensor)/launch/robotiq_ft_streamer.launch">
+    <arg name="robot_ip" value="$(arg robot_ip)"/>
+  </include>
+
+  <!-- ================================================================ -->
+  <!-- 5. RealSense Camera                                               -->
+  <!-- ================================================================ -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="enable_pointcloud" value="true"/>
+    <arg name="depth_width"       value="640"/>
+    <arg name="depth_height"      value="480"/>
+    <arg name="depth_fps"         value="15"/>
+    <arg name="color_width"       value="640"/>
+    <arg name="color_height"      value="480"/>
+    <arg name="color_fps"         value="15"/>
+    <arg name="align_depth"       value="true"/>
+  </include>
+
+</launch>

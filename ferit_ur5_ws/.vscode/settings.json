@@ -3,23 +3,25 @@
         "/home/RVLuser/ferit_ur5_ws/devel/lib/python3/dist-packages",
         "/opt/ros/noetic/lib/python3/dist-packages",
         "/home/RVLuser/rvl-linux/python/build/lib",
+        "/home/RVLuser/rvl-linux/modules/RVLPY",
         "/home/RVLuser/rvl-linux/python",
+        "/opt/detectron2/projects/TensorMask",
         "/home/RVLuser/ferit_ur5_ws/src/core/src",
-        "/home/RVLuser/ferit_ur5_ws/src/human_segmentation/src",
+        "/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_collision_checker/lib",
         "/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/src",
-        "/home/RVLuser/ferit_ur5_ws/src/a_demo"
+        "/home/RVLuser/ferit_ur5_ws/src/cosper/force_manipulation/src"
     ],
     "python.analysis.extraPaths": [
         "/home/RVLuser/ferit_ur5_ws/devel/lib/python3/dist-packages",
         "/opt/ros/noetic/lib/python3/dist-packages",
         "/home/RVLuser/rvl-linux/python/build/lib",
+        "/home/RVLuser/rvl-linux/modules/RVLPY",
         "/home/RVLuser/rvl-linux/python",
+        "/opt/detectron2/projects/TensorMask",
         "/home/RVLuser/ferit_ur5_ws/src/core/src",
-        "/home/RVLuser/ferit_ur5_ws/src/human_segmentation/src",
+        "/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_collision_checker/lib",
         "/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/src",
-        "/home/RVLuser/ferit_ur5_ws/src/a_demo",
-        "./src/cosper/door_detection/src",
-        "./src/cosper/path_planning/src"
+        "/home/RVLuser/ferit_ur5_ws/src/cosper/force_manipulation/src"
     ],
     "cmake.configureOnOpen": false,
     "ros.distro": "noetic",

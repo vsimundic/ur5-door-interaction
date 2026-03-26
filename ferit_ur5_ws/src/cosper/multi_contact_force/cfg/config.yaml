@@ -1,0 +1,41 @@
+# Paths
+trajectory_dir: "/home/RVLuser/data/multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories_3"
+door_configs_path: "/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left_real3.npy"
+results_path: "/home/RVLuser/data/multi-contact/results_multi-c_our_handleless_real3.csv"
+results_csv_path: "/home/RVLuser/data/multi-contact/results_multi-c_our_handleless_real3.csv"
+
+# RVL
+rvl_cfg_path: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_one_finger.cfg"
+rvl_touch_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec.cfg"
+
+# Camera calibration
+T_C_6_path: "/home/RVLuser/data/camera_calibration_20250331/T_C_6.npy"
+
+# Cabinet physical params
+door_thickness: 0.017
+static_depth: 0.35
+
+# # Force thresholds
+# force_threshold_approach: 30.0
+# force_threshold_insertion: 10.0
+# force_threshold_opening: 40.0
+
+# Camera parameters
+camera:
+  fu: 597.9033203125
+  fv: 598.47998046875
+  uc: 323.8436584472656
+  vc: 236.32774353027344
+  width: 640
+  height: 480
+
+# Door detection params
+detection_base_dir: "/home/RVLuser/data/multi-contact_force/door_detection"
+load_existing_models: true
+
+# Path planning parameters
+axis_distance: 0.01
+static_side_width: 0.017
+moving_to_static_part_distance: 0.005
+plan_num_states: 37
+plan_target_angle: -90.0

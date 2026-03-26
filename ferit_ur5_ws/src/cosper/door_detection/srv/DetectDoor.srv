@@ -1,0 +1,7 @@
+bool trigger
+string base_dir
+float64[] joint_values
+float64[] T_6_0
+---
+bool success
+string result_json

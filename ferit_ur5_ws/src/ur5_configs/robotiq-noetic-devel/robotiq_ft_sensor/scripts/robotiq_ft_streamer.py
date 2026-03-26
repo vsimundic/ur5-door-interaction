@@ -21,12 +21,24 @@ class RobotiqFTStreamer:
         self.zero_sensor()
         self.zero_srv = rospy.Service("~zero", Trigger, self.zero_service_callback)
 
-    def connect(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(2.0)
-        rospy.loginfo("Connecting to Robotiq FT300s at %s:%d", self.robot_ip, self.sensor_port)
-        self.sock.connect((self.robot_ip, self.sensor_port))
-        rospy.loginfo("Connected to Robotiq FT300s")
+    def connect(self, max_retries=10, retry_delay=2.0):
+        for attempt in range(1, max_retries + 1):
+            try:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.settimeout(2.0)
+                rospy.loginfo("Connecting to Robotiq FT300s at %s:%d (attempt %d/%d)",
+                              self.robot_ip, self.sensor_port, attempt, max_retries)
+                self.sock.connect((self.robot_ip, self.sensor_port))
+                rospy.loginfo("Connected to Robotiq FT300s")
+                return
+            except Exception as e:
+                rospy.logwarn("Connection attempt %d failed: %s", attempt, str(e))
+                self.sock.close()
+                if attempt < max_retries:
+                    rospy.sleep(retry_delay)
+
+        rospy.logerr("Could not connect to Robotiq FT300s after %d attempts. Shutting down.", max_retries)
+        rospy.signal_shutdown("FT sensor connection failed")
 
     def zero_sensor(self, samples=100, delay=0.01):
         rospy.loginfo("Zeroing force-torque sensor...")
