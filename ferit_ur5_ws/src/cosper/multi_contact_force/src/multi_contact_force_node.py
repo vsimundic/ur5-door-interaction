@@ -176,7 +176,7 @@ class MultiContactForceController:
 
         # state_angle is an experiment parameter, not a model property
         # state_angle = float(self.doors[door_index][6])
-        state_angle = -15.0
+        state_angle = -30.0
 
         if T_R_W is None:
             T_R_W = np.eye(4)
@@ -267,6 +267,7 @@ class MultiContactForceController:
                             detect_data = json.load(f)
                         self._apply_detection_data(detect_data, door_index)
                         rospy.loginfo("[FSM] Model loaded. Moving to PLAN.")
+
                         self.state = FSMState.PLAN
                         continue
                     except Exception as e:
