@@ -32,6 +32,7 @@ camera:
 # Door detection params
 detection_base_dir: "/home/RVLuser/data/multi-contact_force/door_detection"
 load_existing_models: true
+state_detection_dir: "state_detection"
 
 # Path planning parameters
 axis_distance: 0.01

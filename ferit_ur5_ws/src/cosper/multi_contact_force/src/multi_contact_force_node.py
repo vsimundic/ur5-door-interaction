@@ -17,7 +17,7 @@ import yaml
 import threading
 import json
 from enum import Enum
-from door_detection.srv import DetectDoor
+from door_detection.srv import DetectDoor, DetectDoorState
 from path_planning.srv import PlanMultiContactPath
 
 from core.real_ur5_controller import UR5Controller
@@ -33,6 +33,7 @@ from force_utils import monitor_force_and_cancel
 class FSMState(Enum):
     IDLE         = "IDLE"
     INITIALIZE   = "INITIALIZE"
+    DETECT_STATE  = "DETECT_STATE"
     PLAN         = "PLAN"
     OPENING      = "OPENING"
     RECORD_RESULT = "RECORD_RESULT"
@@ -69,6 +70,7 @@ class MultiContactForceController:
         self.detection_base_dir = os.path.expanduser(raw_detection_dir)
         if not os.path.exists(self.detection_base_dir):
             os.makedirs(self.detection_base_dir)
+        self.state_detection_dir = config.get("state_detection_dir", "state_detection")
 
         self.load_existing_models = config.get('load_existing_models', True)
 
@@ -79,6 +81,12 @@ class MultiContactForceController:
         self.plan_num_states                = config.get('plan_num_states', 37)
         self.plan_target_angle              = config.get('plan_target_angle', -90.0)
         self.axis_pos                       = -1
+        self.door_state_angle               = 0.0
+
+
+        # --- Robot pose data ---
+        self.joint_values_detection = None
+        self.T_6_0_detection = None
 
         # --- FSM state ---
         self.state          = FSMState.IDLE
@@ -119,27 +127,25 @@ class MultiContactForceController:
             rx = float(detect_data['r'][0])
             ry = float(detect_data['r'][1])
         else:
-            rospy.logwarn("[FSM] No rotation info in detection result. Using config rotations.")
-            rx, ry = float(-0.5*self.door_thickness), float(-0.5*width)
+            rospy.logwarn("[FSM] No door panel info in detection result. Using config info.")
+            rx, ry = float(0.0), float(-0.5*width)
 
         if 'joint_values' in detect_data:
-            joint_values = np.array(detect_data['joint_values'])
-            T_6_0 = self.robot.get_fwd_kinematics_moveit(joint_values)
+            self.joint_values_detection = detect_data['joint_values']
+            self.T_6_0_detection = self.robot.get_fwd_kinematics_moveit(self.joint_values_detection)
 
-        # Extract pose (with fallback to config)
+        # Extract pose
         if 'T_A_C' in detect_data:
-            T_A_C = np.array(detect_data['T_A_C']).reshape(4, 4)
-            Tz = np.eye(4)
-            Tz[:3, :3] = rot_z(np.radians(180.0))
-            # T_A_0 = T_6_0 @ self.T_C_6 @ Tz @ T_A_C # TODO: rotirati oko z-osi kamere za 180 - debugiranje!
-            T_A_0 = T_6_0 @ self.T_C_6 @ T_A_C
+            R_A_C = np.array(detect_data['R']).reshape(3, 3)
+            t_A_C = np.array(detect_data['t']).reshape(3)
+            T_A_C = np.eye(4)
+            T_A_C[:3, :3] = R_A_C
+            T_A_C[:3, 3] = t_A_C
+            T_A_0 = self.T_6_0_detection @ self.T_C_6 @ T_A_C
         else:
             rospy.logwarn("[FSM] T_A_0 missing in detection result. Using config pose.")
             T_A_0 = np.eye(4)
             T_A_0[:3, 3] = door_cfg[2:5]
-            Tz = np.eye(4)
-            Tz[:3, :3] = rot_z(np.radians(float(door_cfg[5])))
-            T_A_0 = T_A_0 @ Tz
 
         T_A_W = self.T_R_W @ T_A_0
 
@@ -171,12 +177,14 @@ class MultiContactForceController:
         height   = float(self.cabinet_model.sz)
         T_A_S    = self.cabinet_model.T_A_W.copy()
         axis_pos = int(self.cabinet_model.axis_pos)
-        rx       = float(self.cabinet_model.rx)
-        ry       = float(self.cabinet_model.ry)
+        # rx       = float(self.cabinet_model.rx)
+        # ry       = float(self.cabinet_model.ry)
+        rx       = 0.0
+        ry       = -0.5 * width
 
         # state_angle is an experiment parameter, not a model property
         # state_angle = float(self.doors[door_index][6])
-        state_angle = -30.0
+        state_angle = self.door_state_angle
 
         if T_R_W is None:
             T_R_W = np.eye(4)
@@ -249,6 +257,9 @@ class MultiContactForceController:
         self._planned_trajectory = None
         self.cabinet_model     = None
 
+        door_detection_save_dir   = os.path.join(self.detection_base_dir, f"door_{door_index}")
+        model_path = os.path.join(door_detection_save_dir, "models", "doorModel.json")
+
         while not rospy.is_shutdown():
             rospy.loginfo("[FSM] State: %s (door %d)" % (self.state.value, door_index))
 
@@ -257,19 +268,16 @@ class MultiContactForceController:
             # -----------------------------------------------------------
             if self.state == FSMState.INITIALIZE:
 
-                save_dir   = os.path.join(self.detection_base_dir, f"door_{door_index}")
-                model_path = os.path.join(save_dir, "models", "doorModel.json")
-
                 if self.load_existing_models and os.path.exists(model_path):
                     rospy.loginfo(f"[FSM] Loading existing model from {model_path}...")
                     try:
                         with open(model_path, 'r') as f:
                             detect_data = json.load(f)
                         self._apply_detection_data(detect_data, door_index)
-                        rospy.loginfo("[FSM] Model loaded. Moving to PLAN.")
-
-                        self.state = FSMState.PLAN
+                        rospy.loginfo("[FSM] Model loaded. Moving to DETECT_STATE.")
+                        self.state = FSMState.DETECT_STATE
                         continue
+
                     except Exception as e:
                         rospy.logwarn(f"[FSM] Failed to load model: {e}. Falling back to prompt.")
 
@@ -278,6 +286,7 @@ class MultiContactForceController:
 
                     if key == 'c':
                         rospy.loginfo("[FSM] Calling Door Detection Service...")
+                        
                         try:
                             rospy.wait_for_service('detect_door', timeout=5.0)
                             detect_door_srv = rospy.ServiceProxy('detect_door', DetectDoor)
@@ -287,7 +296,7 @@ class MultiContactForceController:
 
                             resp = detect_door_srv(
                                 trigger=True,
-                                base_dir=save_dir,
+                                base_dir=door_detection_save_dir,
                                 joint_values=curr_joints,
                                 T_6_0=T_6_0.flatten().tolist()
                             )
@@ -307,7 +316,59 @@ class MultiContactForceController:
                     else:
                         rospy.logwarn("[FSM] Invalid key. Press 'c'.")
 
-                self.state = FSMState.PLAN
+                self.state = FSMState.DETECT_STATE
+
+            # -----------------------------------------------------------
+            # DETECT_STATE: detect door state
+            # -----------------------------------------------------------
+            elif self.state == FSMState.DETECT_STATE:
+                rospy.loginfo("[FSM] Calling DetectDoorState service...")
+                state_detection_path = os.path.join(door_detection_save_dir, self.state_detection_dir, "detected_state.json")
+                if self.load_existing_models and os.path.exists(state_detection_path):
+                    rospy.loginfo(f"[FSM] Loading existing model for state detection from {state_detection_path}...")
+                    try:
+                        with open(state_detection_path, 'r') as f:
+                            detect_data = json.load(f)
+                        self.door_state_angle = detect_data.get('state_angle_deg', 0.0)
+                        rospy.loginfo(f"[FSM] Loaded state angle: {self.door_state_angle:.2f} deg")
+                        self.state = FSMState.PLAN
+                        continue
+
+                    except Exception as e:
+                        rospy.logwarn(f"[FSM] Failed to load model for state detection: {e}. Falling back to service call.")
+
+                try:
+                    rospy.wait_for_service('detect_door_state', timeout=5.0)
+                    detect_door_state_srv = rospy.ServiceProxy('detect_door_state', DetectDoorState)
+
+                    # Get current robot joint values
+                    current_joint_values = self.robot.get_current_joint_values()
+
+                    # Move the robot to detection joint configuration before state detection
+                    self.robot.send_joint_trajectory_action2(
+                        np.vstack((np.array(current_joint_values), np.array(self.joint_values_detection))),
+                        max_velocity=0.5, max_acceleration=0.5
+                    )
+
+                    # Call the service
+                    resp = detect_door_state_srv(
+                        base_dir=door_detection_save_dir,
+                        state_detection_dir=self.state_detection_dir,
+                        T_Cdetected_Cstate=np.eye(4).reshape(-1).tolist()
+                    )
+
+                    if resp.success:
+                        rospy.loginfo("[FSM] Door state detected successfully!")
+                        self.door_state_angle = resp.state_angle_deg
+                        self.state = FSMState.PLAN
+                    else:
+                        rospy.logwarn("[FSM] Door state detection failed.")
+                        rospy.logwarn("[FSM] Error message: %s" % resp.message)
+
+                except rospy.ROSException:
+                    rospy.logerr("[FSM] 'detect_door_state' service not available!")
+                except rospy.ServiceException as e:
+                    rospy.logerr(f"[FSM] Detection service call failed: {e}")
 
             # -----------------------------------------------------------
             # PLAN: plan multi-contact path

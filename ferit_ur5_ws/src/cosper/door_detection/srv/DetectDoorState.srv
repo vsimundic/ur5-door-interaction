@@ -1,0 +1,7 @@
+string base_dir
+string state_detection_dir
+float64[] T_Cdetected_Cstate
+---
+bool success
+float64 state_angle_deg
+string message

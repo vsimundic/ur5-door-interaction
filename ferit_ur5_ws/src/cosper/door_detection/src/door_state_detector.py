@@ -13,7 +13,7 @@ class DoorStateDetector:
         self.detector = RVLPYDDDetector.PYDDDetector()
         self.detector.create(self.detector_config_path)
         self.detector.load_best_hypothesis(self.best_hyp_path)
-        self.detector.set_detected_state_img_path(self.save_detected_img_path)
+        # self.detector.set_detected_state_img_path(self.save_detected_img_path)
 
     def detect_state(self, rgb_path, ply_path, T_Cdet_Cdiff):
         # # Load door models
