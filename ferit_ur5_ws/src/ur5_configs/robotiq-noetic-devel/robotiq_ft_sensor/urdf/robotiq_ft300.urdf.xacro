@@ -2,7 +2,7 @@
 
 <!-- Develped by: Daniel Ordonez 20.06.2019 - daniels.ordonez@gmail.com-->
 
-<robot xmlns:xacro="http://ros.org/wiki/xacro" name="robotiq_fts150">
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="robotiq_ft300">
 
     <!-- Macro function to instanciate URDF model of the FT300 force-torque sensor with mounting plate
 
@@ -72,7 +72,7 @@
         </link>
 
          <!-- Connect force sensor with mounting/coupling plate -->
-        <joint name="${prefix}ft300_mounting_plate" type="fixed">
+        <joint name="${prefix}ft300_mounting_plate_ft300_sensor_joint" type="fixed">
             <origin xyz="0 0 0.0415" rpy="0 ${pi} 0"/> 
             <parent link="${prefix}ft300_mounting_plate" />
             <child link="${prefix}ft300_sensor" />

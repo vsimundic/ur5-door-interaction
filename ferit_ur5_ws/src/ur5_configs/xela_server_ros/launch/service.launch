@@ -1,5 +1,5 @@
 <launch>
-    <arg name="file" default="/xela_suite_linux/xServ.ini"/>
+    <arg name="file" default="/etc/xela/xServ.ini"/>
     <arg name="port" default="5000"/>
     <arg name="ip" default="192.168.88.249"/>
     <arg name="d" default="0"/>

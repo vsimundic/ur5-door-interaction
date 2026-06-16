@@ -1,0 +1,15 @@
+# udev rule for XELA USP44 tactile sensor (VScom USB-CAN Plus, FTDI FT231X)
+# Vendor: 0403 (FTDI), Product: 6015, Serial: D30F21NT
+#
+# Install once on the HOST machine:
+#   sudo cp 99-xela-can.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+# After this, /dev/ttyXELA always points to the sensor regardless of plug order.
+
+SUBSYSTEM=="tty", \
+  ATTRS{idVendor}=="0403", \
+  ATTRS{idProduct}=="6015", \
+  ATTRS{serial}=="D30F21NT", \
+  SYMLINK+="ttyXELA", \
+  MODE="0666"
