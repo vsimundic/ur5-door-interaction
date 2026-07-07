@@ -22,17 +22,17 @@ offline_gt_poses_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20
 
 # Output Files
 T_tool_6_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_tool_6.npy"
-collision_free_poses_path: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/T_G_DD_all_colfree.npy"
-online_cabinet_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_estimation_final.csv"
-online_cabinet_filename_gt: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_gt_final.csv"
-online_touches_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_touches_final.csv"
+collision_free_poses_path: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/T_G_DD_all_colfree.npy"
+online_cabinet_filename: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_estimation_final.csv"
+online_cabinet_filename_gt: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_gt_final.csv"
+online_touches_filename: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/online_cabinets_touches_final.csv"
 
-offline_cabinet_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_estimation_final.csv"
-offline_cabinet_filename_gt: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_gt_final.csv"
-offline_touches_filename: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_touches_final.csv"
+offline_cabinet_filename: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_estimation_final.csv"
+offline_cabinet_filename_gt: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_gt_final.csv"
+offline_touches_filename: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/offline_cabinets_touches_final.csv"
 
-analysis_dir: "/home/RVLuser/ferit_ur5_ws/data/Exp-cabinet_detection-20250508/door_detection/analysis"
-rvl_log_dir: "/home/RVLuser/rvl-linux/data/Exp-correct_calibration-20250616/ExpRez"
+analysis_dir: "/home/RVLuser/data/Exp-cabinet_detection-20250508/door_detection/analysis"
+rvl_log_dir: "/home/RVLuser/data/Exp-correct_calibration-20250616/ExpRez"
 
 # === Physical Parameters ===
 door_thickness: 0.018

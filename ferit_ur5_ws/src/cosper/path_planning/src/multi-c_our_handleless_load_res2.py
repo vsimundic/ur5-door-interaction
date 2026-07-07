@@ -75,7 +75,8 @@ if __name__ == '__main__':
         data = data.loc[((data['path_found'] == True) & 
                                 (data['traj_success'] == True) & 
                                 (data['contact_free'] == True) & 
-                                (data['door_opened'] == False))] 
+                                (data['door_opened'] == True))]
+        data = data[1:]
 
     T_G_T = np.load(config['gripper_tool_pose'])
     

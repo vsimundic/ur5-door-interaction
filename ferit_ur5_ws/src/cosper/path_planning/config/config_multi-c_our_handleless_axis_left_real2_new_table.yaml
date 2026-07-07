@@ -1,0 +1,93 @@
+## generate_place_cabinet config
+# cabinet_dims: [0.3, 0.5, 0.4, 0.018] # w_door, h_door, static_d, d_door
+
+# door dims, cabinet dims will be created from to the door params
+cabinet_door_dims:
+  # min_width: 0.397
+  # max_width: 0.397
+  # min_height: 0.497
+  # max_height: 0.497
+  min_width: 0.31
+  max_width: 0.31
+  min_height: 0.31
+  max_height: 0.31
+
+  # depth: 0.018
+  depth: 0.017
+  # static_depth: 0.4
+  static_depth: 0.35
+  static_side_width: 0.017
+  axis_distance: 0.01
+  moving_to_static_part_distance: 0.003
+
+table_width: 0.897
+table_length: 1.3
+
+# door axis pose
+cabinet_pose:
+  min_x: -0.4185 # -(0.4485+(0.003+0.01+0.017))
+  max_x: 0.1285 # 0.4485-(0.31+0.003-0.01+0.017)
+  min_y: 0.4
+  max_y: 0.9
+  
+  # z: 0.2805 # height of axis from ground (10cm + half of door height + static part thickness + robot offset from bottom)
+  # z: 0.1855 # height of axis from ground (half of door height + static part thickness + robot offset from bottom)
+  z: 0.179 # height of axis from ground (half of door height + static part thickness + moving to static part distance + robot offset from bottom)
+  
+  # min_x: -0.25
+  # max_x: -0.25
+  # min_y: 0.5
+  # max_y: 0.5
+  rot_angle_min_deg: -60
+  rot_angle_max_deg: 60
+  # min_x: -0.5
+  # max_x: -0.5
+  # min_y: 0.15
+  # max_y: 0.15
+  # rot_angle_min_deg: 0
+  # rot_angle_max_deg: 0
+  axis_pos: -1
+
+cabinet_urdf_save_path: "/home/RVLuser/data/multi-contact_force/cabinet_mesh_model/cabinet.urdf"
+cabinet_static_mesh_save_path: "/home/RVLuser/data/multi-contact_force/cabinet_mesh_model/cabinet_static.ply" # static mesh
+cabinet_panel_mesh_save_path: "/home/RVLuser/data/multi-contact_force/cabinet_mesh_model/cabinet_panel.ply" # panel mesh
+cabinet_full_mesh_save_path: "/home/RVLuser/data/multi-contact_force/cabinet_mesh_model/cabinet_whole.ply" # full cabinet mesh
+
+push_latch_mechanism_length: 0.0445
+latch_offset: 0.005
+
+## Feasible poses setup
+feasible_poses:
+  dd_state_deg: -7.0
+  num_viewpoints: 100
+  num_rot_angles: 12
+  load_valid_contact_poses_from_file: True
+  load_feasible_poses_from_file: True
+  # load_valid_contact_poses_from_file: False
+  # load_feasible_poses_from_file: False
+  gripper_params:
+    is_default_gripper: False
+    # custom_gripper_spheres_path: '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/gripper_spheres.npy'
+    # custom_gripper_model_path: '/home/RVLuser/rvl-linux/python/DDMan/3finger_gripper/robotiq_3f_gripper_simplified.stl'
+    custom_gripper_spheres_path: '/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/spheres.npy'
+    custom_gripper_model_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/mesh.ply"
+    tool_contact_surface_params: [[0.0, -0.026, 0.0], [0.0, -0.030, -0.020], [0.006, -0.026, 0.0]]
+    tool_finger_distances: [-0.0775, 0., -0.098]
+    sphere_to_TCS_distance: 0.004609
+
+  feasible_poses_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/feasible_poses_left_axis_fcl.npy"
+  contact_free_poses_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/contact_free_poses.npy"
+  valid_contact_poses_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/valid_contact_poses.npy"
+  visualization: False
+
+rvl_config_path: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_one_finger.cfg"
+tool_model_params: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh"
+
+cabinet_configs_path: "/home/RVLuser/data/multi-contact_force/multi-contact_simulation/cabinet_configurations_axis_left_real2.npy"
+
+gazebo_launch_path: "/home/RVLuser/ferit_ur5_ws/src/ur5_configs/ur5_robotiq_ft_3f_moveit_config/launch/demo_gazebo.launch"
+gripper_tool_pose: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/T_G_6.npy"
+robot_world_pose: "/home/RVLuser/data/multi-contact_force/T_R_W.npy"
+
+results_path: "/home/RVLuser/data/multi-contact_force/multi-contact_simulation/results_multi-c_our_handleless_real2.csv"
+screenshots_path: "/home/RVLuser/data/multi-contact_force/screenshots_multi-c_our_handleless"

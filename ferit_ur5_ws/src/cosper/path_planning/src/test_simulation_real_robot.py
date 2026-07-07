@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import rospy
-from core.util import read_csv_DataFrame
+from core.util import read_config, read_csv_DataFrame
 from core.ur5_commander import UR5Commander
 from core.real_ur5_controller import UR5Controller
 from core.transforms import rot_z

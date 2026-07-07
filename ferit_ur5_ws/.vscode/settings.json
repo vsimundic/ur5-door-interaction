@@ -21,7 +21,8 @@
         "/home/RVLuser/ferit_ur5_ws/src/core/src",
         "/home/RVLuser/ferit_ur5_ws/devel/.private/ur5_collision_checker/lib",
         "/home/RVLuser/ferit_ur5_ws/src/cosper/gazebo_push_open/src",
-        "/home/RVLuser/ferit_ur5_ws/src/cosper/force_manipulation/src"
+        "/home/RVLuser/ferit_ur5_ws/src/cosper/force_manipulation/src",
+        "./src/cosper/door_detection/src"
     ],
     "cmake.configureOnOpen": false,
     "ros.distro": "noetic",
@@ -104,5 +105,6 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp"
-    }
+    },
+    "ROS2.distro": "noetic"
 }

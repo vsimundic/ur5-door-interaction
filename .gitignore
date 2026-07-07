@@ -14,5 +14,8 @@ ferit_ur5_ws/.catkin_tools/*
 data/*
 Helper3D-master/
 __pycache__/
-
+.claude/
 *.dat
+
+LOG/
+*.log

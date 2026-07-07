@@ -14,7 +14,7 @@ class TouchType(Enum):
     WANTED_TOUCH = 2
 
 class RVLTool:
-    def __init__(self, a, b, c, d, h, tx, tz, rot_z_angle=-np.pi*0.25, rot_y_angle=np.deg2rad(3.0)):
+    def __init__(self, a, b, c, d, h, tx, tz, rot_z_angle=-np.pi*0.25, rot_y_angle=np.deg2rad(0.0)):
         self.a = a  # depth of the tool box
         self.b = b  # width of bottom tool edge
         self.c = c  # depth of the tool edge
@@ -325,29 +325,35 @@ def monitor_tactile_loss_and_remember_joints(
     remembered_joints: list,
     contact_threshold: float = 1.0,
     contact_establishment_timeout: float = 2.5,
-    check_rate: float = 50.0
+    check_rate: float = 50.0,
+    grace_period: float = 1.5
 ):
     """
-    Monitors tactile sensor data per sensor and taxel, cancels trajectory if any sensor loses contact.
-    Remembers the joint configuration when loss is detected.
+    Monitors tactile sensor data and cancels the trajectory if contact is lost
+    and not re-established within *grace_period* seconds.
+
+    When contact is first lost the current joint configuration is appended to
+    *remembered_joints* (index 0).  If contact returns within the grace window
+    the robot keeps moving and monitoring continues.  A second loss that is not
+    recovered within the grace window also cancels the trajectory.
 
     Args:
         robot (UR5Controller): controller instance
-        remembered_joints (list): list to store joint values on contact loss
-        contact_threshold (float): threshold for considering contact lost per taxel
-        contact_establishment_timeout (float): timeout for establishing contact
-        check_rate (float): Hz rate to check tactile data
+        remembered_joints (list): list to which joint values at first loss are appended
+        contact_threshold (float): max-taxel-force below which contact is considered lost
+        contact_establishment_timeout (float): seconds to wait for initial contact
+        check_rate (float): monitoring frequency [Hz]
+        grace_period (float): seconds to tolerate a contact-loss before cancelling
     """
     rate = rospy.Rate(check_rate)
-    max_wait_cycles = int(2.0 * check_rate)
+    max_wait_cycles   = int(2.0 * check_rate)
     max_timeout_cycles = int(contact_establishment_timeout * check_rate)
+    grace_cycles      = int(grace_period * check_rate)
     current_timeout_cycles = 0
 
     rospy.loginfo("[monitor-tactile] Waiting for trajectory to become ACTIVE...")
-
     for _ in range(max_wait_cycles):
-        state = robot.client.get_state()
-        if state == 1:
+        if robot.client.get_state() == 1:
             break
         rate.sleep()
     else:
@@ -355,41 +361,58 @@ def monitor_tactile_loss_and_remember_joints(
         return
 
     rospy.loginfo("[monitor-tactile] Monitoring tactile sensors per taxel...")
-    current_joints = None
+
+    loss_grace_counter = 0   # counts cycles since contact was lost
+    loss_recorded      = False  # have we already stored the loss joints?
+
     while not rospy.is_shutdown() and robot.client.get_state() == 1:
 
+        # --- wait for initial contact establishment ---
         if not robot.tactile_contact_established:
+            current_timeout_cycles += 1
             if current_timeout_cycles >= max_timeout_cycles:
-                rospy.logwarn("Contact not established on any taxel. Cancelling trajectory.")
-                # remembered_joints = robot.get_current_joint_values()
+                rospy.logwarn("[monitor-tactile] Contact not established within timeout. Cancelling.")
                 robot.cancel_trajectory()
                 return
-            else:
-                rospy.loginfo_throttle(1.0, "[monitor-tactile] Waiting for contact to be established...")
-                continue
-        
-        if robot.tactile_contact_established and robot.tactile_data is not None:
-            force_magnitudes = np.linalg.norm(robot.tactile_data, axis=2)  # shape (n_sensors, n_taxels, 3)
+            rospy.loginfo_throttle(1.0, "[monitor-tactile] Waiting for contact to be established...")
+            rate.sleep()
+            continue
+
+        # --- contact is (or was) established; check current force ---
+        if robot.tactile_data is not None:
+            force_magnitudes = np.linalg.norm(robot.tactile_data, axis=2)
             max_force = np.max(force_magnitudes)
             rospy.loginfo_throttle(1.0, "[monitor-tactile] Max tactile force: %.3f", max_force)
 
             if max_force < contact_threshold:
-                robot.tactile_contact_established = False
-                rospy.logwarn("Contact lost on at all taxels (max %.3f < %.3f). Cancelling.", max_force, contact_threshold)
-                q_ = robot.get_current_joint_values()
-                if current_joints is not None:
-                    remembered_joints.append(current_joints.tolist())
-                    remembered_joints.append(q_.tolist())
-                    # remembered_joints = np.vstack((current_joints, q_))
-                else:
-                    remembered_joints = [q_.copy().reshape(1, -1).tolist()]
-                remembered_joints = robot.get_current_joint_values()
-                robot.cancel_trajectory()
-                return
-            
-            current_joints = robot.get_current_joint_values()
+                # Contact is currently lost
+                if not loss_recorded:
+                    # First cycle of this loss event — record joints
+                    q_loss = robot.get_current_joint_values()
+                    if q_loss is not None:
+                        remembered_joints.append(q_loss.tolist())
+                    loss_recorded = True
+                    rospy.logwarn(
+                        "[monitor-tactile] Contact lost (max %.3f < %.3f). "
+                        "Grace window of %.1f s started.",
+                        max_force, contact_threshold, grace_period)
 
-        current_timeout_cycles += 1
+                loss_grace_counter += 1
+                if loss_grace_counter >= grace_cycles:
+                    rospy.logwarn(
+                        "[monitor-tactile] Contact not recovered within grace window. Cancelling.")
+                    robot.tactile_contact_established = False
+                    robot.cancel_trajectory()
+                    return
+            else:
+                # Contact is present (or has returned)
+                if loss_grace_counter > 0:
+                    rospy.loginfo(
+                        "[monitor-tactile] Contact recovered after %d cycles (%.2f s).",
+                        loss_grace_counter, loss_grace_counter / check_rate)
+                loss_grace_counter = 0
+                # Note: loss_recorded stays True so we keep the first-loss joints
+
         rate.sleep()
 
     rospy.loginfo("[monitor-tactile] Trajectory finished. Exiting tactile monitor.")

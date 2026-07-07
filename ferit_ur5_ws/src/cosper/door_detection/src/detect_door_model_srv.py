@@ -2,6 +2,14 @@
 
 import os
 import sys
+
+# Force VTK (used by RVLPYDDDetector) into fully offscreen/headless mode
+# BEFORE it is imported.  VTK and OpenCV both initialise the GTK GDK type
+# system; if either does so first the other triggers a fatal GLib assertion
+# (GdkDisplayManager already registered → g_once_init_leave fails → segfault).
+# With offscreen rendering VTK never touches GDK at all.
+os.environ.setdefault("VTK_DEFAULT_RENDER_WINDOW_OFFSCREEN", "1")
+
 import json
 import yaml
 import shutil
@@ -312,7 +320,7 @@ class DoorDetectionService:
         if self.number_of_images == 0:
             rospy.logwarn("No images were captured!")
             return DetectDoorResponse(success=False, result_json="{}")
-        
+
         # Process and build model
         self.create_ply_images(self.number_of_images)
         

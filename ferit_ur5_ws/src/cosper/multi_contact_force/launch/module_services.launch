@@ -1,6 +1,7 @@
 <launch>
 
-  <arg name="config_path" default="$(find multi_contact_force)/cfg/config.yaml"/>
+  <arg name="multi_contact_config_path" default="$(find multi_contact_force)/cfg/config.yaml"/>
+  <arg name="door_detection_config_path" default="$(find door_detection)/cfg/config.yaml"/>
 
   <!-- Door Detection Service -->
   <node name="detect_door_model_srv"
@@ -8,7 +9,16 @@
         type="detect_door_model_srv.py"
         output="screen"
         required="true">
-    <param name="config_path" value="$(arg config_path)"/>
+    <param name="config_path" value="$(arg door_detection_config_path)"/>
+  </node>
+
+  <!-- Door State Detection Service -->
+  <node name="detect_door_state_srv"
+        pkg="door_detection"
+        type="detect_door_state_srv.py"
+        output="screen"
+        required="true">
+    <param name="config_path" value="$(arg door_detection_config_path)"/>
   </node>
 
   <!-- Multi-Contact Path Planning Service -->
@@ -17,7 +27,7 @@
         type="multi-contact_path_planning_srv.py"
         output="screen"
         required="true">
-    <param name="config_path" value="$(arg config_path)"/>
+    <param name="config_path" value="$(arg multi_contact_config_path)"/>
   </node>
 
 </launch>

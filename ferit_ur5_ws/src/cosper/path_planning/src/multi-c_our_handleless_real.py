@@ -34,11 +34,15 @@ if __name__ == '__main__':
 	workspace_path = os.path.dirname(pkg_path[:pkg_path.find('/src/')])
 
 	# Config
-	cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real3.yaml' % method_name)
+	# cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real3.yaml' % method_name)
+	cfg_path = os.path.join(pkg_path, 'config/config_multi-c_%s_handleless_axis_left_real2_new_table.yaml' % method_name)
 	config = read_config(cfg_path)
 	
 	# Save/load path for results
 	csv_path = config['results_path']
+	# Create results folder if it doesn't exist
+	if IS_SAVING_RESULTS and not os.path.exists(os.path.dirname(csv_path)):
+		os.makedirs(os.path.dirname(csv_path))
 
 	# Gazebo simulation launch file (UR5 moveit config launch)
 	gazebo_launch_file = config['gazebo_launch_path']
@@ -55,7 +59,7 @@ if __name__ == '__main__':
 	rvl_cfg = config['rvl_config_path'] 
 	
     # Trajectories path
-	traj_path = os.path.join(workspace_path, 'data', 'multi-contact/real_robot/Exp-real_robot_cabinet_open','trajectories_3')
+	traj_path = os.path.join(workspace_path, 'data', 'multi-contact/real_robot/Exp-real_robot_cabinet_open','trajectories_2')
 	if not os.path.exists(traj_path):
 		os.makedirs(traj_path)
 	# If False, the data loads and the experiment starts where it stopped

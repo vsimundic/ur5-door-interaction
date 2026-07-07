@@ -27,7 +27,7 @@ from geometry_msgs.msg import Point
 class UR5Controller:
     def __init__(self, move_group="arm", 
                  action_topic="/scaled_pos_joint_traj_controller/follow_joint_trajectory",
-                 rvl_cfg_path="/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_real_robot.cfg"):
+                 rvl_cfg_path="/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_one_finger.cfg"):
         moveit_commander.roscpp_initialize([])
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -373,6 +373,18 @@ class UR5Controller:
             if combined_traj.points:
                 time_offset = combined_traj.points[-1].time_from_start.to_sec()
 
+        # # Unwrap the full trajectory to remove 2π discontinuities, then shift each
+        # # joint rigidly so the path starts exactly at joint_goals[0]. This corrects
+        # # the spurious full-rotation sweep caused by MoveIt normalising angles to
+        # # [-π, π] internally before planning.
+        # if combined_traj.points:
+        #     positions = np.array([pt.positions for pt in combined_traj.points])  # (N, J)
+        #     positions = np.unwrap(positions, axis=0)
+        #     offset = np.round((joint_goals[0] - positions[0]) / (2 * np.pi)) * (2 * np.pi)
+        #     positions += offset[np.newaxis, :]
+        #     for pt, pos in zip(combined_traj.points, positions):
+        #         pt.positions = pos.tolist()
+
         rospy.loginfo("Successfully planned through %d waypoints. Total trajectory points: %d.",
                     len(joint_goals), len(combined_traj.points))
         return combined_traj, True
@@ -663,7 +675,7 @@ class UR5Controller:
         fk_service = rospy.ServiceProxy('/compute_fk', GetPositionFK)
 
         fk_request = GetPositionFKRequest()
-        fk_request.header.frame_id = 'world'
+        fk_request.header.frame_id = 'base_link'
         fk_request.header.stamp = rospy.Time.now()
         fk_request.fk_link_names = ['tool0']  # or your end-effector link
         joint_state = JointState()
@@ -864,9 +876,9 @@ class UR5Controller:
         rospy.loginfo("Published DisplayTrajectory with %d points.", len(rt.joint_trajectory.points))
 
     # --- RViz markers (line + dots) of TCP path ------------------------------
-    def publish_path_markers(self, traj, frame_id="world", topic="~path_markers",
+    def publish_path_markers(self, traj, frame_id="base_link", topic="~path_markers",
                              line_scale=0.006, sphere_scale=0.012, rgba=(0.1, 0.8, 1.0, 0.9),
-                             use_moveit_fk=False):
+                             use_moveit_fk=True):
         """
         Draw the Cartesian TCP path as a LINE_STRIP + SPHERE_LIST markers.
 
@@ -890,8 +902,7 @@ class UR5Controller:
             # RVL FK gives T_6_0 (tool in base); convert to world with T_0_W
             for q in q_path:
                 T_6_0 = self.get_fwd_kinematics(q)
-                T_6_W = self.T_0_W @ T_6_0
-                pts_xyz.append(T_6_W[:3, 3])
+                pts_xyz.append(T_6_0[:3, 3])
         if not pts_xyz:
             rospy.logwarn("No points to publish for markers.")
             return
@@ -929,8 +940,8 @@ class UR5Controller:
 
     # --- convenience: do both ------------------------------------------------
     def visualize_trajectory(self, traj, start_joints: np.ndarray = None, dt=0.2,
-                            frame_id="world", marker_topic="~path_markers",
-                            use_moveit_fk=False):
+                            frame_id="base_link", marker_topic="~path_markers",
+                            use_moveit_fk=True):
         """Show in MotionPlanning panel + draw line/dots markers."""
         self.display_trajectory(traj, start_joints=start_joints, dt=dt)
         self.publish_path_markers(traj, frame_id=frame_id, topic=marker_topic, use_moveit_fk=use_moveit_fk)

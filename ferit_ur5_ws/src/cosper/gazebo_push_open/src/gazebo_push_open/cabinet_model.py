@@ -141,13 +141,13 @@ class Cabinet():
                                       [self.axis_pos, 0, 0],
                                       [0, -1, 0]])
         self.T_D_A[:3, 3] = np.array([-self.axis_pos*self.d_door*0.5,
-                                      -self.w_door,
+                                      -self.w_door + self.axis_distance,
                                       self.h_door*0.5])
         
         self.T_D_A_init = self.T_D_A.copy()
-        self.T_D_A_init[:3, 3] = np.array([-self.axis_pos*self.d_door*0.5,
-                                      -self.w_door,
-                                      self.h_door*0.5])
+        # self.T_D_A_init[:3, 3] = np.array([-self.axis_pos*self.d_door*0.5,
+        #                               -self.w_door,
+        #                               self.h_door*0.5])
         
         # self.T_D_A[:3, :3] = rot_y(np.radians(-self.axis_pos*90.)) @ rot_z(np.radians(self.axis_pos*90.))
 
@@ -1039,8 +1039,9 @@ if __name__ == '__main__':
                             axis_pos=-1,
                             r=np.array([0.01, -0.5*door_params[0]]),
                             T_A_S=T_A_S, 
-                            save_path='/home/RVLuser/ferit_ur5_ws/cabinet_new.urdf',
-                            has_handle=False)
+                            save_path='/home/RVLuser/data/test.urdf',
+                            has_handle=False,
+                            axis_distance=0.01)
 
     # cabinet_model.save_door_panel_mesh('')
 
@@ -1052,7 +1053,7 @@ if __name__ == '__main__':
     # cab_stat_mesh = o3d.io.read_triangle_mesh('/home/RVLuser/data/multi-contact/cabinets/cabinet_static.ply')
     # cab_stat_mesh.translate(np.array([0, -0.01-0.005, 0]))
 
-    cabinet_model.change_door_angle(0)
+    cabinet_model.change_door_angle(-90.)
     cabinet_mesh = cabinet_model.create_mesh()
     cabinet_mesh.transform(np.linalg.inv(cabinet_model.T_A_O_init))
     origin_rf = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.05)

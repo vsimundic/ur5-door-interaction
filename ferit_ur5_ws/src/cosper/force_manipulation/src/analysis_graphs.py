@@ -130,11 +130,11 @@ plt.xlabel('Scene', fontsize=12)
 plt.ylabel('Number of Actions', fontsize=12)
 plt.xticks(x, fontsize=10)
 plt.yticks(fontsize=10)
-plt.axvline(x=3 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offline Calibration End')
+plt.axvline(x=4 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offline Calibration End')
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.legend(loc='upper right', fontsize=11, frameon=False)
 plt.tight_layout()
-plt.savefig(os.path.join(analysis_dir, 'comparison_num_attempts_per_scene.pdf'), bbox_inches='tight', dpi=300)
+plt.savefig(os.path.join(analysis_dir, 'comparison_num_attempts_per_scene.png'), bbox_inches='tight', dpi=300)
 plt.show()
 
 
@@ -177,7 +177,7 @@ plt.plot(offline_x, offline_final_D_dists,
 plt.plot(online_x, online_final_D_dists,
          label='W/o Offline Calibration',
          marker='s', linewidth=2, color='tab:orange')
-plt.axvline(x=3 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offline Calibration End')
+plt.axvline(x=4 - 0.5, color='gray', linestyle='--', linewidth=1.2, label='Offline Calibration End')
 
 plt.xlabel('Scene', fontsize=12)
 plt.ylabel('Distance to Ground Truth Back Panel [cm]', fontsize=12)

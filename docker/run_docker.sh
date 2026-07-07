@@ -6,6 +6,7 @@ docker rm ur5_door_interaction
 docker run --ipc=host --gpus all --runtime=runc --interactive -it \
 --shm-size=10gb \
 --env="DISPLAY" \
+--env="NVIDIA_DRIVER_CAPABILITIES=all" \
 --volume="$(dirname "${PWD}"):/home/RVLuser" \
 --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 --volume="/dev:/dev" \

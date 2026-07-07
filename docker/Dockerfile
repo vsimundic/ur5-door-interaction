@@ -208,36 +208,71 @@ RUN cd xela_suite_linux && \
 # Add to the directory to PATH - for running the server etc.
 ENV PATH="/xela_suite_linux:${PATH}"
 
-RUN mkdir -p /etc/udev/rules.d 
-RUN touch  /etc/udev/rules.d/90-slcan.rules && \
-    echo "#slcan autoloader" > /etc/udev/rules.d/90-slcan.rules && \
-    echo "SUBSYSTEM=="tty", ATTRS{idVendor}=="1d6b", ATTRS{idProduct}=="0002", SYMLINK+="ttyUSB%n", GROUP="dialout", MODE="0777", TAG+="systemd", ENV{SYSTEMD_WANTS}="slcan@%n.service"" > /etc/udev/rules.d/90-slcan.rules
+# RUN mkdir -p /etc/udev/rules.d 
+# RUN touch  /etc/udev/rules.d/90-slcan.rules && \
+#     echo "#slcan autoloader" > /etc/udev/rules.d/90-slcan.rules && \
+#     echo "SUBSYSTEM=="tty", ATTRS{idVendor}=="1d6b", ATTRS{idProduct}=="0002", SYMLINK+="ttyUSB%n", GROUP="dialout", MODE="0777", TAG+="systemd", ENV{SYSTEMD_WANTS}="slcan@%n.service"" > /etc/udev/rules.d/90-slcan.rules
 
-# Create the slcan@.service file
-RUN mkdir -p /etc/systemd/system && \
-    cat <<EOF > /etc/systemd/system/slcan@.service
-[Unit]
-Description=slcan interface
-After=dev-ttyUSB%i.device
-BindsTo=dev-ttyUSB%i.device
+# # Create the slcan@.service file
+# RUN mkdir -p /etc/systemd/system && \
+#     cat <<EOF > /etc/systemd/system/slcan@.service
+# [Unit]
+# Description=slcan interface
+# After=dev-ttyUSB%i.device
+# BindsTo=dev-ttyUSB%i.device
 
-[Service]
-ExecStart=/usr/local/bin/slcan_add.sh %I
-Type=forking
-EOF
+# [Service]
+# ExecStart=/usr/local/bin/slcan_add.sh %I
+# Type=forking
+# EOF
 
-RUN chmod +x /etc/systemd/system/slcan@.service
+# RUN chmod +x /etc/systemd/system/slcan@.service
     
-# Create the slcan_add.sh script
-RUN mkdir -p /usr/local/bin && \
-    cat <<EOF > /usr/local/bin/slcan_add.sh
-#!/bin/sh
+# # Create the slcan_add.sh script
+# RUN mkdir -p /usr/local/bin && \
+#     cat <<EOF > /usr/local/bin/slcan_add.sh
+# #!/bin/sh
 
-sleep 1
-slcand -o -c -f -s8 -t hw -S 3000000 /dev/ttyUSB\$1 slcan\$1
-sleep 1
-ifconfig slcan\$1 up
-EOF
+# sleep 1
+# slcand -o -c -f -s8 -t hw -S 3000000 /dev/ttyUSB\$1 slcan\$1
+# sleep 1
+# ifconfig slcan\$1 up
+# EOF
+
+
+
+# udev rules:
+#   90-slcan.rules  — auto-bring-up slcan interface on USB-serial plug
+#   99-xela-can.rules — persistent /dev/ttyXELA symlink (FTDI FT232, vid=0403 pid=6001)
+#   Note: udev rules are placed here so they can be copied to the host.
+#         Inside the container they are not automatically active.
+RUN mkdir -p /etc/udev/rules.d
+
+RUN printf '%s\n' \
+    '# slcan autoloader' \
+    'SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", \
+GROUP="dialout", MODE="0666", \
+TAG+="systemd", ENV{SYSTEMD_WANTS}="slcan@%n.service"' \
+    > /etc/udev/rules.d/90-slcan.rules
+
+RUN printf '%s\n' \
+    '# XELA uSPa 44 — persistent symlink regardless of replug order' \
+    'SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyXELA", MODE="0666"' \
+    > /etc/udev/rules.d/99-xela-can.rules
+
+# systemd service to bring up slcan interface automatically
+RUN mkdir -p /etc/systemd/system && \
+    printf '[Unit]\nDescription=slcan interface\nAfter=dev-ttyUSB%%i.device\nBindsTo=dev-ttyUSB%%i.device\n\n[Service]\nExecStart=/usr/local/bin/slcan_add.sh %%I\nType=forking\n' \
+    > /etc/systemd/system/slcan@.service && \
+    chmod +x /etc/systemd/system/slcan@.service
+
+# Helper script: bring up slcan interface for a given ttyUSB index
+RUN mkdir -p /usr/local/bin && \
+    printf '#!/bin/sh\nsleep 1\nslcand -o -c -f -s8 -t hw -S 3000000 /dev/ttyUSB$1 slcan$1\nsleep 1\nifconfig slcan$1 up\n' \
+    > /usr/local/bin/slcan_add.sh && \
+    chmod +x /usr/local/bin/slcan_add.sh
+
+
 
 RUN apt-get update && apt-get install -y \
     net-tools \

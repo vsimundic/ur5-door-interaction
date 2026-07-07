@@ -1,12 +1,11 @@
 # Paths
-trajectory_dir: "/home/RVLuser/data/multi-contact/real_robot/Exp-real_robot_cabinet_open/trajectories_3"
-door_configs_path: "/home/RVLuser/data/multi-contact/cabinet_configurations_axis_left_real3.npy"
-results_path: "/home/RVLuser/data/multi-contact/results_multi-c_our_handleless_real3.csv"
-results_csv_path: "/home/RVLuser/data/multi-contact/results_multi-c_our_handleless_real3.csv"
+door_configs_path: "/home/RVLuser/data/multi-contact_force/cabinet_configurations_axis_left_real3.npy"
+results_path: "/home/RVLuser/data/multi-contact_force/results_multi-c_our_handleless_real3.csv"
+results_csv_path: "/home/RVLuser/data/multi-contact_force/results_multi-c_our_handleless_real3.csv"
 
 # RVL
 rvl_cfg_path: "/home/RVLuser/rvl-linux/RVLMotionDemo_Cupec_one_finger.cfg"
-rvl_touch_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec.cfg"
+rvl_touch_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec_new_mesh_real.cfg"
 
 # Camera calibration
 T_C_6_path: "/home/RVLuser/data/camera_calibration_20250331/T_C_6.npy"
@@ -14,11 +13,13 @@ T_C_6_path: "/home/RVLuser/data/camera_calibration_20250331/T_C_6.npy"
 # Cabinet physical params
 door_thickness: 0.017
 static_depth: 0.35
+cabinet_mesh_path: "/home/RVLuser/data/multi-contact_force/cabinet_meshes/cabinet_mesh.ply"
 
-# # Force thresholds
-# force_threshold_approach: 30.0
-# force_threshold_insertion: 10.0
-# force_threshold_opening: 40.0
+# Force thresholds
+force_threshold_approach: 30.0
+force_threshold_insertion: 7.0
+force_threshold_opening: 30.0
+use_tactile: true
 
 # Camera parameters
 camera:
@@ -31,7 +32,7 @@ camera:
 
 # Door detection params
 detection_base_dir: "/home/RVLuser/data/multi-contact_force/door_detection"
-load_existing_models: true
+load_existing_models: true # Load existing models if available
 state_detection_dir: "state_detection"
 
 # Path planning parameters
@@ -40,3 +41,24 @@ static_side_width: 0.017
 moving_to_static_part_distance: 0.005
 plan_num_states: 37
 plan_target_angle: -90.0
+
+# Tool geometry (used by py_touch)
+tool:
+  tx_E: 0.149       # 0.155 - tactile_sensor_depth
+  tz_E: 0.278
+  tx_G: 0.0721
+  tz_G_one_finger: 0.1041
+  a: 0.0205
+  b: 0.032
+  c: 0.011
+  d: 0.026
+  h: 0.023
+  rotz_angle: -0.7854  # -pi/4
+
+# Touch correction parameters
+touch:
+  a: 0.35   # same as static_depth
+  b: 0.0
+  c: 0.005
+
+tactile_sensor_depth: 0.006

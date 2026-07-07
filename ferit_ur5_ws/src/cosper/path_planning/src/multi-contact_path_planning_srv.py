@@ -77,8 +77,8 @@ class RVLPathPlanningService:
                 q[:, 5] -= np.pi
                 q[q > np.pi] -= (2.0 * np.pi)
                 q[q < -np.pi] += (2.0 * np.pi)
-                q = np.unwrap(q, axis=0)
-                
+                q[1:] = np.unwrap(q[1:], axis=0)
+
                 flat_q = q.flatten().tolist()
                 rospy.loginfo(f"Path successfully found with {num_points} waypoints.")
             else:

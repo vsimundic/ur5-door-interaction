@@ -208,6 +208,16 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        // Attach the Python debugger to ANY running roslaunch node.
+        // Run roslaunch first, then pick the python3 process you want
+        // (type part of the script name, e.g. "detect_door", to filter).
+        {
+            "name": "Attach to ROS Python node (by PID)",
+            "type": "debugpy",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "justMyCode": false
         }
     ]
 }
