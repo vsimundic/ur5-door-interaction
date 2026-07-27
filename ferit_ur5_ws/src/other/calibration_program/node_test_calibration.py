@@ -4,7 +4,6 @@ from sensor_msgs.msg import Image
 import numpy as np
 import cv2
 import cv_bridge
-import aruco
 import os
 import traceback
 from core.transforms import pose_to_matrix
@@ -36,7 +35,7 @@ if __name__ == '__main__':
     # camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
     camera_params_path = os.path.join(os.path.dirname(__file__), "rgb_IntelRealSense_L550_params.yaml")
     aruco_dict_path = os.path.join(os.path.dirname(__file__), "4x4_1000.dict")
-    save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_T.npy")
+    save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_6.npy")
     camReader = CameraReader(image_topic)
     arucoDetector = ArucoDetector(camera_params_path, aruco_dict_path)
     robotComms = RobotComms(move_group_name)
@@ -44,6 +43,8 @@ if __name__ == '__main__':
     T_C_T = np.load(save_E_T_C_path)
     print('TCT:\n', T_C_T)
     T_G_T = np.load(os.path.join(os.path.dirname(__file__), 'T_G_T_pen.npy'))
+    T_G_T[:3, 3] = np.array([0.0, 0.0, 0.310])
+    
     T_M_0_array = ''
     T_G_0 = ''
     while True:

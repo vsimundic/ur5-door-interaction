@@ -2,6 +2,7 @@
 
 import rospy
 import readline
+import sys
 import traceback
 import os
 import numpy as np
@@ -9,6 +10,7 @@ import numpy as np
 from CameraReader import CameraReader
 from ArucoDetector import ArucoDetector
 from RobotComms import RobotComms
+from LiveView import LiveView
 
 from CameraCommands import CameraCommands
 from RobotCommands import RobotCommands
@@ -17,6 +19,18 @@ from ImageCommands import ImageCommands
 from MarkerCommands import MarkerCommands
 
 import izracun
+
+
+PROMPT = ">>"
+
+
+def print_above_prompt(message):
+    """Print from a background thread without corrupting the in-progress
+    input()/readline prompt line: clear the current line, print the message,
+    then redraw the prompt with whatever the user had already typed."""
+    line = readline.get_line_buffer()
+    sys.stdout.write("\r\033[K" + message + "\n" + PROMPT + line)
+    sys.stdout.flush()
 
 
 def printHelp():
@@ -49,7 +63,7 @@ if __name__ == '__main__':
     # camera_params_path = os.path.join(os.path.dirname(__file__), "camera_parameters_asus.yml")
     camera_params_path = os.path.join(os.path.dirname(__file__), "rgb_IntelRealSense_L550_params.yaml")
     aruco_dict_path = os.path.join(os.path.dirname(__file__), "4x4_1000.dict")
-    save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_T.npy")
+    save_E_T_C_path = os.path.join(os.path.dirname(__file__), "T_C_6.npy")
 
     camerareader = CameraReader(image_topic)
     arucoDetector = ArucoDetector(camera_params_path, aruco_dict_path)
@@ -57,28 +71,42 @@ if __name__ == '__main__':
 
 
     # TODO-1: set the position of the calibration pen w.r.t. robot flange (last float is a fixed 1.0)
-    tool_E = np.array([0, 0, 0.3154, 1.0])
+    tool_E = np.array([0, 0, 0.310, 1.0])
     
 
     # TODO-2: Set the marker size (in meters)
     marker_size = 0.15
 
-    cameraCommands = CameraCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size)
+    liveView = LiveView(camerareader, arucoDetector, marker_size=marker_size)
+    liveView.start()
+
+    cameraCommands = CameraCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size, liveView=liveView)
     robotCommands = RobotCommands(robotComms)
     gripperCommands = GripperCommands()
 
-    imageCommands = ImageCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size)
+    imageCommands = ImageCommands(camerareader, arucoDetector, robotComms, marker_size=marker_size, liveView=liveView)
     markerCommands = MarkerCommands(robotComms)
-    
+
+    def capture_from_live_view():
+        index = len(imageCommands.images)
+        imageCommands.command_capture()
+        num_markers = len(imageCommands.images[index]["markers"])
+        print_above_prompt("[space] Captured image {} ({} markers detected)".format(index, num_markers))
+
+    liveView.set_on_capture(capture_from_live_view)
+
+    print("Live camera window is open; press 'a' to toggle the ArUco overlay, space to capture an image.")
+
     while True:
         try:
-            text = input(">>")
+            text = input(PROMPT)
             input_split = text.split(' ', 1)
             command = input_split[0]
             rest = ""
             if(len(input_split) == 2):
                 rest = input_split[1]
             if(command == "quit" or command == "q"):
+                liveView.stop()
                 break
             elif(command == "camera"):
                 cameraCommands.eval(rest)

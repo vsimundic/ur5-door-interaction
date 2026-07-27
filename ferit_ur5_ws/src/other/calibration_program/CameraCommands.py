@@ -1,15 +1,15 @@
-import os
 import cv2
-import aruco
 import numpy as np
 import pose_matrix_conversion
 
 class CameraCommands:
-  def __init__(self, cameraReader, ArUco, robotComms):
+  def __init__(self, cameraReader, ArUco, robotComms, marker_size=0.15, liveView=None):
     self.images = []
     self.ArUco = ArUco
     self.cameraReader = cameraReader
     self.robotComms = robotComms
+    self.marker_size = marker_size
+    self.liveView = liveView
     self.E_T_C = None
     self.tool_E = None
     
@@ -56,33 +56,24 @@ class CameraCommands:
 
   def command_show(self, arguments):
     image = self.cameraReader.lastimage.copy()
-    if 'DISPLAY' in os.environ.keys():
-      cv2.imshow("image", image)
-      cv2.waitKey(0)
-    else:
-      print("No display!")
-    
+    self.liveView.show_still(image, "camera")
+
   def command_showaruco(self, arguments):
     image = self.cameraReader.lastimage.copy()
-    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, self.marker_size)
     for marker in markers:
       print("Marker: {:d}".format(marker.id))
       print("center: {}".format(marker.getCenter()))
       mtx = marker.getTransformMatrix()
       print("M: {}".format(np.array(mtx)))
       marker.draw(image, np.array([255, 255, 255]), 2)
-      marker.calculateExtrinsics(0.15, self.ArUco.camparam)
-      aruco.CvDrawingUtils.draw3dAxis(image, self.ArUco.camparam, marker.Rvec, marker.Tvec, .1)
-    if 'DISPLAY' in os.environ.keys():
-      cv2.imshow("image", image)
-      cv2.waitKey(0)
-    else:
-      print("No display!")
+      marker.draw3dAxis(image, self.ArUco.camparam, .1)
+    self.liveView.show_still(image, "camera aruco")
       
   def command_info(self, arguments):
     index = int(arguments)
     image = self.images[index]
-    markers = self.ArUco.detector.detect(image["image"], self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image["image"], self.ArUco.camparam, self.marker_size)
     print("Image {}".format(index))
     print("Position: {}".format(image["pose"]))
     print("\nDetected markers:")
@@ -111,7 +102,7 @@ class CameraCommands:
     markerIndex = int(markerIndex)
 
     image = self.cameraReader.lastimage.copy()
-    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, self.marker_size)
 
     marker_matrix = None
     

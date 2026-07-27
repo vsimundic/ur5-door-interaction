@@ -17,7 +17,7 @@ rvl_touch_cfg: "/home/RVLuser/rvl-linux/RVLMotionDemo_Touch_Cupec_new_mesh_real.
 
 # Hardware params
 gripper_mesh_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/mesh.ply"
-T_C_6_path: "/home/RVLuser/data/camera_calibration_20250331/T_C_6.npy"
+T_C_6_path: "/home/RVLuser/data/Exp-camera-extrinsic-calibration-20260724/T_C_6.npy"
 T_G_6_path: "/home/RVLuser/data/Robotiq3Finger/one_finger/robotiq_new_mesh/T_G_6.npy"
 tactile_sensor_depth: 0.006
 tactile_sensor_width: 0.023

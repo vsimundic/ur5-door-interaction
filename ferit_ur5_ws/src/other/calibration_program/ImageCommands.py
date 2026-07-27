@@ -1,6 +1,4 @@
-import os
 import cv2
-import aruco
 import numpy as np
 import pose_matrix_conversion
 import json
@@ -9,11 +7,13 @@ import yaml
 import matplotlib.pyplot as plt
 
 class ImageCommands:
-  def __init__(self, cameraReader, ArUco, robotComms):
+  def __init__(self, cameraReader, ArUco, robotComms, marker_size=0.15, liveView=None):
     self.images = []
     self.ArUco = ArUco
     self.cameraReader = cameraReader
     self.robotComms = robotComms
+    self.marker_size = marker_size
+    self.liveView = liveView
     self.E_T_C = None
     self.tool_E = None
     self.markers = None
@@ -84,16 +84,12 @@ class ImageCommands:
   def command_show(self, arguments):
     index = int(arguments)
     image = self.images[index]["image"]
-    if 'DISPLAY' in os.environ.keys():
-      cv2.imshow("image", image)
-      cv2.waitKey(0)
-    else:
-      print("No display!")
+    self.liveView.show_still(image, "image {}".format(index))
 
   def command_capture(self):
     image = self.cameraReader.lastimage.copy()
     pose = self.robotComms.pose()
-    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, self.marker_size)
     marker_list = []
     for marker in markers:
       marker_matrix = marker.getTransformMatrix()
@@ -104,20 +100,15 @@ class ImageCommands:
   def command_showaruco(self, arguments):
     index = int(arguments)
     image = self.images[index]["image"].copy()
-    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image, self.ArUco.camparam, self.marker_size)
     for marker in markers:
       print("Marker: {:d}".format(marker.id))
       print("center: {}".format(marker.getCenter()))
       mtx = marker.getTransformMatrix()
       print("M: {}".format(mtx))
       marker.draw(image, np.array([255, 255, 255]), 2)
-      marker.calculateExtrinsics(0.15, self.ArUco.camparam)
-      aruco.CvDrawingUtils.draw3dAxis(image, self.ArUco.camparam, marker.Rvec, marker.Tvec, .1)
-    if 'DISPLAY' in os.environ.keys():
-      cv2.imshow("image", image)
-      cv2.waitKey(0)
-    else:
-      print("No display!")
+      marker.draw3dAxis(image, self.ArUco.camparam, .1)
+    self.liveView.show_still(image, "image {} aruco".format(index))
 
   def command_showvisualization(self, arguments):
     if(self.E_T_C is None):
@@ -170,7 +161,7 @@ class ImageCommands:
       image["pose"] = pose
       image["position"] = pose_matrix_conversion.pose_to_matrix(pose)
 
-    markers = self.ArUco.detector.detect(image_data, self.ArUco.camparam, 0.15)
+    markers = self.ArUco.detector.detect(image_data, self.ArUco.camparam, self.marker_size)
     marker_list = []
     for marker in markers:
       marker_matrix = marker.getTransformMatrix()
